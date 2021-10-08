@@ -1,8 +1,8 @@
-###########R-code for: Chapter 3 parasites############################################################
+########### R-code Phd Chapter 3 parasites and flocking species############################################################
 # This contains the code to explore an analyse data for chapter 3 
 #
 #
-#last modeified Oct 8 2021
+#last modified Oct 8 2021
 ###
 # Loading packages --------------------------------------------------------
 # libraries for easier manipulation of data
