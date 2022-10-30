@@ -14,6 +14,8 @@ install.packages("dplyr")
 install.packages ("data.table")
 install.packages ("extrafont")
 installed.packages("lubridate")  #for dates
+#data cleaning
+install.packages ("janitor")
 
 #Other libraries for data analyses and visualizations
 install.packages("vegan")
@@ -41,6 +43,9 @@ library(dplyr)
 library(data.table)
 library(extrafont)
 library(lubridate)
+# data cleaning 
+
+library(janitor)
 # for data visualization
 library(vegan)
 library(ggplot2)
@@ -59,9 +64,12 @@ library(MuMIn) #pseudo R squared for GLMMs
 #library(dplyr) 
 
 # Part 1 Data --------------------------------------------------------------------
-lice
-mice
-ticks
+ectoparasites_general<-read.csv("data/7.ectoparasite_raw_pres_abs_07222022.csv")
+lice_only<-read.csv("data/7.ectoparsite_raw_lice_abundance_07222022.csv")
+mites_only<-read.csv("data/7.ectoparsite_raw_mites_abundance_07222022.csv")
+ticks_only<-read.csv("data/7.ectoparsite_raw_ticks_abundance_07222022.csv")
+
+sociality<-
 
 bird_taxonomy 
 
@@ -69,13 +77,143 @@ bird_traits
 
 samples_elevation
 
+phylogenetic_order<-read.csv("additional_info/jetz_information_species_manu.csv",header=TRUE, strip.white=TRUE, na.strings = c("NA","")) 
+taxonomy_2021<-read.csv("additional_info/taxonomy_revision_2021.csv",header=TRUE, strip.white=TRUE, na.strings = c("NA",""))
 
 
-ectoparasites
-
-# Part 2 Visualisation--------------------------------------------------------------------
 
 
+# Part 2  data exploration  AND Visualisation and--------------------------------------------------------------------
+
+#General ectoparasite data
+str(ectoparasites_general)
+ectoparasites<-ectoparasites_general %>% unite (col = "species_binomial", c('Host.genus','Host.species'), sep='_')
+str(ectoparasites)
+janitor::get_dupes(ectoparasites) # make sure there are not duplicatesduplicates
+host_list<-distinct(ectoparasites, species_binomial , .keep_all = FALSE) # remove duplicated
+host_list_general<-  host_list %>%  arrange(desc(species_binomial))
+
+# general lice data
+str(lice)
+lice<-lice_only%>% unite (col = "species_binomial", c('Host.Genus','Host.Species'), sep='_')
+janitor::get_dupes(lice) # make sure there are not duplicatesduplicates
+host_list_lice<-distinct(lice, species_binomial , .keep_all = FALSE)
+host_list_lice<-  host_list_lice %>%  arrange(desc(species_binomial))
+
+# general mites data
+str(mites_only)
+mites<-mites_only%>% unite (col = "species_binomial", c('Host.genus','Host.species'), sep='_')
+janitor::get_dupes(mites) # make sure there are not duplicatesduplicates
+host_list_mites<-distinct(mites, species_binomial , .keep_all = FALSE)
+host_list_mites<-host_list_mites %>%  arrange(desc(species_binomial))
+
+# general ticks data
+str(ticks_only)
+ticks<-ticks_only%>% unite (col = "species_binomial", c('Host.Genus','Host.Species'), sep='_')
+janitor::get_dupes(ticks) # make sure there are not duplicatesduplicates
+host_list_ticks<-distinct(ticks, species_binomial , .keep_all = FALSE)
+host_list_ticks<-host_list_ticks %>%  arrange(desc(species_binomial))
+
+
+# #Taxonomy Matching ----------------------------------------------------
+# Step 1  Taxonomy Remove typos and extra spaces -----------------------
+# Remove typos that we found 
+
+# But also there are some species that are not in the general host list, in which we need to reconciliate the taxonomy
+
+dplyr::setdiff( host_list_lice,host_list_general)
+dplyr::setdiff( host_list_mites,host_list_general)
+dplyr::setdiff( host_list_ticks,host_list_general)
+
+# on the left is how species are in the general list on the righ ow they are in the other list we need to reconciliate this taxonomy
+#Phylloscartes_ophthalmicus= Pogonotriccus_ophthalmicus
+#Hafferia_fortis= Percnostola_fortis
+#Dixiphia_pipra = Pseudopipra pipra
+#Chlorospingus_flavopectus = Chlorospingus_opthalmicus
+#Cyanocompsa_cyanoides= Cyanoloxia_cyanoides
+
+# Some typos in all the list  general, mites, lice
+
+names(mites)
+
+#mites<-mites %>% mutate(species_clean=species_binomial) #duplicate the species column
+names(ectoparasites)
+ectoparasites<-ectoparasites %>% mutate(species_clean=str_replace_all(species_binomial,c("Ceratopipra _chloromeros"="Ceratopipra_chloromeros",
+                                                                                         "Chlorospingus_opthalmicus"="Chlorospingus_ophthalmicus",
+                                                                                         "Galbula_cynescens"="Galbula_cyanescens",
+                                                                                         "Mionectes _olivaceus"="Mionectes_olivaceus",
+                                                                                         "Rhyncgocyclus_fulvipectus"="Rhynchocyclus_fulvipectus",
+                                                                                         "Sclerurus_caudatus"="Sclerurus_caudacutus",
+                                                                                         "Sporathraupis _cyanocephala"="Sporathraupis_cyanocephala",
+                                                                                         "Syndactyla _ucayalae"="Syndactyla_ucayalae",
+                                                                                         "XIphorhynchus_elegans"="Xiphorhynchus_elegans",
+                                                                                         "Pogonotriccus_ophthalmicus"="Phylloscartes_ophthalmicus",
+                                                                                         "Percnostola_fortis"="Hafferia_fortis",
+                                                                                         "Pseudopipra_pipra"="Dixiphia_pipra",
+                                                                                         "Chlorospingus_opthalmicus"="Chlorospingus_flavopectus",
+                                                                                         "Cyanocompsa_cyanoides"="Cyanoloxia_cyanoides")))
+
+
+                
+mites<-mites %>% mutate(species_clean=str_replace_all(species_binomial,c("Ceratopipra _chloromeros"="Ceratopipra_chloromeros",
+                                                                  "Chlorospingus_opthalmicus"="Chlorospingus_ophthalmicus",
+                                                                  "Galbula_cynescens"="Galbula_cyanescens",
+                                                                  "Mionectes _olivaceus"="Mionectes_olivaceus",
+                                                                  "Rhyncgocyclus_fulvipectus"="Rhynchocyclus_fulvipectus",
+                                                                  "Sclerurus_caudatus"="Sclerurus_caudacutus",
+                                                                  "Sporathraupis _cyanocephala"="Sporathraupis_cyanocephala",
+                                                                  "Syndactyla _ucayalae"="Syndactyla_ucayalae",
+                                                                  "XIphorhynchus_elegans"="Xiphorhynchus_elegans",
+                                                                  "Pogonotriccus_ophthalmicus"="Phylloscartes_ophthalmicus",
+                                                                  "Percnostola_fortis"="Hafferia_fortis",
+                                                                  "Pseudopipra_pipra"="Dixiphia_pipra",
+                                                                  "Chlorospingus_opthalmicus"="Chlorospingus_flavopectus",
+                                                                  "Cyanocompsa_cyanoides"="Cyanoloxia_cyanoides")))
+
+names(lice)
+lice<-lice %>% mutate(species_clean=str_replace_all(species_binomial,c("Ceratopipra _chloromeros"="Ceratopipra_chloromeros",
+                                                                         "Chlorospingus_opthalmicus"="Chlorospingus_ophthalmicus",
+                                                                         "Galbula_cynescens"="Galbula_cyanescens",
+                                                                         "Mionectes _olivaceus"="Mionectes_olivaceus",
+                                                                         "Rhyncgocyclus_fulvipectus"="Rhynchocyclus_fulvipectus",
+                                                                         "Sclerurus_caudatus"="Sclerurus_caudacutus",
+                                                                         "Sporathraupis _cyanocephala"="Sporathraupis_cyanocephala",
+                                                                         "Syndactyla _ucayalae"="Syndactyla_ucayalae",
+                                                                         "XIphorhynchus_elegans"="Xiphorhynchus_elegans",
+                                                                       "Pogonotriccus_ophthalmicus"="Phylloscartes_ophthalmicus",
+                                                                       "Percnostola_fortis"="Hafferia_fortis",
+                                                                       "Pseudopipra_pipra"="Dixiphia_pipra",
+                                                                       "Chlorospingus_opthalmicus"="Chlorospingus_flavopectus",
+                                                                       "Cyanocompsa_cyanoides"="Cyanoloxia_cyanoides")))
+
+names(ticks)
+ticks<-ticks %>% mutate(species_clean=str_replace_all(species_binomial,c("Ceratopipra _chloromeros"="Ceratopipra_chloromeros",
+                                                                       "Chlorospingus_opthalmicus"="Chlorospingus_ophthalmicus",
+                                                                       "Galbula_cynescens"="Galbula_cyanescens",
+                                                                       "Mionectes _olivaceus"="Mionectes_olivaceus",
+                                                                       "Rhyncgocyclus_fulvipectus"="Rhynchocyclus_fulvipectus",
+                                                                       "Sclerurus_caudatus"="Sclerurus_caudacutus",
+                                                                       "Sporathraupis _cyanocephala"="Sporathraupis_cyanocephala",
+                                                                       "Syndactyla _ucayalae"="Syndactyla_ucayalae",
+                                                                       "XIphorhynchus_elegans"="Xiphorhynchus_elegans",
+                                                                       "Pogonotriccus_ophthalmicus"="Phylloscartes_ophthalmicus",
+                                                                       "Percnostola_fortis"="Hafferia_fortis",
+                                                                       "Pseudopipra_pipra"="Dixiphia_pipra",
+                                                                       "Chlorospingus_opthalmicus"="Chlorospingus_flavopectus",
+                                                                       "Cyanocompsa_cyanoides"="Cyanoloxia_cyanoides")))
+
+
+# Step 2  Reconciliate  reconciliate taxonomy with the current taxonomy of Manu database for traits and sociality -----------------------
+
+
+
+
+
+We match the taxonomy with jetz taxonomy 
+We update the taxonomy to the SACC 2022
+
+
+ 
 # Part 3 Modeling abundance~Mice ------------------------------------------------------
 
 
