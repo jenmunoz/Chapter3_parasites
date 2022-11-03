@@ -676,12 +676,14 @@ mites_df <-mites_df %>% mutate_at("sociality", str_replace, "no", "0")
 mites_df$elevation_cat<-as.factor(mites_df$elevation_cat)
 mites_df$foraging_cat<-as.factor(mites_df$foraging_cat)
 mites_df$species_jetz<-as.factor(mites_df$species_jetz)
-mites_df$total_lice<-as.numeric(mites_df$total_mites)
+mites_df$total_mites<-as.numeric(mites_df$total_mites)
 
 unique (mites_df$total_mites)
 
 ###_###_###_###
 write_csv(mites_df, "data/7.mites_df_abundance.csv")
+mites_df<-read.csv( "data/7.mites_df_abundance.csv")
+str(mites_df)
 ###_###_###_###
 
 
@@ -720,84 +722,96 @@ ticks_df$total_lice<-as.numeric(ticks_df$Total)
 unique (ticks_df$Total)
 ###_###_###_###
 write_csv(ticks_df, "data/7.ticks_df_abundance.csv")
+ticks_df<-read.csv( "data/7.ticks_df_abundance.csv")
+
 ###_###_###_###
 
-# Part 3.c Diversity------------------------------------------------------------------
+# Part 3.c Diversity Lice------------------------------------------------------------------
+### Lice 
 #At the genus level
 str(lice_df)
+
+lice_df_wide<-lice_df %>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,Lice.Genus, Lice.Species, Lice.Genus2, Lice.Species2, Lice.Genus3, Lice.Species3,
+                                   sociality,foraging_cat, elevation_cat,TipLabel, Full_Label ) %>% 
+  summarise()
+
+keycol <- "column"
+valuecol <- "ectos_genus"
+gathercols <- c("Lice.Genus", "Lice.Genus2", "Lice.Genus3")
+
+lice_df_diversity_genus<-gather(lice_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
+
+###_###_###_###
+write_csv(lice_df_diversity_genus,"data/7.lice_df_diversity_genus.csv")
+###_###_###_###
+
+
+# At the species level 
+
 
 lice_df<-lice_df %>% unite (col = "ectos_binomial", c('Lice.Genus','Lice.Species'), sep='_')
 lice_df<-lice_df %>% unite (col = "ectos_binomial2", c('Lice.Genus2','Lice.Species2'), sep='_')
 lice_df<-lice_df %>% unite (col = "ectos_binomial3", c('Lice.Genus3','Lice.Species3'), sep='_')
 
 
-
-ectoparasites<-ectoparasites_general %>% unite (col = "species_binomial", c('Host.genus','Host.species'), sep='_')
-
-
-
-
-lice_df_wide2<-lice_df %>% group_by(Host.Family,species_jetz,ectos_binomial,ectos_binomial2, ectos_binomial3,
-                                   foraging_cat, elevation_cat,TipLabel, Full_Label ) %>% 
+lice_df_wide2<-lice_df %>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,ectos_binomial,ectos_binomial2, ectos_binomial3,
+                                   foraging_cat, elevation_cat,TipLabel, Full_Label, sociality) %>% 
   summarise()
 
-View(lice_df_wide2)
-
-
-lice_df_wide<-lice_df %>% group_by(Host.Family,species_jetz,Lice.Genus, Lice.Species, Lice.Genus2, Lice.Species2, Lice.Genus3, Lice.Species3,
-                                   foraging_cat, elevation_cat,TipLabel, Full_Label ) %>% 
-  summarise()
-
-gather_(olddata_wide, keycol, valuecol, gathercols)
-
-keycol <- "colum"
+keycol <- "column"
 valuecol <- "ectos_species"
-gathercols <- c("Lice.Genus", "Lice.Genus2", "Lice.Genus3")
 gathercols <- c("ectos_binomial","ectos_binomial2", "ectos_binomial3")
 
 
-gather(lice_df_wide2, keycol, valuecol, gathercols)%>% View
+lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %>% arrange(desc(species_jetz))
 
-gather(lice_df_wide,genus,Lice.Genus,Lice.Genus2,Lice.Genus3) %>% View
+  ###_###_###_###
+  write_csv(lice_df_diversity_species,"data/7.lice_df_diversity_species.csv")
+  ###_###_###_###               
+                
+  # Part 3.c Diversity Mites------------------------------------------------------------------
   
+# Mites
+  
+  #At the group level
+  view(mites_df)
+  
+ names(mites_df)
+  mites_df_wide<-mites_df%>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,Mite.Group, Mite.Genus, Mite.Group2, Mite.Genus2,                                    sociality,foraging_cat, elevation_cat,TipLabel, Sample.Full.. ) %>% dplyr::summarise()
+  
+  keycol <- "column"
+  valuecol <- "mites_group"
+  gathercols <- c("Mite.Group", "Mite.Group2")
+  
+  mites_df_diversity_group<-gather(mites_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
+  
+  View(mites_df_diversity_group)
+  ###_###_###_###
+  write_csv(mites_df_diversity_group,"data/7.mites_df_diversity_group.csv")
+  ###_###_###_###
+  
+  # At the genus level 
+  
+  view(mites_df)
+  names(mites_df)
+  
+  mites_df_wide2<-mites_df%>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,Mite.Group, Mite.Genus, Mite.Group2, Mite.Genus2,
+                                      sociality,foraging_cat, elevation_cat,TipLabel, Sample.Full.. ) %>% dplyr::summarise()
+  
+  keycol <- "column"
+  valuecol <- "mites_genus"
+  gathercols <- c("Mite.Genus", "Mite.Genus2")
+  
+  mites_df_diversity_genus<-gather(mites_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
+  
+  View(mites_df_diversity_genus)
+  ###_###_###_###
+  write_csv(mites_df_diversity_genus,"data/7.mites_df_diversity_genus.csv")
+  ###_###_###_###
+  
+# Diversit level at the ticks leves( we dont have enight information)
 
-mites_df
-ticks_df
-
-
-###_###_###_###
-# Restructuring the data 
-###_###_###_###
-
-lice_df<-lice_df %>% 
-  mutate_at("Total", str_replace, "unknown eggs found","0" )
-
-
-
-
-#2 To get the diversity we need to summarize number of
-#A) lice genus per host species 
-#a) lice species per host species (sumarize distinct )
-
-
-View(lice_df)
-
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Lice", str_replace, "Yes", "1")
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Lice", str_replace, "No", "0")
-
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Mites", str_replace, "No", "0")
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Mites", str_replace, "no", "0")
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Mites", str_replace, "Yes", "1")
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Mites", str_replace, "Yes?", "1")
-
-ectoparasites_df <-ectoparasites_df %>% mutate_at("Ticks", str_replace, "Yes", "1")
-ectoparasites_df <-ectoparasites_df %>% mutate_at("T", str_replace, "No", "0")
-
-#unique(ectoparasites_df$Ticks)
-
-
-                  
-
+                
 # Part 3 Modeling abundance~Mice ------------------------------------------------------
 
 
