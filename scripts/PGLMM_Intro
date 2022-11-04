@@ -1,3 +1,24 @@
+
+
+phyr: An r package for phylogenetic species-distribution modelling in ecological communities
+
+This is the paper https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
+
+Here are links to the files as GitHub gists: 
+PGLMM.data.R:  https://gist.github.com/1278205
+PGLMM.fit.R:  https://gist.github.com/1284284
+PGLMM.reml.R:  https://gist.github.com/1284287
+PGLMM.sim.R:  https://gist.github.com/1284288
+PGLMM_example.R:  https://gist.github.com/1284442
+
+
+
+
+
+
+
+
+
 Function pglmm() constructs and fits GLMMs that incorporate co- variance matrices containing the phylogenetic relationships among species. The syntax for pglmm() resembles that used in the r package lme4 (Bates, Mächler, Bolker, & Walker, 2015), and indeed pglmm() will fit most of the models that can be fit with lmer() and glmer(). pglmm() goes beyond lmer() and glmer() by allowing the specifica- tion of covariance matrices, which could be phylogenetic covariance matrices or any other covariance matrices that the user defines (e.g. spatial or temporal autocorrelation matrix). pglmm() can also fit mod- els with ‘nested’ covariance structures (e.g. a species phylogenetic covariance matrix nested within a site covariance matrix). pglmm() can operate in both frequentist mode, with the distribution of spe- cies among communities being Gaussian, binary, binomial or Poisson, and Bayesian mode with the addition of zero-inflated binomial and Poisson distributions. Finally, it is our hope that the formula syntax of pglmm() can be used to fit similar models with other programs such as Stan (e.g. via r package brms Bürkner, 2018).
 
 A general example of the syntax for pglmm() is
@@ -58,7 +79,7 @@ summary(z)
 ## Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 
-The summary of model results includes the model fitting method (maximum likelihood or Bayesian), the model formula, log likelihood and other related statistics (AIC, BIC and DIC), estimates of variances of random terms, coefficients of fixed terms and their uncertainties. These results show that pglmm() correctly recovered that the hy- pothetic functional trait interacted with environmental variable to affect species composition
+The summary of model results includes the model fitting method (maximum likelihood or Bayesian), the model formula, log likelihood and other related statistics (AIC, BIC and DIC), estimates of variances of random terms, coefficients of fixed terms and their uncertainties. These results show that pglmm() correctly recovered that the hy pothetic functional trait interacted with environmental variable to affect species composition
 
 
 
@@ -121,3 +142,60 @@ The output of cor_phylo() includes log-likelihood values, AIC, BIC, estimated co
 In recent years, there has been an increasing effort to apply model- based approaches in community ecology. Despite the well-known importance of phylogenetic relationships in structuring species dis- tributions and community composition, relatively few studies have incorporated phylogenetic relationships in model-based analyses of species distributions and community ecology. A potential reason is the lack of easy-to-use tools to facilitate the use of phylogenetic species-distribution modelling in ecological communities. The pack- age phyr fills this gap by providing implementations of phylogenetic species-distribution models with flexible model formula syntax (pglmm()). It also includes other model-based functions that are useful for ecological studies such as estimating correlations among functional traits while accounting for their evolutionary history (cor_ phylo()) and calculating community phylogenetic diversity (e.g. psv()) (Table 1).
 The model formula of pglmm() is general and can be applied using other tools to fit phylogenetic species-distribution models. Thus, pglmm() can serve the developer community as a shell for new methods that fit GLMMs, with phyr providing an easy user in- terface. Using INLA as a backend to fit a Bayesian version of the PGLMM model is an example of this approach. To facilitate this end, we are developing phyr openly on github and actively encourage community contribution. We hope that the phyr package will help current and future researchers formulate and analyse phylogenetic species-distribution models.
 
+
+#ANOTHER PGLM EXAMPLE WITH EMPIRICAL DATA 
+
+
+https://daijiang.github.io/phyr/articles/phyr_example_empirical.html
+
+This vignette will show a complete analysis example for pglmm on a simple empirical dataset. The dataset is taken from Dinnage (2009). Here we will demonstrate how to fit a PGLMM, including main phylogenetic effects, nested phylogenetic effects, as well as including environmental covariates. First let’s load the dataset and take a look at what we have. The data is included in phyr, so we can just call data(oldfield) to load it.
+
+library(phyr)
+library(ape)
+library(dplyr)
+
+data("oldfield")
+
+The data is a list with two elements. The first element is a phylogeny containing 47 species of plants (all herbaceous forbs) that live in old field habitats in Southern Ontario, Canada. Oldfield habitats typically are found in areas that were formerly cultivated but are now abandoned. This is often considered a successional stage between farmland and secondary forest. These data come from plots that had experienced two “treatments”: one set of plots had been disturbed by field ploughing within a few years of sampling, whereas the other set had not been disturbed in this way recently. Let’s have a look at the phylogeny and data.
+
+plot(oldfield$phy)
+head(oldfield$data, 40)
+
+With these data we are interested in asking whether there is phylogenetic structure in the distribution of these species, as well as whether disturbance has any overall effects. To do this we will specify two different phylogenetic effects in our pglmm, which uses a syntax similar to lmer and glmer in the lme4 package for specifying random effects. We also include site-level random effects to account for the paired design of the experiment. We will start by modeling just presence and absence of species (a binomial model). Note this model will take a while when using maximum likelihood (the Bayesian method is much faster). This is the full model specification:
+
+mod <- phyr::pglmm(pres ~ disturbance + (1 | sp__) + (1 | site) + 
+                     (disturbance | sp__) + (1 | sp__@site), 
+                   data = oldfield$data, 
+                   cov_ranef = list(sp = oldfield$phy),
+                   family = "binomial")
+                   
+Here, we specified an overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. phyr finds the linked phylogenetic data because we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores. We can include any number of phylogenies or covariance matrices in this way, allowing us to model multiple sources of covariance in one model. In this example, however, we will stick to one phylogeny to cover the basics of how to run pglmm models. We use the same phylogeny to model a second phylogenetic random effect, which is specified as sp__@site. This is a “nested” phylogenetic effect. This means that we are fitting an effect that had covariance proportional to the species phylogeny, but independently for each site (or “nested” in sites). We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which occurrence in disturbed vs. undisturbed habitat has a phylogenetic signal. Like the main sp__ effect, the disturbance-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction. Let’s look at the results:
+
+summary(mod)
+
+summary(mod)
+#> Generalized linear mixed model for binomial data fit by restricted maximum likelihood
+#> 
+#> Call:pres ~ disturbance
+#> 
+#> 
+#> Random effects:
+#>                   Variance Std.Dev
+#> 1|sp             2.0345532 1.42638
+#> 1|sp__           0.0604946 0.24596
+#> 1|site           0.0002416 0.01554
+#> disturbance|sp   1.7800044 1.33417
+#> disturbance|sp__ 0.0003680 0.01918
+#> 1|sp__@site      0.0952042 0.30855
+#> 
+#> Fixed effects:
+#>                Value Std.Error  Zscore    Pvalue    
+#> (Intercept) -2.72421   0.33520 -8.1272 4.393e-16 ***
+#> disturbance  0.78423   0.28689  2.7336  0.006266 ** 
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+
+The results of the random effects imply that the strongest effect is an overall nonphylogenetic species effect, followed closely by a disturbance-by-species effect. This implies that species vary strongly in their occurrence in disturbed or undisturbed sites, that there is a clear community difference between these treatments. The next strongest effect is the nested phylogenetic effect. But how can we know if this effect is strong enough to take seriously? Well one way to get an idea is to run a likelihood ratio test on the random effect. This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
+
+The other result from this model is that there is a strong fixed effect of disturbance. In the context of a binomial multivariate model such as pglmm, this means there is an overall increase in the probability of occurrence in disturbed sites. In other words, disturbed sites have a higher species richness at the site level (noting that expected alpha species richness of a site can be expressed as Gamma richness * E(prob_site(occurrence))).

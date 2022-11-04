@@ -98,7 +98,7 @@ anti_join( list_sp_taxo_changes, list_manu,by="species_taxonomy_SACC_2021")
 #Import phylogeny from birdtree.org
 #Go to birdtree.org and get a Hackettbackbone tree of the species of interest,
 #filter species from the list then they will send you a output.nex element that you will need to use here
-
+# there are two options for reading the three
 ape::read.nexus(filename, multiPhylo=TRUE)
 multi_species_tree <- read.nexus('phylo_analyses/tree_pruner/output.nex') 
 class(multi_species_tree)# Must be multiPhylo
