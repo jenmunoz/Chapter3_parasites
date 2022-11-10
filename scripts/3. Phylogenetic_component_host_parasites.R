@@ -43,6 +43,8 @@ anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientif
 
 #Upload the list of species in bird.org
 
+
+# Part1_Phylogeny for all bird with Ectoparasites samples (presence_absence) ------------------------------------
 # Step 1 Extractig 1000 trees from  birdtree.org-----------------------------------------------------------------------
 #Import phylogeny from birdtree.org
 #warning we will get the trees only for species for which we have some parasite samples( general parasite list)
@@ -52,7 +54,7 @@ anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientif
 # Read the tree
 # there are two options for reading the three
 ape::read.nexus(filename, multiPhylo=TRUE)
-host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") 
+host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") # this is for all species with samples 
 class(multi_species_tree)# Must be multiPhylo
 
 #
@@ -86,7 +88,6 @@ write.nexus(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Man
 write.tree(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.txt") 
 
 
-
 #### Extra  to calculate phylogeneticdistances
 
 # Calculate phylogenetic distance of species pairs 
@@ -109,6 +110,48 @@ df_phylo_distance<-df_phylo_distance %>% unite(species_pair,1:2, sep ="&", remov
 df_phylo_distance$phylo_distance<-as.numeric(df_phylo_distance$phylo_distance)
 
 write.csv(df_phylo_distance, "phylo_analyses/outputs/df_phylo_distance.csv")
+
+
+# Part2_Phylogeny for all bird with lice samples (Abundance) ------------------------------------
+
+####_####_
+#For lice only
+###_###
+
+# Read the tree
+# there are two options for reading the three
+host_species_tree_lice <- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_lice_abundance.nex") # this is for all species with samples 
+class(host_species_tree_lice)# Must be multiPhylo
+
+#
+##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
+# Opt1 Generate a consensus tree -----------------------------------------------
+
+# Opt 1  Generate a consensus tree  with phytotools -------------------------------
+
+###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
+# Methods to compute consensus edge lengths (branch lengths for a consensus topology
+
+#Method 3: library phytotools Compute the non-negative least squares edge lengths on the consensus tree 
+#using the mean patristic distance matrix. (Function argument method="least.squares".) 
+#If the input trees are rooted & ultrametric, this can be used to produce a consensus tree that is also ultrametric.
+
+# consensus edges function computes for a tree under some criterion
+host_species_tree_lice<-consensus.edges(host_species_tree_lice,method="least.squares")# generates a consensus tree with branch lenghts
+
+#plots
+plotTree(host_species_tree_lice,fsize=0.01, type="fan")
+plot(host_species_tree_lice,type="fan",no.margin = TRUE, cex=0.5)
+host_species_tree_lice
+
+# save phylogeny
+saveRDS(host_species_tree_lice, file='data/phylo_data/1_host_consensus_tree_lice.rds')
+str(birdtree)
+
+## Save tree
+write.tree(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_lice.tre")
+write.nexus(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_lice.nex")
+write.tree(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_lice.txt") 
 
 
 

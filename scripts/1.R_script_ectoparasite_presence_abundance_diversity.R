@@ -33,11 +33,23 @@ install.packages("visreg")  #extract confidence intervals and trend lines from G
 install.packages("lsmeans") #least squared means
 install.packages("MuMIn") #pseudo R squared for GLMMs
 
+# Phylogenetic component
+
+install.packages("ape")
+#install.packages("here")
+install.packages("phytools")
+install.packages("tidyverse")
+install.packages("metafor")
+install.packages("phangorn") # to reconstruct a maximum clade credibility tree
+#install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) # to be able to run bayesian inference on the PGLMM models more info here https://www.r-inla.org
+
+library("devtools")
+#devtools::install_github(repo = "https://github.com/hrue/r-inla", ref = "stable", subdir = "rinla", build = FALSE)
 
 #Libraries for data
 library(tidyverse)
 #library(tidyr)
-library(plyr)
+#library(plyr)
 library(ggplot2)
 library(dplyr)
 library(data.table)
@@ -63,6 +75,22 @@ library(visreg) #extract confidence intervals and trend lines from GLMMs
 library(MuMIn) #pseudo R squared for GLMMs
 #library(dplyr) 
 
+#Phylogenetic component
+
+library(ape)
+#library(here)
+library(phytools)
+library(metafor)
+library (phangorn) # to reconstruct a maximum clade credibility tree
+
+library(tidyverse)
+library(skimr)
+
+#Libraries ofr plots
+library(gridExtra)
+library(ggpubr)
+library(grid)
+
 # Part 1 Data --------------------------------------------------------------------
 ectoparasites_general<-read.csv("data/7.ectoparasite_raw_pres_abs_07222022.csv")
 lice_only<-read.csv("data/7.ectoparsite_raw_lice_abundance_07222022.csv")
@@ -80,6 +108,9 @@ manu_detections<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_180
 df_traits_selected<-bird_traits_manu %>% 
   select(sociality,species,mass_tidy,ForStrat_ground,ForStrat_understory,ForStrat_midhigh,ForStrat_canopy,ForStrat_aerial)
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_
+
+
+# Other data --------------------------------------------------------------
 
 
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_
@@ -117,7 +148,7 @@ taxonomy_2021<-read.csv("additional_info/taxonomy_revision_2021.csv",header=TRUE
 
 
 
-# Part 2  data exploration  AND Visualisation and--------------------------------------------------------------------
+# Part 2  data restructuring and exploration--------------------------------------------------------------------
 
 #General ectoparasite data
 str(ectoparasites_general)
@@ -403,7 +434,7 @@ anti_join(ticks_manu_traits_list,jetz_taxonomy_manu_only_list, by=c("species_cle
 
 # Good databases are matching correctly, there are bot names in the ectos data sets that are not present on manu jetz
 
-# Step 5 Generate the databases for analyses  ------------------------------------------------------------------------
+# Step 5  Generate the databases for analyses  ------------------------------------------------------------------------
 #Select the pieces that we need from the ectoparasite traits and the jettz dataset
 
 #ectoparasites_manu_traits
@@ -542,7 +573,7 @@ ticks_df_jetz<-inner_join(ticks_manu_traits_selected,jetz_tax_manu_selected, by 
 #We update the taxonomy to the SACC 2022
 
 
-# Part 3 Structuring files as required for the models------------------------------------------------------------------
+# Part 3  Structuring files as required for the models------------------------------------------------------------------
 
 # create factors for the elevation and foraging strata
 ectoparasites_df_jetz<-inner_join(ectoparasites_manu_traits_selected,jetz_tax_manu_selected, by = c("species_clean"="species_taxonomy_SACC_2021"))
@@ -550,30 +581,41 @@ lice_df_jetz<-inner_join(lice_manu_traits_selected,jetz_tax_manu_selected, by = 
 mites_df_jetz<-inner_join(mites_manu_traits_selected,jetz_tax_manu_selected, by = c("species_clean"="species_taxonomy_SACC_2021"))
 ticks_df_jetz<-inner_join(ticks_manu_traits_selected,jetz_tax_manu_selected, by = c("species_clean"="species_taxonomy_SACC_2021"))
 
-# Part 3.a Presence absence------------------------------------------------------------------
+# #Part 3.a  Presence absence data------------------------------------------------------------------
 #ticks<-ticks %>% mutate_at("species_clean", str_replace, "_", " ")
 ###_###_###_###
 #  presence absence analyses~ General ectoparasites
 ###_###_###_###
+names(ectoparasites_df_jetz)
 
-ectoparasites_df<-ectoparasites_df_jetz %>% mutate( foraging_cat = case_when(ForStrat_ground>50 ~ "ground", 
-                                                ForStrat_understory>50~"understory",
-                                                ForStrat_midhigh>50~"midhigh",
-                                                ForStrat_canopy>50~"canopy",
-                                                (ForStrat_ground=50)&(ForStrat_understory=50)~"ground-understory",
-                                                (ForStrat_midhigh=50)&(ForStrat_understory=50)~"understory-midhigh",
-                                                (ForStrat_midhigh=50)&(ForStrat_canopy=50)~"midhigh-canopy",
-                                                (ForStrat_midhigh>=30)&(ForStrat_understory>=30)&(ForStrat_ground>=30)~"ground-midhigh",
-                                                TRUE~  "other"))%>% 
-  mutate(elevation_site=Full_Label ) %>% 
-  mutate_at("elevation_site", str_replace_all,(c( "P"="lowland_manu__", "W"="highmontane_manu__",
+ectoparasites_df<-ectoparasites_df_jetz %>% mutate( foraging_cat = case_when(
+                                                (ForStrat_ground==50&ForStrat_understory==50)~"ground-understory",
+                                                (ForStrat_midhigh==50&ForStrat_understory==50)~"undersory-midhigh",
+                                                (ForStrat_midhigh==50&ForStrat_canopy==50)~"midhigh-canopy",
+                                                (ForStrat_midhigh>=30&ForStrat_understory>=30&ForStrat_ground>=30)~"ground-midhigh",
+                                                ForStrat_ground>=50 ~ "ground", 
+                                                ForStrat_understory>=50~"understory",
+                                                ForStrat_midhigh>=50~"midhigh",
+                                                ForStrat_canopy>=50~"canopy",
+                                                TRUE~  "other"))%>% mutate(elevation_site=Full_Label) %>% 
+  mutate_at("elevation_site", str_replace_all,(c(  "W"="high_montane_manu__",
                                                   "SP"="montane_manu__", "TL"="montane_manu__", 
                                                   "TU"="high_montane_manu__", "VC"="lowland_manu__",
+                                                  "P"="lowland_manu__",
                                                   "M"="lowland_iquitos__",
                                                   "V"="lowland_iquitos__" ))) %>% 
               separate(elevation_site, c("elevation_cat","sample"),"__")
 
-ectoparasites_df$elevation_cat[ectoparasites_df$elevation_cat>=0]<-"lowland_iquitos"   # convert the numerical values that we have without core to lowland iquitos
+#View(ectoparasites_df)
+
+ectoparasites_df$elevation_cat<-replace(x = ectoparasites_df$elevation_cat,
+                   list =  !ectoparasites_df$elevation_cat %in% c('lowland_iquitos', 'lowland_manu', 'high_montane_manu','montane_manu'), 
+                   values =  'other_iquitos')
+
+unique(ectoparasites_df$elevation_cat)
+
+# i have not figure it out this part so will change those number to Iquits manually later on
+
 
 # We need the presence absence of ectosand sociality to be O and 1 
 ectoparasites_df <-ectoparasites_df %>% mutate_at("sociality", str_replace, "yes", "1")
@@ -599,32 +641,37 @@ ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
 ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
 
 write_csv(ectoparasites_df, "data/7.ectoparasite_df_presence_absence.csv")
+ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv")
 
-# Part 3.b Abundance------------------------------------------------------------------
+# #Part 3.b  Abundance data------------------------------------------------------------------
 
 ###_###_###_###
 # Abundance analyses_Lice
 ###_###_###_###
 
-lice_df<-lice_df_jetz %>% mutate( foraging_cat = case_when(ForStrat_ground>50 ~ "ground", 
-                                                                             ForStrat_understory>50~"understory",
-                                                                             ForStrat_midhigh>50~"midhigh",
-                                                                             ForStrat_canopy>50~"canopy",
-                                                                             (ForStrat_ground=50)&(ForStrat_understory=50)~"ground-understory",
-                                                                             (ForStrat_midhigh=50)&(ForStrat_understory=50)~"understory-midhigh",
-                                                                             (ForStrat_midhigh=50)&(ForStrat_canopy=50)~"midhigh-canopy",
-                                                                             (ForStrat_midhigh>=30)&(ForStrat_understory>=30)&(ForStrat_ground>=30)~"ground-midhigh",
-                                                                             TRUE~  "other"))%>% 
-  mutate(elevation_site=Full_Label ) %>% 
-  mutate_at("elevation_site", str_replace_all,(c( "P"="lowland_manu__", "W"="highmontane_manu__",
-                                                  "SP"="montane_manu__", "TL"="montane_manu__", 
-                                                  "TU"="high_montane_manu__", "VC"="lowland_manu__",
-                                                  "M"="lowland_iquitos__",
-                                                  "V"="lowland_iquitos__" ))) %>% 
+lice_df<-lice_df_jetz %>% mutate( foraging_cat = case_when(
+  (ForStrat_ground==50&ForStrat_understory==50)~"ground-understory",
+  (ForStrat_midhigh==50&ForStrat_understory==50)~"undersory-midhigh",
+  (ForStrat_midhigh==50&ForStrat_canopy==50)~"midhigh-canopy",
+  (ForStrat_midhigh>=30&ForStrat_understory>=30&ForStrat_ground>=30)~"ground-midhigh",
+  ForStrat_ground>=50 ~ "ground", 
+  ForStrat_understory>=50~"understory",
+  ForStrat_midhigh>=50~"midhigh",
+  ForStrat_canopy>=50~"canopy",
+  TRUE~  "other"))%>% mutate(elevation_site=Full_Label) %>% 
+  mutate_at("elevation_site", str_replace_all,(c(  "W"="high_montane_manu__",
+                                                   "SP"="montane_manu__", "TL"="montane_manu__", 
+                                                   "TU"="high_montane_manu__", "VC"="lowland_manu__",
+                                                   "P"="lowland_manu__",
+                                                   "M"="lowland_iquitos__",
+                                                   "V"="lowland_iquitos__" ))) %>% 
   separate(elevation_site, c("elevation_cat","sample"),"__")
 
-lice_df$elevation_cat[lice_df$elevation_cat>=0]<-"lowland_iquitos"   # convert the numerical values that we have without core to lowland iquitos
+lice_df$elevation_cat<-replace(x = lice_df$elevation_cat,
+                                        list =  !lice_df$elevation_cat %in% c('lowland_iquitos', 'lowland_manu', 'high_montane_manu','montane_manu'), 
+                                        values =  'other_iquitos')
 
+unique(lice_df$elevation_cat)
 # We need the presence sociality to be O and 1 
 lice_df <-lice_df %>% mutate_at("sociality", str_replace, "yes", "1")
 lice_df <-lice_df %>% mutate_at("sociality", str_replace, "no", "0")
@@ -641,31 +688,39 @@ unique (lice_df$total_lice)
 str(lice_df)
 ###_###_###_###
 write_csv(lice_df, "data/7.lice_df_abundance.csv")
+lice_df<-read.csv( "data/7.lice_df_abundance.csv")
+
 ###_###_###_###
 
 
 ###_###_###_###
-# Abundance analyses_mites
+# Abundance analyses_mites Sample.Full..
 ###_###_###_###
 names(mites_df_jetz)
-mites_df<-mites_df_jetz %>% mutate( foraging_cat = case_when(ForStrat_ground>50 ~ "ground", 
-                                                           ForStrat_understory>50~"understory",
-                                                           ForStrat_midhigh>50~"midhigh",
-                                                           ForStrat_canopy>50~"canopy",
-                                                           (ForStrat_ground=50)&(ForStrat_understory=50)~"ground-understory",
-                                                           (ForStrat_midhigh=50)&(ForStrat_understory=50)~"understory-midhigh",
-                                                           (ForStrat_midhigh=50)&(ForStrat_canopy=50)~"midhigh-canopy",
-                                                           (ForStrat_midhigh>=30)&(ForStrat_understory>=30)&(ForStrat_ground>=30)~"ground-midhigh",
-                                                           TRUE~  "other"))%>% 
-  mutate(elevation_site=Sample.Full..) %>% 
-  mutate_at("elevation_site", str_replace_all,(c( "P"="lowland_manu__", "W"="highmontane_manu__",
-                                                  "SP"="montane_manu__", "TL"="montane_manu__", 
-                                                  "TU"="high_montane_manu__", "VC"="lowland_manu__",
-                                                  "M"="lowland_iquitos__",
-                                                  "V"="lowland_iquitos__" ))) %>% 
+
+mites_df<-mites_df_jetz %>% mutate( foraging_cat = case_when(
+  (ForStrat_ground==50&ForStrat_understory==50)~"ground-understory",
+  (ForStrat_midhigh==50&ForStrat_understory==50)~"undersory-midhigh",
+  (ForStrat_midhigh==50&ForStrat_canopy==50)~"midhigh-canopy",
+  (ForStrat_midhigh>=30&ForStrat_understory>=30&ForStrat_ground>=30)~"ground-midhigh",
+  ForStrat_ground>=50 ~ "ground", 
+  ForStrat_understory>=50~"understory",
+  ForStrat_midhigh>=50~"midhigh",
+  ForStrat_canopy>=50~"canopy",
+  TRUE~  "other"))%>% mutate(elevation_site=Sample.Full..) %>% 
+  mutate_at("elevation_site", str_replace_all,(c(  "W"="high_montane_manu__",
+                                                   "SP"="montane_manu__", "TL"="montane_manu__", 
+                                                   "TU"="high_montane_manu__", "VC"="lowland_manu__",
+                                                   "P"="lowland_manu__",
+                                                   "M"="lowland_iquitos__",
+                                                   "V"="lowland_iquitos__" ))) %>% 
   separate(elevation_site, c("elevation_cat","sample"),"__")
 
-mites_df$elevation_cat[mites_df$elevation_cat>=0]<-"lowland_iquitos"   # convert the numerical values that we have without core to lowland iquitos
+mites_df$elevation_cat<-replace(x = mites_df$elevation_cat,
+                               list =  !mites_df$elevation_cat %in% c('lowland_iquitos', 'lowland_manu', 'high_montane_manu','montane_manu'), 
+                               values =  'other_iquitos')
+unique(mites_df$elevation_cat)
+
 
 # We need the presence sociality to be O and 1 
 mites_df <-mites_df %>% mutate_at("sociality", str_replace, "yes", "1")
@@ -692,24 +747,30 @@ str(mites_df)
 ###_###_###_###
 
 names(ticks_df_jetz)
-ticks_df<-ticks_df_jetz %>% mutate( foraging_cat = case_when(ForStrat_ground>50 ~ "ground", 
-                                                             ForStrat_understory>50~"understory",
-                                                             ForStrat_midhigh>50~"midhigh",
-                                                             ForStrat_canopy>50~"canopy",
-                                                             (ForStrat_ground=50)&(ForStrat_understory=50)~"ground-understory",
-                                                             (ForStrat_midhigh=50)&(ForStrat_understory=50)~"understory-midhigh",
-                                                             (ForStrat_midhigh=50)&(ForStrat_canopy=50)~"midhigh-canopy",
-                                                             (ForStrat_midhigh>=30)&(ForStrat_understory>=30)&(ForStrat_ground>=30)~"ground-midhigh",
-                                                             TRUE~  "other"))%>% 
-  mutate(elevation_site=Sample.Full..) %>% 
-  mutate_at("elevation_site", str_replace_all,(c( "P"="lowland_manu__", "W"="highmontane_manu__",
-                                                  "SP"="montane_manu__", "TL"="montane_manu__", 
-                                                  "TU"="high_montane_manu__", "VC"="lowland_manu__",
-                                                  "M"="lowland_iquitos__",
-                                                  "V"="lowland_iquitos__" ))) %>% 
+ticks_df<-ticks_df_jetz %>% mutate( foraging_cat = case_when(
+  (ForStrat_ground==50&ForStrat_understory==50)~"ground-understory",
+  (ForStrat_midhigh==50&ForStrat_understory==50)~"undersory-midhigh",
+  (ForStrat_midhigh==50&ForStrat_canopy==50)~"midhigh-canopy",
+  (ForStrat_midhigh>=30&ForStrat_understory>=30&ForStrat_ground>=30)~"ground-midhigh",
+  ForStrat_ground>=50 ~ "ground", 
+  ForStrat_understory>=50~"understory",
+  ForStrat_midhigh>=50~"midhigh",
+  ForStrat_canopy>=50~"canopy",
+  TRUE~  "other"))%>% mutate(elevation_site=Sample.Full..) %>% 
+  mutate_at("elevation_site", str_replace_all,(c(  "W"="high_montane_manu__",
+                                                   "SP"="montane_manu__", "TL"="montane_manu__", 
+                                                   "TU"="high_montane_manu__", "VC"="lowland_manu__",
+                                                   "P"="lowland_manu__",
+                                                   "M"="lowland_iquitos__",
+                                                   "V"="lowland_iquitos__" ))) %>% 
   separate(elevation_site, c("elevation_cat","sample"),"__")
 
-ticks_df$elevation_cat[ticks_df$elevation_cat>=0]<-"lowland_iquitos"   # convert the numerical values that we have without core to lowland iquitos
+ticks_df$elevation_cat<-replace(x = ticks_df$elevation_cat,
+                                list =  !ticks_df$elevation_cat %in% c('lowland_iquitos', 'lowland_manu', 'high_montane_manu','montane_manu'), 
+                                values =  'other_iquitos')
+
+unique(ticks_df$elevation_cat)
+
 # We need the presence sociality to be O and 1 
 ticks_df <-ticks_df %>% mutate_at("sociality", str_replace, "yes", "1")
 ticks_df <-ticks_df %>% mutate_at("sociality", str_replace, "no", "0")
@@ -726,7 +787,7 @@ ticks_df<-read.csv( "data/7.ticks_df_abundance.csv")
 
 ###_###_###_###
 
-# Part 3.c Diversity Lice------------------------------------------------------------------
+# #Part 3.c  Diversity Lice data------------------------------------------------------------------
 ### Lice 
 #At the genus level
 str(lice_df)
@@ -769,12 +830,12 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   write_csv(lice_df_diversity_species,"data/7.lice_df_diversity_species.csv")
   ###_###_###_###               
                 
-  # Part 3.c Diversity Mites------------------------------------------------------------------
+# # Part 3.c Diversity Mites data------------------------------------------------------------------
   
 # Mites
   
   #At the group level
-  view(mites_df)
+ # view(mites_df)
   
  names(mites_df)
   mites_df_wide<-mites_df%>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,Mite.Group, Mite.Genus, Mite.Group2, Mite.Genus2,                                    sociality,foraging_cat, elevation_cat,TipLabel, Sample.Full.. ) %>% dplyr::summarise()
@@ -785,14 +846,14 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   
   mites_df_diversity_group<-gather(mites_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
   
-  View(mites_df_diversity_group)
+  #View(mites_df_diversity_group)
   ###_###_###_###
   write_csv(mites_df_diversity_group,"data/7.mites_df_diversity_group.csv")
   ###_###_###_###
   
   # At the genus level 
   
-  view(mites_df)
+ # view(mites_df)
   names(mites_df)
   
   mites_df_wide2<-mites_df%>% group_by(Host.Family,BLFamilyLatin,species_clean,species_jetz,Mite.Group, Mite.Genus, Mite.Group2, Mite.Genus2,
@@ -804,7 +865,7 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   
   mites_df_diversity_genus<-gather(mites_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
   
-  View(mites_df_diversity_genus)
+  #View(mites_df_diversity_genus)
   ###_###_###_###
   write_csv(mites_df_diversity_genus,"data/7.mites_df_diversity_genus.csv")
   ###_###_###_###
@@ -819,9 +880,9 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   ectoparasite_general_jetz<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data of general ectoparasites with jetz taxonomy
   
   names (taxonomy_jetz)
-  View(taxonomy_jetz)
-  names (ectoparasite_genaral_jetz)
-  intersect(taxonomy_jetz, ectoparasite_genaral_jetz, by=c(Scientific,species_jetz))
+ # View(taxonomy_jetz)
+  names (ectoparasite_general_jetz)
+  #intersect(taxonomy_jetz, ectoparasite_general_jetz, by=c("Scientific"="species_jetz"))
   
   # Make sure there are not differences in the lsit of spcies with the master taxonomy from jetz
   anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
@@ -836,7 +897,7 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   
   # Read the tree
   # there are two options for reading the three
-  ape::read.nexus(filename, multiPhylo=TRUE)
+  #ape::read.nexus(filename, multiPhylo=TRUE)
   host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") 
   class( host_species_tree )# Must be multiPhylo
   
@@ -871,11 +932,11 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   write.tree(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.txt") 
   
 
-# Part 5_ Modeling ectoparasites presence absence -------------------------
-
-  library(phyr)
   
+  
+# Part 5 [ANALISES] #####Modeling###### ectoparasites presence absence -------------------------
   # To underestand teh models and out puts better see this paper: https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
+  # also see this blog with an example https://daijiang.github.io/phyr/articles/phyr_example_empirical.html
   #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
   
  # pglmm_matrix_structure(): produce the whole covariance matrix
@@ -890,18 +951,25 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   #fixef(): estimates of fixed effects
   #ranef(): estimates of random terms (variance and standard deviation)
   
-  # prevalence is a 1 or 0 so we can use binomial # but elevation can not be continuos to be entered as a random effect logit 
+  library(phyr)
   
-  ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+# prevalence is a 1 or 0 so we can use binomial # but elevation can not be continuos to be entered as a random effect logit 
+ 
+  ###_###_###_###_##
+  # The data
+  ###_###_###_###_##
+ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+names( ectoparasites_df)
+unique(ectoparasites_df$Mites)
+
+phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
+View(phylogeny)
+class(phylogeny)
   
- names( ectoparasites_df)
-  
-  phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
-  View(phylogeny)
-  class(phylogeny)
-  
-  # Make sure variables are in teh right format
+# Re-strudture the data
+  # Make sure variables are in teh right format, random effects should be factors
   #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+  
   ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
   str( ectoparasites_df)
 
@@ -910,156 +978,358 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
   ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
   
+  ###_###_###_###_##
+  #The models for presence absence
+  ###_###_###_###_##
   
-  z <-  phyr::pglmm(Lice ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+  # all ectos together
+  
+  ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
+  ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
+  unique(ectoparasites_df$ectoparasites_PA)
+  
+  ecto_PA <-  phyr::pglmm(ectoparasites_PA ~ sociality+ (1|foraging_cat)+(1|elevation_cat)+(1|species_jetz__), 
+                    data = ectoparasites_df, 
+                    family = "binomial",
+                    cov_ranef = list(species_jetz= phylogeny), #class phylo
+                    #bayes = TRUE,
+                  REML = TRUE, 
+                    verbose = TRUE,
+                  s2.init = .25) # what is this last parameter for
+ 
+  summary(ecto_PA)
+ predict(ecto_PA)
+  
+  names( lice_diversity)
+  # Also exploring with a glmm ( not phylogenetically corrected)
+  ecto_PA_glmm<-lme4::glmer (ectoparasites_PA~sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+                     data = ectoparasites_df, 
+                     family ="binomial")
+                     #bayes = TRUE)
+  summary(ecto_PA_glmm)
+  
+
+  #The results of the random effects imply that the strongest effect ( the variables withthe higher variance) is an overall nonphylogenetic and phylogenetic species effect,
+  #This implies that species vary strongly in their presence absence of parasites.
+  
+  #The other result from this model is that there is not a strong fixed effect of  sociality ( as indicated by teh significance * p-value? on the model summary)
+  #In the context of a binomial multivariate model such as pglmm, this means there is NOT an overall increase in the probability of occurrence of parasite in social MSF birds. 
+
+  # lice only
+  
+  l <-  phyr::pglmm(Lice ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
                     data = ectoparasites_df, 
                     family = "binomial",
                     cov_ranef = list(species_jetz= phylogeny), #class phylo
                     #bayes = TRUE,
                     REML = TRUE, 
                     verbose = TRUE, 
-                    s2.init = .1)
-  summary( z )
+                    s2.init = .25)
+  summary( l )
+  
+  # mites only
   
   
-  z <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
                     data = ectoparasites_df, 
                     family = "binomial",
                     cov_ranef = list(species_jetz= phylogeny), #class phylo
                     #bayes = TRUE,
                     REML = TRUE, 
                     verbose = TRUE, 
-                    s2.init = .1)
-  summary( z )
+                    s2.init =.25)
+  summary( m)
   
-unique(ectoparasites_df$Mites)
-  
-  
-  
-  
-  
-  
-  pglmm_plot_ranef(z)
-  
-  fixef(z)
+  # ticks only
 
-  pglmm_profile_LRT()
-  
-  phyr::pglmm(Lice ~ sociality + (1 | Scientific__) +   (1 | elevation_cat) + (1|foraging_cat), 
-              data=ectoparasites_df,
-              sp=Scientific,
-              site=elevation_cat,
-              family = "binomial",
-              cov_ranef=phylogeny)
-  
-  # Note for underestanding the results
-  
-  #p values for the fixed effects are given by a Wald test and for the random effects by profile likelihood, 
-  #al- though we recommend bootstrap-based tests when computation- ally feasible.
-  
-  phyr::pglmm(Lice ~ sociality + (1 | Scientific__) +   (1 | elevation_cat) + (1|foraging_cat), 
-              data=ectoparasites_df,
-              family = "binomial",
-              cov_ranef=phylogeny)
-  
-  phyr::pglmm(Lice ~ sociality + (1 | species_jetz__) +   (1 | elevation_cat) + (sociality | sp__), data=ectoparasites_df,family = "binomial",
-              cov_ranef=phylogeny)
-  
-  ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
-  ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
-  ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
-  
-  write_csv(ectoparasites_df, "data/7.ectoparasite_df_presence_absence.csv")
-  presence_absence
-  
-  mod <- phyr::pglmm(Lice ~ sociality +
-                       (1 | species_jetz__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                       (1 | elevation_cat) + # random effect elevations by site as a factor
-                       (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                       data = presence_absence, 
-                     cov_ranef =phylogeny, #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                     family = "binomial")
+  t <-  phyr::pglmm(Ticks ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                    data = ectoparasites_df, 
+                    family = "binomial",
+                    cov_ranef = list(species_jetz= phylogeny), #class phylo
+                    #bayes = TRUE,
+                    REML = TRUE, 
+                    verbose = TRUE,
+                    s2.init = .25)                   # an array of initial estimates of s2 for each random effect that scales the variance. # If s2.init is not provided for family="binomial", these are set to 0.25.
+
+  summary( t)
   
   
-  mod <- phyr::pglmm(ecto_abundance ~ sociality +
-                       (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                       (1 | siteelevation) + # random effect elevations by site as a factor
-                       (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                       data = oldfield$data, 
-                     cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                     family = "binomial")
+# Part 6 [ANALISES] Modeling ~Lice Abundance-------------------------------------------------------------------------
+  #generalized linear mixed model (GLMMM) :  non-normal data; #is an extension to the generalized linear model (GLM) 
+  #in which the linear predictor contains random effects in addition to the usual fixed effects
+  #use lmer() in the lme4 and lmerTest packages or lme() in the nlme package to analyze models containing random effects. T
+  #hese packages model the variance structure of random effects explicitly.
+   
+  #pglmm: Phylogenetic Generalized Linear Mixed Model for Community...
+  
+  # Abundance is counts so we can use  a poisson but it is zero infladed 
+  #poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type # options calculating the mean abundance per species # or uisng species as a random effect
+  # species and elevation site has to be factors
+  #sociality 1, 0
+  #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
+  
+  # Lets check for zero infalted data 
+  
+  100*sum(lice_df_abundance$total_lice== 0)/nrow(lice_df_abundance)
+  
+  # 42 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
+
+  #### Abundance
+  # Modeling the individual abundances
+  
+  lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
+  names(lice_df_abundance)
+  phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
+  
+  #phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
+  
+  # Make sure variables are in teh right format, random effects should be factors
+  #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+  
+  lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+  lice_df_abundance$elevation_cat<-as.factor(lice_df_abundance$elevation_cat)
+  lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
+  lice_df_abundance$species_jetz<-as.factor(lice_df_abundance$species_jetz)
+  lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
+  
+  mean(lice_df_abundance$total_lice)
+  sd(lice_df_abundance$total_lice)
+  
+  # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
+  
+  names( lice_abundance)
+  l_a<-  phyr::pglmm(total_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                    data = lice_df_abundance, 
+                    family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                    cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                    #bayes = TRUE,
+                    REML = TRUE, 
+                    verbose = TRUE, 
+                    s2.init = .25)
+  summary( l_a )
+  
+  # Modeling the mean abundances 
+  
+mean_lice<-lice_df_abundance %>% group_by (species_jetz) %>% 
+  summarize(mean_lice=mean(total_lice))
+
+species_atributes<-lice_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
+
+mean_lice_abundance<-right_join(species_attributes_distict, mean_lice, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+###_###_####_###_
+write_csv(mean_lice_abundance,"data/7.lice_df_abundance_means.csv")
+###_###_####_###_
+l_a_mean<-  phyr::pglmm(mean_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                   data = mean_lice_abundance, 
+                   family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                   cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                   #bayes = TRUE,
+                   REML = TRUE, 
+                   verbose = TRUE, 
+                   s2.init = .25)
+
+summary( l_a_mean)
+### Trying with a glmm intend without the phylogenetic correction
+  l_a_glmm<-  lme4::glmer(total_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+                     data = lice_df_abundance, 
+                     family=poisson(link = "log"), # use when bayes=true "zeroinflated.poisson",
+                     #REML = TRUE, 
+                     verbose = TRUE)
+  summary(l_a_glmm)
+  
+#### Modeling infestation   
+### Creating an infestation variable
+  
+lice_df_abundance<-lice_df_abundance %>% mutate( infestation_lice = case_when(
+total_lice>20 ~ "1", 
+TRUE~  "0"))
+
+#write_csv(lice_df_abundance,"data/7.lice_df_abundance.csv")
   
   
-  mod <- phyr::pglmm(ecto_presence ~ sociality +
-                       (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                       (1 | siteelevation) + # random effect elevations by site as a factor
-                       (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                       data = oldfield$data, 
-                     cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                     family = "binomial")
+names(lice_df_abundance)
+  lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+  lice_df_abundance$elevation_cat<-as.factor(lice_df_abundance$elevation_cat)
+  lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
+  lice_df_abundance$species_jetz<-as.factor(lice_df_abundance$species_jetz)
+  lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
+  lice_df_abundance$infestation_lice<-as.numeric(lice_df_abundance$infestation_lice)
+  
+  
+  unique(lice_df_abundance$infestation_lice)
+  
+  inf_l_model <-  phyr::pglmm(infestation_lice ~ sociality+ (1|foraging_cat)+(1|elevation_cat)+(1|species_jetz__), 
+                          data = lice_df_abundance, 
+                          family = "binomial",
+                          cov_ranef = list(species_jetz= phylogeny_for_lice), #class phylo
+                          #bayes = TRUE,
+                          REML = TRUE, 
+                          verbose = TRUE,
+                          s2.init = .25) # what is this last parameter for
+  
+  summary(inf_l_model)
+  
+  class(inf_l_model)
+  print(inf_l_model)
+  pglmm_profile_LRT(inf_l_model)
+  ranef(inf_l_model)
+  
+  
+  # modeling without the phylogenetic component
+  
+  inf_l_model_glmm<-  lme4::glmer(infestation_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+                          data = lice_df_abundance, 
+                          family=binomial, # use when bayes=true "zeroinflated.poisson",
+                          #REML = TRUE, 
+                          verbose = TRUE)
+  summary(inf_l_model_glmm)
+  
+
+# Part 7 [ANALISES] Modeling abundance~Mite ------------------------------------------------------
+  
+ mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv",na.strings=c(""))
+  names(mites_df_abundance)
+  phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+  # Abundance is counts so we can use  a poisson but it is zero infladed (no opticon in PGLMM to take care of this)
+  #poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type
+  # species and elevation site has to be factors
+  #sociality 1, 0
+  #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
+  
+  # Lets check for zero infalted data 
+  
+  100*sum(mites_df_abundance$total_mites== 0)/nrow(mites_df_abundance)
+  
+  # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
+  
+  #### Abundance
+  # Modeling the individual abundances
+  
+  #phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
+  # Make sure variables are in teh right format, random effects should be factors
+  #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+  
+ mites_df_abundance <-mites_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+ mites_df_abundance$elevation_cat<-as.factor(mites_df_abundance$elevation_cat)
+ mites_df_abundance$foraging_cat<-as.factor(mites_df_abundance$foraging_cat)
+ mites_df_abundance$species_jetz<-as.factor(mites_df_abundance$species_jetz)
+ mites_df_abundance$sociality<-as.factor(mites_df_abundance$sociality)
+  
+  mean(mites_df_abundance$total_mites)
+  sd(mites_df_abundance$total_mites) # overdispersed variance> mean
+  
+  # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
+  
+  names( mites_df_abundance)
+  m_a<-  phyr::pglmm(total_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                     data = mites_df_abundance, 
+                     family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                     cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                     #bayes = TRUE,
+                     REML = TRUE, 
+                     verbose = TRUE, 
+                     s2.init = .25)
+  summary(m_a)  
   
   
   
+  # Modeling the mean abundances 
+  
+   mean_mites<-mites_df_abundance %>% group_by (species_jetz) %>% 
+    summarize(mean_mites=mean(total_mites))
+  
+  species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+  species_attributes_distict<-distinct( species_atributes)
+  
+  mean_mites_abundance<-right_join(species_attributes_distict, mean_mites, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+  
+  ###_###_####_###_
+  write_csv(mean_mites_abundance,"data/7.mites_df_abundance_means.csv",header=TRUE,na.strings=c(""))
+  ###_###_####_###_
+  
+
+  m_a_mean<-  phyr::pglmm(mean_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                          data = mean_mites_abundance, 
+                          family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                          cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                          #bayes = TRUE,
+                          REML = TRUE, 
+                          verbose = TRUE, 
+                          s2.init = .25)
+  
+  summary( m_a_mean)
+  
+  hist(mites_df_abundance$total_mites,  breaks = 30)
+  
+  ###_###_###_###_###_###_###_###
+  # Modeling no feather mites only (cause feathers mites can be misleding)
+  ###_###_###_###_###_###_###_###
   
   
-  pglmm(pres_abs~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=binomial /negative binomial? #sp
-    
-    prevalence~sociality+elevation+(1|species)+(1|foraging)+ (sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
-  prevalence~sociality+(1|species)+(1|foraging)+ (1|elevationsite)+(sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
+  mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+  names(mites_df_abundance)
+  phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+  # Abundance is counts so we can use  a poisson but it is zero infladed (no opticon in PGLMM to take care of this)
+  #poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type
+  # species and elevation site has to be factors
+  #sociality 1, 0
+  #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
   
+  # Lets check for zero infalted data 
   
+  100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
   
-  glmer(cbind(round(seeds.orig)-round(seeds.intact),round(seeds.orig)) ~ latc +elev.km +seed.sp + (1|date) + (1|siteID),
-        family=binomial,
-        data=seedHav[seedHav$cage.treat=='CT',]) #no warnings
+  # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
   
-  # prevalence is a 1 or 0 so we can use binomial
-  prevalence~sociality+elevation+ phylogeny  (1|species)+(1|foraging) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
+  #### Abundance
+  # Modeling the individual abundances
   
-  #Including phylogenies
+  #phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
+  # Make sure variables are in teh right format, random effects should be factors
+  #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
   
-  # Model 2 (Eq. 2) example
-  z <- pglmm(freq ~ sp + X + (1|site) + (X|sp__), data = dat, family = "binomial",
-             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+  mites_df_abundance<-mites_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+  mites_df_abundance$elevation_cat<-as.factor(mites_df_abundance$elevation_cat)
+  mites_df_abundance$foraging_cat<-as.factor(mites_df_abundance$foraging_cat)
+  mites_df_abundance$species_jetz<-as.factor(mites_df_abundance$species_jetz)
+  mites_df_abundance$sociality<-as.factor(mites_df_abundance$sociality)
   
-  z <- pglmm(freq ~  sociality + elevation+ (1|species) + (X|sp__), data = dat, family = "binomial",
-             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+  str(mites_df_abundance)
   
-  z <- pglmm(freq ~ sp + sociality + (1|site) + (sociality|sp__), data = dat, family = "binomial",
-             cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
 
   
-
-
-# Part 3 Modeling ~Lice-------------------------------------------------------------------------
-#generalized linear mixed model (GLMMM) :  non-normal data; #is an extension to the generalized linear model (GLM) 
-#in which the linear predictor contains random effects in addition to the usual fixed effects
-#use lmer() in the lme4 and lmerTest packages or lme() in the nlme package to analyze models containing random effects. T
-#hese packages model the variance structure of random effects explicitly.
-
-#pglmm: Phylogenetic Generalized Linear Mixed Model for Community...
-
-# Question when including elevation, we could include elevation for the individual sample when available, but if doing it at the speies level do we include the mean elevation?
-#mixed effect binomial models using glmer
-
-# Abundance is counts so we can use  a poisson
-#poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type # options calculating the mean abundance per species # or uisng species as a random effect
-# species and elevation site has to be factors
-#sociality 1, 0
-#elevation as a site (as factor) 4 levels bamboo, lowlands, montane, high andes
-
-pglmm(abundance~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp
-
-pglmm(abundance~sociality_degree + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp # 
-
-
-
-
-
-
-# Part 3 Modeling abundance~Mice ------------------------------------------------------
-
-# Part 3 Modeling abundance~Ticks-------------------------------------------------------------------------
+  str_replace, "_", " "
+  mean(mites_df_abundance$total_no_feathers_mites)
+  sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
+  
+  # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
+  
+  names( mites_df_abundance)
+  m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                     data = mites_df_abundance, 
+                     family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                     cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                     #bayes = TRUE,
+                     REML = TRUE, 
+                     verbose = TRUE, 
+                     s2.init = .25)
+  summary(m_a_no_f)
+  
+  
+  m_a_meso<-  phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                          data = mites_df_abundance, 
+                          family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                          cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                          #bayes = TRUE,
+                          REML = TRUE, 
+                          verbose = TRUE, 
+                          s2.init = .25)
+  summary( m_a_meso)
+  
+  
+# Part 8 [ANALISES] Modeling abundance~Ticks-------------------------------------------------------------------------
 
 
 # Example
@@ -1106,3 +1376,244 @@ summary(mod)
 # Extra code
 
 #ectoparasites_df<-ectoparasites_df %>% rename( Scientific = species_jetz)  # rename the species name to aling withthe phylogeny name
+
+
+# Extra core
+
+
+
+
+
+
+View(lice_df_abundance)
+
+
+library(INLA)
+
+phyr::plot_data(l_a, predicted=TRUE)
+
+library( lme4)
+
+glmer(ectoparasites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), data = ectoparasites_df, 
+      family = "binomial")
+
+install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable')
+
+
+unique(ectoparasites_df$species_jetz)
+
+pglmm(abundance~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp
+
+pglmm(abundance~sociality_degree + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp #
+
+pglmm_plot_ranef(z)
+
+fixef(z)
+
+pglmm_profile_LRT()
+
+phyr::pglmm(Lice ~ sociality + (1 | Scientific__) +   (1 | elevation_cat) + (1|foraging_cat), 
+            data=ectoparasites_df,
+            sp=Scientific,
+            site=elevation_cat,
+            family = "binomial",
+            cov_ranef=phylogeny)
+
+# Note for underestanding the results
+
+#p values for the fixed effects are given by a Wald test and for the random effects by profile likelihood, 
+#al- though we recommend bootstrap-based tests when computation- ally feasible.
+
+phyr::pglmm(Lice ~ sociality + (1 | Scientific__) +   (1 | elevation_cat) + (1|foraging_cat), 
+            data=ectoparasites_df,
+            family = "binomial",
+            cov_ranef=phylogeny)
+
+phyr::pglmm(Lice ~ sociality + (1 | species_jetz__) +   (1 | elevation_cat) + (sociality | sp__), data=ectoparasites_df,family = "binomial",
+            cov_ranef=phylogeny)
+
+ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
+ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
+ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
+
+write_csv(ectoparasites_df, "data/7.ectoparasite_df_presence_absence.csv")
+presence_absence
+
+mod <- phyr::pglmm(Lice ~ sociality +
+                     (1 | species_jetz__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
+                     (1 | elevation_cat) + # random effect elevations by site as a factor
+                     (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
+                     data = presence_absence, 
+                   cov_ranef =phylogeny, #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
+                   family = "binomial")
+
+
+mod <- phyr::pglmm(ecto_abundance ~ sociality +
+                     (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
+                     (1 | siteelevation) + # random effect elevations by site as a factor
+                     (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
+                     data = oldfield$data, 
+                   cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
+                   family = "binomial")
+
+
+mod <- phyr::pglmm(ecto_presence ~ sociality +
+                     (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
+                     (1 | siteelevation) + # random effect elevations by site as a factor
+                     (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
+                     data = oldfield$data, 
+                   cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
+                   family = "binomial")
+
+
+pglmm(pres_abs~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=binomial /negative binomial? #sp
+  
+  prevalence~sociality+elevation+(1|species)+(1|foraging)+ (sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
+prevalence~sociality+(1|species)+(1|foraging)+ (1|elevationsite)+(sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
+
+
+
+glmer(cbind(round(seeds.orig)-round(seeds.intact),round(seeds.orig)) ~ latc +elev.km +seed.sp + (1|date) + (1|siteID),
+      family=binomial,
+      data=seedHav[seedHav$cage.treat=='CT',]) #no warnings
+
+# prevalence is a 1 or 0 so we can use binomial
+prevalence~sociality+elevation+ phylogeny  (1|species)+(1|foraging) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
+
+#Including phylogenies
+
+# Model 2 (Eq. 2) example
+z <- pglmm(freq ~ sp + X + (1|site) + (X|sp__), data = dat, family = "binomial",
+           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+
+z <- pglmm(freq ~  sociality + elevation+ (1|species) + (X|sp__), data = dat, family = "binomial",
+           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+
+z <- pglmm(freq ~ sp + sociality + (1|site) + (sociality|sp__), data = dat, family = "binomial",
+           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
+
+
+
+
+# Part 9 [ANALISES] Modeling diversity~Lice --------------------------------------------------------------
+#WARNING IN THIS ANALYSES WE ARE NOT INTERESTED IN THE ZEROS (BECAUSE HAVING A DIVERSITY OF ZERO DOES NOT HAVE ECOLOGICL MEANING FOR US, SO WE CAN DROP THE ZEROS OR NAS)
+# at the genus level 
+lice_df_diversity<-read.csv("data/7.lice_df_diversity_genus.csv",header=TRUE,na.strings=c(""))
+names(lice_df_diversity)
+phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
+
+## Make sure variables are in teh right format, random effects should be factors
+#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+
+lice_df_diversity <-lice_df_diversity  %>% mutate_at("species_jetz", str_replace, " ", "_")
+lice_df_diversity$elevation_cat<-as.factor(lice_df_diversity$elevation_cat)
+lice_df_diversity$foraging_cat<-as.factor(lice_df_diversity$foraging_cat)
+lice_df_diversity$species_jetz<-as.factor(lice_df_diversity$species_jetz)
+lice_df_diversity$sociality<-as.factor(lice_df_diversity$sociality)
+
+mean(lice_df_diversity$total_lice)
+sd(lice_df_diversity$total_lice)
+
+# summarize the number of samples per species  
+n_samples_lice<-lice_df_diversity %>% group_by(species_jetz) %>% 
+  summarise(n_samples_lice=n_distinct(Full_Label))
+
+is.na(lice_df_diversity$valuecol)
+
+# REMOVE EMPTY ROWS (for some samples we do not have Lice genus2 and tree but when summarizing the table the field were created)
+lice_df_diversity<-lice_df_diversity %>% drop_na(valuecol)
+
+lice_df_richness<-lice_df_diversity %>% group_by(species_jetz) %>% 
+  summarise(richness=n_distinct(valuecol), across()) 
+
+lice_df_richness_summary<-lice_df_richness %>% distinct(species_jetz,richness, elevation_cat, foraging_cat, sociality )
+
+l_r_model_glmm<-  lme4::glmer(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+                                data = lice_df_richness_summary, 
+                                family=poisson(), # use when bayes=true "zeroinflated.poisson",
+                                #REML = TRUE, 
+                                verbose = TRUE)
+summary(l_r_model_glmm)
+
+
+# need to extract the exact phylogeny for this
+names( lice_abundance)
+l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                   data = lice_df_richness_summary, 
+                   family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                   cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                   #bayes = TRUE,
+                   REML = TRUE, 
+                   verbose = TRUE, 
+                   s2.init = .25)
+summary( l_a )
+
+###
+ggplot(lice_df_richness_summary, aes(x = richness)) +
+  geom_histogram(fill = "white", colour ="black") +
+  facet_grid (sociality~.)+
+  theme_classic(20)
+
+
+
+ggplot(lice_df_richness_summary, aes(x = sociality, y=richness, fill= sociality, color=sociality, group=sociality)) +
+  geom_boxplot() +
+  theme_classic(20)
+
+names(lice_df_diversity)
+phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
+
+#phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
+
+
+
+# at the species level 
+lice_df_diversity_species<-read.csv("data/7.lice_df_diversity_species.csv",header=TRUE,na.strings=c(""))
+names(lice_df_diversity_species)
+phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
+
+# summarize the number of samples per species  
+n_samples_lice_species<-lice_df_diversity_species %>% group_by(species_jetz) %>% 
+  summarise(n_samples_lice_sp=n_distinct(Full_Label))
+
+
+# REMOVE EMPTY ROWS (for some samples we do not have Lice genus2 and tree but when summarizing the table the field were created)
+lice_df_diversity_species<-lice_df_diversity_species %>% drop_na(valuecol)
+
+lice_df_richness_species<-lice_df_diversity_species %>% group_by(species_jetz) %>% 
+  summarise(richness_sp=n_distinct(valuecol), across()) 
+
+lice_df_richness_sp_summary<-lice_df_richness_species %>% distinct(species_jetz,richness_sp, elevation_cat, foraging_cat, sociality )
+
+l_r_sp_model_glmm<-  lme4::glmer(richness_sp~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
+                              data = lice_df_richness_sp_summary, 
+                              family=poisson(), # use when bayes=true "zeroinflated.poisson",
+                              #REML = TRUE, 
+                              verbose = TRUE)
+summary(l_r_sp_model_glmm)
+
+
+# need to extract the exact phylogeny for this
+names( lice_abundance)
+l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                   data = lice_df_richness_summary, 
+                   family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                   cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                   #bayes = TRUE,
+                   REML = TRUE, 
+                   verbose = TRUE, 
+                   s2.init = .25)
+summary( l_a )
+
+###
+ggplot(lice_df_richness_sp_summary, aes(x = richness_sp)) +
+  geom_histogram(fill = "white", colour ="black") +
+  facet_grid (sociality~.)+
+  theme_classic(20)
+
+
+
+ggplot(lice_df_richness_sp_summary, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
+  geom_boxplot() +
+  theme_classic(20)
+
