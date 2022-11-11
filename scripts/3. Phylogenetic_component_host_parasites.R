@@ -45,7 +45,7 @@ anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientif
 
 
 # Part1_Phylogeny for all bird with Ectoparasites samples (presence_absence) ------------------------------------
-# Step 1 Extractig 1000 trees from  birdtree.org-----------------------------------------------------------------------
+# Step 1 Extractig 1000 trees from  birdtree.org
 #Import phylogeny from birdtree.org
 #warning we will get the trees only for species for which we have some parasite samples( general parasite list)
 #Go to birdtree.org and get a Hackettbackbone tree of the species of interest.
@@ -56,11 +56,7 @@ anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientif
 ape::read.nexus(filename, multiPhylo=TRUE)
 host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") # this is for all species with samples 
 class(multi_species_tree)# Must be multiPhylo
-
-#
-##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
-# Opt1 Generate a consensus tree -----------------------------------------------
-
+__
 # Opt 1  Generate a consensus tree  with phytotools -------------------------------
 
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
@@ -87,7 +83,6 @@ write.tree(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manu
 write.nexus(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.nex")
 write.tree(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.txt") 
 
-
 #### Extra  to calculate phylogeneticdistances
 
 # Calculate phylogenetic distance of species pairs 
@@ -111,23 +106,27 @@ df_phylo_distance$phylo_distance<-as.numeric(df_phylo_distance$phylo_distance)
 
 write.csv(df_phylo_distance, "phylo_analyses/outputs/df_phylo_distance.csv")
 
-
 # Part2_Phylogeny for all bird with lice samples (Abundance) ------------------------------------
 
 ####_####_
 #For lice only
 ###_###
 
+#Double check the names are consistent 
+lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
+unique(lice_df_abundance$species_jetz)
+
+taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
+# Make sure there are not differences in the lsit of spcies with the master taxonomy from jetz
+anti_join(lice_df_abundance,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+# U se the list to extract species from bird.org
 # Read the tree
 # there are two options for reading the three
 host_species_tree_lice <- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_lice_abundance.nex") # this is for all species with samples 
 class(host_species_tree_lice)# Must be multiPhylo
 
-#
-##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
-# Opt1 Generate a consensus tree -----------------------------------------------
-
-# Opt 1  Generate a consensus tree  with phytotools -------------------------------
+#Opt 1  Generate a consensus tree  with phytotools 
 
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
 # Methods to compute consensus edge lengths (branch lengths for a consensus topology
@@ -153,9 +152,57 @@ write.tree(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_
 write.nexus(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_lice.nex")
 write.tree(host_species_tree_lice,  file="data/phylo_data/1_host_consensus_tree_lice.txt") 
 
+# Part2_Phylogeny for all bird with Mites samples (Abundance) ------------------------------------
+
+####_####_
+#For Mites only
+###_###
+
+#Double check the names are consistent 
+mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+unique(mites_df_abundance$species_jetz)
+
+taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
 
 
-##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
+# Make sure there are not differences in the lsit of spcies with the master taxonomy from jetz
+anti_join(mites_df_abundance,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+# Use the list to extract species from bird.org
+# Read the tree
+# there are two options for reading the three
+host_species_tree_mites<- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_mites_abundance.nex") # this is for all species with samples 
+class(host_species_tree_mites)# Must be multiPhylo
+
+#Opt 1  Generate a consensus tree  with phytotools 
+
+###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
+# Methods to compute consensus edge lengths (branch lengths for a consensus topology
+
+#Method 3: library phytotools Compute the non-negative least squares edge lengths on the consensus tree 
+#using the mean patristic distance matrix. (Function argument method="least.squares".) 
+#If the input trees are rooted & ultrametric, this can be used to produce a consensus tree that is also ultrametric.
+
+# consensus edges function computes for a tree under some criterion
+host_species_tree_mites<-consensus.edges(host_species_tree_mites,method="least.squares")# generates a consensus tree with branch lenghts
+
+View(host_species_tree_mites)
+#plots
+plotTree(host_species_tree_mites,fsize=0.01, type="fan")
+plot(host_species_tree_mites,type="fan",no.margin = TRUE, cex=0.5)
+host_species_tree_mites
+
+# save phylogeny
+saveRDS(host_species_tree_mites, file='data/phylo_data/1_host_consensus_tree_mites.rds')
+str(birdtree)
+
+## Save tree
+write.tree(host_species_tree_mites,  file="data/phylo_data/1_host_consensus_tree_mites.tre")
+write.nexus(host_species_tree_mites,  file="data/phylo_data/1_host_consensus_tree_mites.nex")
+write.tree(host_species_tree_mites,  file="data/phylo_data/1_host_consensus_tree_mites.txt") 
+
+
+
 ##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
 #Other methods  to extract phylogeny and branch lenghts --------------------------------------------------------
 
@@ -206,4 +253,29 @@ tidytree()
 #consensus representations can be misleading (for both edge lengths and topologies), and we advise that analyses using 
 #full trees are done across a reasonable number (»100) of draws from the distributions we supply.
 
+
+# Diversity_analyses_consensus_trees --------------------------------------
+
+#lice consensus tree for diversity analyses
+
+
+host_species_tree_lice_diversity<- ape::read.nexus("data/phylo_data/tree_pruner/output_lice_diversity.nex") # this is for all species with samples 
+class(host_species_tree_lice_diversity)# Must be multiPhylo
+
+#Opt 1  Generate a consensus tree  with phytotools 
+
+
+# consensus edges function computes for a tree under some criterion
+host_tree_lice_diversity<-consensus.edges(host_species_tree_lice_diversity,method="least.squares")# generates a consensus tree with branch lenghts
+
+#plots
+plot(host_tree_lice_diversity,type="fan",no.margin = TRUE, cex=0.5)
+
+# save phylogeny
+saveRDS(host_tree_lice_diversity, file='data/phylo_data/1_host_tree_lice_diversity.rds')
+str(birdtree)
+
+## Save tree
+write.tree(host_tree_lice_diversity,  file="data/phylo_data/1_host_tree_lice_diversity.tre")
+write.nexus(host_tree_lice_diversity,  file="data/phylo_data/1_host_tree_lice_diversity.nex")
 

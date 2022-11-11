@@ -87,3 +87,48 @@ figure<-ggarrange(plot2 + rremove("xlab"), plot1  + rremove("xlab"),
                   font.label = list(size = 10, color = "black", face = "bold", family = NULL, position = "top"))
 
 lice_abundance_figure<-annotate_figure(figure,bottom = textGrob("Total lice", gp = gpar(cex = 1.3)))
+
+
+# Exploratory diversity ---------------------------------------------------
+
+### lICE~Genera
+
+
+### Exploratory plots
+ggplot(lice_df_richness_summary, aes(x = richness)) +
+  geom_histogram(fill = "white", colour ="black") +
+  facet_grid (sociality~.)+
+  theme_classic(20)
+
+ggplot(lice_df_richness_genera, aes(x = sociality, y=richness, group=sociality, color=sociality)) +
+  geom_boxplot() +
+  labs(title="a) Lice diversity (total genera)",y="Total genera", x = "sociality")+
+  theme_classic(20)
+
+View(lice_df_richness_genera)
+ggsave("figures/exploratory_lice_diversity_genera.pdf",
+       width=15, height=15, units="in")
+
+# Lice~species
+###
+ggplot(lice_df_richness_sp_summary, aes(x = richness_sp)) +
+  geom_histogram(fill = "white", colour ="black") +
+  facet_grid (sociality~.)+
+  theme_classic(20)
+
+ggplot(lice_diversity_sp_samplesize, aes(x = sociality, y=n_samples_lice, group=sociality, color=sociality)) +
+  geom_boxplot() +
+  labs(title="b)  sample size lice",y="Sample size", x = "sociality")+
+  theme_classic(20)
+
+
+ggplot(lice_diversity_sp_samplesize, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
+  geom_boxplot() +
+  labs(title="b) Lice diversity (total species)",y="Total genera", x = "sociality")+
+  theme_classic(20)
+
+ggsave("figures/exploratory_lice_sample_size.pdf",
+       width=15, height=15, units="in")
+
+# Correlation between sample size and diversity
+

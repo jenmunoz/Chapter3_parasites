@@ -644,7 +644,8 @@ write_csv(ectoparasites_df, "data/7.ectoparasite_df_presence_absence.csv")
 ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv")
 
 # #Part 3.b  Abundance data------------------------------------------------------------------
-
+length(ectoparasites_df)
+unique( ectoparasites_df$Full_Label)
 ###_###_###_###
 # Abundance analyses_Lice
 ###_###_###_###
@@ -1078,14 +1079,19 @@ m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|sp
   # Modeling the individual abundances
   
   lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
+  length( lice_df_abundance)
   names(lice_df_abundance)
   phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
   
   #phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
   
+  # Filter only manu species 
+  
+  lice_df_abundance <-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+  unique(lice_df_abundance$elevation_cat)
+ 
   # Make sure variables are in teh right format, random effects should be factors
   #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-  
   lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
   lice_df_abundance$elevation_cat<-as.factor(lice_df_abundance$elevation_cat)
   lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
@@ -1095,9 +1101,10 @@ m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|sp
   mean(lice_df_abundance$total_lice)
   sd(lice_df_abundance$total_lice)
   
+str(lice_df_abundance)  
   # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
   
-  names( lice_abundance)
+
   l_a<-  phyr::pglmm(total_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
                     data = lice_df_abundance, 
                     family ="poisson", # use when bayes=true "zeroinflated.poisson",
@@ -1198,6 +1205,11 @@ names(lice_df_abundance)
   #sociality 1, 0
   #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
   
+  # Filter only manu species 
+  
+  mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+  unique(mites_df_abundance$elevation_cat)
+  
   # Lets check for zero infalted data 
   
   100*sum(mites_df_abundance$total_mites== 0)/nrow(mites_df_abundance)
@@ -1233,8 +1245,6 @@ names(lice_df_abundance)
                      s2.init = .25)
   summary(m_a)  
   
-  
-  
   # Modeling the mean abundances 
   
    mean_mites<-mites_df_abundance %>% group_by (species_jetz) %>% 
@@ -1261,8 +1271,6 @@ names(lice_df_abundance)
   
   summary( m_a_mean)
   
-  hist(mites_df_abundance$total_mites,  breaks = 30)
-  
   ###_###_###_###_###_###_###_###
   # Modeling no feather mites only (cause feathers mites can be misleding)
   ###_###_###_###_###_###_###_###
@@ -1277,8 +1285,10 @@ names(lice_df_abundance)
   #sociality 1, 0
   #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
   
-  # Lets check for zero infalted data 
+  mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
   
+  # Lets check for zero infalted data 
+
   100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
   
   # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
@@ -1298,9 +1308,6 @@ names(lice_df_abundance)
   
   str(mites_df_abundance)
   
-
-  
-  str_replace, "_", " "
   mean(mites_df_abundance$total_no_feathers_mites)
   sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
   
@@ -1332,93 +1339,7 @@ names(lice_df_abundance)
 # Part 8 [ANALISES] Modeling abundance~Ticks-------------------------------------------------------------------------
 
 
-# Example
-
-install.packages("phyr")
-install.packages("ape")
-install.packages("dplyr")
-
-
-
-library(phyr)
-library(ape)
-library(dplyr)
-
-data("oldfield")
-View (oldfield)
-
-plot(oldfield$phy)
-
-#With these data we are interested in asking whether there is phylogenetic structure in the distribution of these species, 
-# as well as whether disturbance has any overall effects.
-
-mod <- phyr::pglmm(pres ~ disturbance +
-                     (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                     (1 | site) + 
-                     (disturbance | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which occurrence in disturbed vs. undisturbed habitat has a phylogenetic signal.Like the main sp__ effect, the disturbance-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                     (1 | sp__@site), #This is a “nested” phylogenetic effect. This means that we are fitting an effect that had covariance proportional to the species phylogeny, but independently for each site (or “nested” in sites)
-                   data = oldfield$data, 
-                   cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                   family = "binomial")
-
-summary(mod)
-
-#The results of the random effects imply that the strongest effect is an overall nonphylogenetic species effect, 
-#followed closely by a disturbance-by-species effect. This implies that species vary strongly in their occurrence
-#in disturbed or undisturbed sites, that there is a clear community difference between these treatments. 
-#The next strongest effect is the nested phylogenetic effect. But how can we know if this effect is strong enough to take seriously?
-#Well one way to get an idea is to run a likelihood ratio test on the random effect. This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
-
-#The other result from this model is that there is a strong fixed effect of disturbance.
-#In the context of a binomial multivariate model such as pglmm, this means there is an overall increase in the probability of occurrence in disturbed sites. 
-#In other words, disturbed sites have a higher species richness at the site level (noting that expected alpha species richness of a site can be expressed as Gamma richness * E(prob_site(occurrence))).
-
-# Extra code
-
-#ectoparasites_df<-ectoparasites_df %>% rename( Scientific = species_jetz)  # rename the species name to aling withthe phylogeny name
-
-
-# Extra core
-
-
-
-
-
-
-View(lice_df_abundance)
-
-
-library(INLA)
-
-phyr::plot_data(l_a, predicted=TRUE)
-
-library( lme4)
-
-glmer(ectoparasites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), data = ectoparasites_df, 
-      family = "binomial")
-
-install.packages('INLA', repos='https://inla.r-inla-download.org/R/stable')
-
-
-unique(ectoparasites_df$species_jetz)
-
-pglmm(abundance~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp
-
-pglmm(abundance~sociality_degree + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=poisson #sp #
-
-pglmm_plot_ranef(z)
-
-fixef(z)
-
-pglmm_profile_LRT()
-
-phyr::pglmm(Lice ~ sociality + (1 | Scientific__) +   (1 | elevation_cat) + (1|foraging_cat), 
-            data=ectoparasites_df,
-            sp=Scientific,
-            site=elevation_cat,
-            family = "binomial",
-            cov_ranef=phylogeny)
-
+#
 # Note for underestanding the results
 
 #p values for the fixed effects are given by a Wald test and for the random effects by profile likelihood, 
@@ -1448,157 +1369,167 @@ mod <- phyr::pglmm(Lice ~ sociality +
                    family = "binomial")
 
 
-mod <- phyr::pglmm(ecto_abundance ~ sociality +
-                     (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                     (1 | siteelevation) + # random effect elevations by site as a factor
-                     (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                     data = oldfield$data, 
-                   cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                   family = "binomial")
-
-
-mod <- phyr::pglmm(ecto_presence ~ sociality +
-                     (1 | sp__) +  #overall phylogenetic effect using sp__, which also automatically includes a nonphylogenetic i.i.d. effect of species. 
-                     (1 | siteelevation) + # random effect elevations by site as a factor
-                     (sociality | sp__) + #We’ve also included a disturbance-by-phylogenetic species effect ((disturbance | sp__)), which estimates the degree to which social vs. non social  has a phylogenetic signal.Like the main sp__ effect, the sociality-by-sp__ effect also includes an nonphylogenetic species-by-disturbance interaction
-                     data = oldfield$data, 
-                   cov_ranef = list(sp = oldfield$phy), #we specified the phylogeny in the cov_ranef argument, giving it the name sp which matches sp__ but without the underscores
-                   family = "binomial")
-
-
-pglmm(pres_abs~sociality + (1|species)+ (1|elevationsite)+ (1|foragingstratum)+ (sociality|sp__)) ,  family=binomial /negative binomial? #sp
-  
-  prevalence~sociality+elevation+(1|species)+(1|foraging)+ (sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
-prevalence~sociality+(1|species)+(1|foraging)+ (1|elevationsite)+(sociality|sp__) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
-
-
-
 glmer(cbind(round(seeds.orig)-round(seeds.intact),round(seeds.orig)) ~ latc +elev.km +seed.sp + (1|date) + (1|siteID),
       family=binomial,
       data=seedHav[seedHav$cage.treat=='CT',]) #no warnings
-
-# prevalence is a 1 or 0 so we can use binomial
-prevalence~sociality+elevation+ phylogeny  (1|species)+(1|foraging) #binomial error logit function, species as a random effect, foraging as a random effect # how sociality influences the presence/absence of parasites across the gradient
-
-#Including phylogenies
-
-# Model 2 (Eq. 2) example
-z <- pglmm(freq ~ sp + X + (1|site) + (X|sp__), data = dat, family = "binomial",
-           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
-
-z <- pglmm(freq ~  sociality + elevation+ (1|species) + (X|sp__), data = dat, family = "binomial",
-           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
-
-z <- pglmm(freq ~ sp + sociality + (1|site) + (sociality|sp__), data = dat, family = "binomial",
-           cov_ranef = list(sp = phy), REML = TRUE, verbose = TRUE, s2.init = .1)
 
 
 
 
 # Part 9 [ANALISES] Modeling diversity~Lice --------------------------------------------------------------
 #WARNING IN THIS ANALYSES WE ARE NOT INTERESTED IN THE ZEROS (BECAUSE HAVING A DIVERSITY OF ZERO DOES NOT HAVE ECOLOGICL MEANING FOR US, SO WE CAN DROP THE ZEROS OR NAS)
+
 # at the genus level 
 lice_df_diversity<-read.csv("data/7.lice_df_diversity_genus.csv",header=TRUE,na.strings=c(""))
 names(lice_df_diversity)
-phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
+phylogeny_for_lice_diversity<- read.nexus("data/phylo_data/1_host_tree_lice_diversity.nex")
+
+# Filtering only manu data 
+
+lice_df_diversity <-lice_df_diversity %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
 ## Make sure variables are in teh right format, random effects should be factors
 #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-
 lice_df_diversity <-lice_df_diversity  %>% mutate_at("species_jetz", str_replace, " ", "_")
 lice_df_diversity$elevation_cat<-as.factor(lice_df_diversity$elevation_cat)
 lice_df_diversity$foraging_cat<-as.factor(lice_df_diversity$foraging_cat)
 lice_df_diversity$species_jetz<-as.factor(lice_df_diversity$species_jetz)
 lice_df_diversity$sociality<-as.factor(lice_df_diversity$sociality)
 
+# REMOVE EMPTY ROWS (for some samples we do not have Lice genus2 and tree but when summarizing the table the field were created)
+lice_df_diversity<-lice_df_diversity %>% drop_na(valuecol)
+str(lice_df_diversity)
+
+#richness at the genus level by host species
+lice_richness_genus<-lice_df_diversity %>% group_by(species_jetz) %>% 
+  summarise(richness=n_distinct(valuecol))
+
+species_atributes<-lice_df_diversity %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
+
+lice_df_richness_genus<-right_join(species_attributes_distict, lice_richness_genus, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+#lice_df_richness<-lice_df_diversity %>% group_by(species_jetz) %>% 
+  #summarise(richness=n_distinct(valuecol), across()) 
+#
+#richness per sample
+
+lice_df_diversity %>% group_by(species_jetz, Full_Label) %>% 
+  summarise(richness=n_distinct(valuecol)) %>% 
+  View()
+
+#lice_df_richness_summary<-lice_df_richness %>% distinct(species_jetz,richness, elevation_cat, foraging_cat, sociality )
+
 mean(lice_df_diversity$total_lice)
 sd(lice_df_diversity$total_lice)
 
+# We are worried that diversity increases with sample size, lets check is that is the case
 # summarize the number of samples per species  
 n_samples_lice<-lice_df_diversity %>% group_by(species_jetz) %>% 
   summarise(n_samples_lice=n_distinct(Full_Label))
 
 is.na(lice_df_diversity$valuecol)
 
-# REMOVE EMPTY ROWS (for some samples we do not have Lice genus2 and tree but when summarizing the table the field were created)
-lice_df_diversity<-lice_df_diversity %>% drop_na(valuecol)
+####Correlation sample size and diversity #WARNING
 
-lice_df_richness<-lice_df_diversity %>% group_by(species_jetz) %>% 
-  summarise(richness=n_distinct(valuecol), across()) 
+lice_diversity_samplesize<-full_join(lice_df_richness_genus, n_samples_lice, by="species_jetz")
 
-lice_df_richness_summary<-lice_df_richness %>% distinct(species_jetz,richness, elevation_cat, foraging_cat, sociality )
+plot(richness~n_samples_lice, data=lice_diversity_samplesize)
 
-l_r_model_glmm<-  lme4::glmer(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
-                                data = lice_df_richness_summary, 
+model<-lm(richness~n_samples_lice, data=lice_diversity_samplesize)
+abline(model)
+
+# let's include the sample size as a random effect? # is this a correct approach, or how do we correct for sample size 
+
+lice_df_richness_genera<-right_join(lice_df_richness_genus, n_samples_lice, by="species_jetz")
+
+
+#Modeling diversity without phylogeny
+
+l_r_model_glmm<-  lme4::glmer(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz) +(1|n_samples_lice), 
+                                data = lice_df_richness_genera, 
                                 family=poisson(), # use when bayes=true "zeroinflated.poisson",
                                 #REML = TRUE, 
                                 verbose = TRUE)
 summary(l_r_model_glmm)
+list_host_lice_diversity<-as.data.frame(unique(lice_df_richness_summary$species_jetz))
 
-
-# need to extract the exact phylogeny for this
+# Model
 names( lice_abundance)
-l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
-                   data = lice_df_richness_summary, 
+l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__)+(1|n_samples_lice), 
+                   data = lice_df_richness_genera, 
                    family ="poisson", # use when bayes=true "zeroinflated.poisson",
-                   cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                   cov_ranef = list(species_jetz=phylogeny_for_lice_diversity), #class phylo
                    #bayes = TRUE,
                    REML = TRUE, 
                    verbose = TRUE, 
                    s2.init = .25)
-summary( l_a )
+summary( l_r)
 
-###
-ggplot(lice_df_richness_summary, aes(x = richness)) +
-  geom_histogram(fill = "white", colour ="black") +
-  facet_grid (sociality~.)+
-  theme_classic(20)
+### Exploratory plots
 
-
-
-ggplot(lice_df_richness_summary, aes(x = sociality, y=richness, fill= sociality, color=sociality, group=sociality)) +
+ggplot(lice_df_richness_genera, aes(x = sociality, y=richness, fill= sociality, group=sociality)) +
   geom_boxplot() +
+  labs(title="a) Lice diversity (total genera)",y="Total genera", x = "sociality")+
   theme_classic(20)
-
-names(lice_df_diversity)
-phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
-
-#phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
-
-
-
+###_###_###_###_
 # at the species level 
+###_###_###_###_
+
 lice_df_diversity_species<-read.csv("data/7.lice_df_diversity_species.csv",header=TRUE,na.strings=c(""))
 names(lice_df_diversity_species)
 phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
 
-# summarize the number of samples per species  
-n_samples_lice_species<-lice_df_diversity_species %>% group_by(species_jetz) %>% 
-  summarise(n_samples_lice_sp=n_distinct(Full_Label))
+# Filtering only manu data 
+lice_df_diversity_sp<-lice_df_diversity_species %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-
+names(lice_df_diversity_sp)
 # REMOVE EMPTY ROWS (for some samples we do not have Lice genus2 and tree but when summarizing the table the field were created)
-lice_df_diversity_species<-lice_df_diversity_species %>% drop_na(valuecol)
+lice_df_diversity_sp<-lice_df_diversity_sp %>% drop_na(valuecol)
 
-lice_df_richness_species<-lice_df_diversity_species %>% group_by(species_jetz) %>% 
-  summarise(richness_sp=n_distinct(valuecol), across()) 
+#richness at the genus level by host species
+lice_df_diversity_sp<-lice_df_diversity_sp %>% group_by(species_jetz) %>% 
+  summarise(richness_sp=n_distinct(valuecol))
 
-lice_df_richness_sp_summary<-lice_df_richness_species %>% distinct(species_jetz,richness_sp, elevation_cat, foraging_cat, sociality )
+species_atributes<-lice_df_diversity_species %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
 
-l_r_sp_model_glmm<-  lme4::glmer(richness_sp~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
-                              data = lice_df_richness_sp_summary, 
+lice_df_richness_sp<-right_join(species_attributes_distict, lice_df_diversity_sp, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+# We are worried that diversity increases with sample size, lets check is that is the case
+# summarize the number of samples per species  
+n_samples_lice_sp<-lice_df_diversity_species %>% group_by(species_jetz) %>% 
+  summarise(n_samples_lice=n_distinct(Full_Label))
+
+is.na(lice_df_diversity$valuecol)
+
+####Correlation sample size and diversity #WARNING
+
+lice_diversity_sp_samplesize<-inner_join(lice_df_richness_sp, n_samples_lice_sp, by="species_jetz")
+
+plot(richness_sp~n_samples_lice, data=lice_diversity_sp_samplesize)
+
+model<-lm(richness_sp~n_samples_lice, data=lice_diversity_sp_samplesize)
+abline(model)
+
+str(lice_diversity_sp_samplesize)
+
+#The model
+
+l_d_sp_model_glmm<-  lme4::glmer(richness_sp~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz) +(1|n_samples_lice), 
+                              data = lice_diversity_sp_samplesize, 
                               family=poisson(), # use when bayes=true "zeroinflated.poisson",
                               #REML = TRUE, 
                               verbose = TRUE)
-summary(l_r_sp_model_glmm)
+summary(l_d_sp_model_glmm)
 
 
-# need to extract the exact phylogeny for this
+
 names( lice_abundance)
-l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
-                   data = lice_df_richness_summary, 
+l_r_sp<-  phyr::pglmm(richness_sp~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__)+(1|n_samples_lice), 
+                   data = lice_diversity_sp_samplesize, 
                    family ="poisson", # use when bayes=true "zeroinflated.poisson",
-                   cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
+                   cov_ranef = list(species_jetz=phylogeny_for_lice_diversity), #class phylo
                    #bayes = TRUE,
                    REML = TRUE, 
                    verbose = TRUE, 
@@ -1606,14 +1537,10 @@ l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1
 summary( l_a )
 
 ###
-ggplot(lice_df_richness_sp_summary, aes(x = richness_sp)) +
-  geom_histogram(fill = "white", colour ="black") +
-  facet_grid (sociality~.)+
-  theme_classic(20)
-
-
-
-ggplot(lice_df_richness_sp_summary, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
+ggplot(lice_diversity_sp_samplesize, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
   geom_boxplot() +
   theme_classic(20)
+
+
+
 
