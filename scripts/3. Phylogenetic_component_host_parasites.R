@@ -54,10 +54,11 @@ anti_join(ectoparasite_general_jetz,taxonomy_jetz, by=c("species_jetz"="Scientif
 # Read the tree
 # there are two options for reading the three
 ape::read.nexus(filename, multiPhylo=TRUE)
-host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") # this is for all species with samples 
+host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") # this is for all species with samples includes iquitos
+host_species_tree_manu<- read.nexus("data/phylo_data/tree_pruner/1.output_ectos_pres_abs_100_trees_manu_only.nex") # this is for all species with samples from Manu
 class(multi_species_tree)# Must be multiPhylo
 __
-# Opt 1  Generate a consensus tree  with phytotools -------------------------------
+# Opt 1  Generate a consensus tree  with phytotools 
 
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
 # Methods to compute consensus edge lengths (branch lengths for a consensus topology

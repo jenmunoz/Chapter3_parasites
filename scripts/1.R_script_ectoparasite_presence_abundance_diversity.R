@@ -899,7 +899,23 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   # Read the tree
   # there are two options for reading the three
   #ape::read.nexus(filename, multiPhylo=TRUE)
-  host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") 
+  host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites.nex") #This is the tree with all species
+  #host_species_tree <- read.nexus("data/phylo_data/tree_pruner/output_bird_parasites_genetic.nex")  #This is the tree with species with genetic info # I ma nost sure whe one tree has a 1 tip?
+ # when using the one ony with genetic information we have to reduce the number of species with ectoparasites samples to match the ones for which genetci info is avialable # so i will use th eother
+  is.rooted.multiPhylo(host_species_tree) # the trees are rooted
+  is.ultrametric.multiPhylo(host_species_tree) # when using genetic data is not ultrametric
+  print (host_species_tree, details=TRUE)
+  #host_species_tree[9789]<-NULL # for some reason this genetic tree has less tips (weird I will just remove it)
+  random_host_tree<-sample(host_species_tree,size=1)[[1]] # select one tree
+  random_host_tree1<-sample( host_species_tree,size=1000)# select a thounsand trees tahta re rooted
+  class(random_host_tree)
+  is.rooted.multiPhylo(random_host_tree) # the trees are rooted
+  is.ultrametric.multiPhylo(random_host_tree)
+  edge.widthMap()
+  
+  example <- read.nexus("data/phylo_data/tree_pruner/output_example_genetic.nex") 
+  is.ultrametric.multiPhylo(example)
+  
   class( host_species_tree )# Must be multiPhylo
   
   #
@@ -907,16 +923,32 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   # Opt1 Generate a consensus tree -----------------------------------------------
   
   # Opt 1  Generate a consensus tree  with phytotools -------------------------------
-  
+  # no sure what is the difference between phytools and ape
   ###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
-  # Methods to compute consensus edge lengths (branch lengths for a consensus topology
+  # Methods to compute consensus edge lengths (branch lengths for a consensus topology()
   
   #Method 3: library phytotools Compute the non-negative least squares edge lengths on the consensus tree 
   #using the mean patristic distance matrix. (Function argument method="least.squares".) 
+  #the phangorn function nnls.tree is used and the option rooted will be set to is.rooted(tree) for the consensus tree.
   #If the input trees are rooted & ultrametric, this can be used to produce a consensus tree that is also ultrametric.
+  example_tree<-phytools::consensus.edges(example,method="least.squares")# generates a consensus tree with branch lenghts
+  example_ape<- ape::consensus(example, p = 1, check.labels = TRUE, rooted = TRUE) # othier method for extracting the consensus tree . p=0.5 to get the majority-rule concesnsus tree
+  is.rooted.phylo(example_ape) # Is this one rotted because we have the genetic data only???
   
   # consensus edges function computes for a tree under some criterion
-  host_consensus_tree<-consensus.edges(host_species_tree,method="least.squares")# generates a consensus tree with branch lenghts
+  #If the input trees are rooted & ultrametric, this can be used to produce a consensus tree that is also ultrametric.
+  host_consensus_tree<-phytools::consensus.edges(host_species_tree,method="least.squares")# generates a consensus tree with branch lenghts
+  is.rooted.phylo(host_consensus_tree) # why the consensus tree is not rooted?
+  is.ultrametric.phylo(host_consensus_tree)# but it is ultrametric
+  # generatinga consensus tree with ape
+  host_consensus_tree_ape<- ape::consensus(random_host_tree1, p =1, check.labels = TRUE, rooted = TRUE) # othier method for extracting the consensus tree . p=0.5 to get the majority-rule concesnsus tree
+  # wHY Is the consensus tree not rooted
+  is.rooted.phylo(host_consensus_tree_ape) # I am not sure why the consesus tree is not rooted i n the original wer rooted, quesion for julie!!!
+  
+  #Branch lenght 
+  host_species_tree_rooted<-ape::compute.brlen(  host_consensus_tree_ape,method = "Grafen", power = 1)
+  class(  branches)
+  is.rooted.phylo( host_species_tree_rooted)
   
   #plots
   plotTree(host_consensus_tree,fsize=0.01, type="fan")
@@ -932,8 +964,11 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
   write.nexus(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.nex")
   write.tree(host_consensus_tree, file="data/phylo_data/1_host_consensus_tree_Manuspecies.txt") 
   
-
+  write.tree(random_host_tree,file="data/phylo_data/1_host_consensus_tree_Manuspecies_onerooted.tre") # this is rooted and hs brach lenghts 
+  write.tree(random_host_tree,file="data/phylo_data/1_host_consensus_tree_Manuspecies_onerooted.nex") # this is rooted and hs brach lenghts 
   
+  # NOTE IMPORTANT: for some reason my consensus tree is not rooted, and does not have brancj leght so for practicity I extracted one tree that has brach lenghts nad is rooted to run the analysis until I figure this out   
+
   
 # Part 5 [ANALISES] #####Modeling###### ectoparasites presence absence -------------------------
   # To underestand teh models and out puts better see this paper: https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
@@ -962,8 +997,10 @@ lice_df_diversity_species<-gather(lice_df_wide2, keycol, valuecol, gathercols) %
 ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 names( ectoparasites_df)
 unique(ectoparasites_df$Mites)
-
 phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
+
+phylogeny_rooted<- read.tree("data/phylo_data/1_host_consensus_tree_Manuspecies_onerooted.tre")   # include all species not only genetic is roooted nad ultrametric
+
 View(phylogeny)
 class(phylogeny)
   
@@ -985,23 +1022,66 @@ class(phylogeny)
   
   # all ectos together
   
+  # WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is ndividual samples
+  # this will be required in the diversity analyses
   ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
   ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
   unique(ectoparasites_df$ectoparasites_PA)
   
-  ecto_PA <-  phyr::pglmm(ectoparasites_PA ~ sociality+ (1|foraging_cat)+(1|elevation_cat)+(1|species_jetz__), 
-                    data = ectoparasites_df, 
-                    family = "binomial",
-                    cov_ranef = list(species_jetz= phylogeny), #class phylo
-                    #bayes = TRUE,
-                  REML = TRUE, 
-                    verbose = TRUE,
-                  s2.init = .25) # what is this last parameter for
+  names(ectoparasites_df)
+  
  
+  
+  
+  
+  ecto_PA <-  phyr::pglmm(ectoparasites_PA ~ sociality+ (1|foraging_cat)+ (1|elevation_cat)+(1|species_jetz__), 
+                                    data = ectoparasites_df, 
+                                    family = "binomial",
+                                    cov_ranef = list(species_jetz= phylogeny_rooted), #class phylo
+                                    #bayes = TRUE,
+                                    REML = TRUE, 
+                                    verbose = TRUE,
+                                    s2.init = .25) # what is this last parameter for
+  
+  binaryPGL
+  
   summary(ecto_PA)
  predict(ecto_PA)
+ 
+ 
+ 
+ ecto_PA_model_glmm<-  lme4::glmer(ectoparasites_PA ~ sociality+ (1|foraging_cat)+ (1|elevation_cat)+(1|species_jetz), 
+                               data = ectoparasites_df, 
+                               family = "binomial",
+                               #bayes = TRUE,
+                               verbose = TRUE)
+ 
+ 
+ install.packages("MCMCglmm")
+ library(MCMCglmm)
+ 
+ # GOODNESS OF FIT  
+ # Read this paper to underestand better https://academic.oup.com/sysbio/article/68/2/234/5098616?login=false
+ # An additional complication is created by model with random effects. Given that random effects are very flexible model components 
+ #(for example, nothing stops you from fitting a random effect for each observation in your dataset), a straight-up calculation of variance explains isn’t meaningful. T
+ That said, methods that can produce a useful R2 metric in the complex situation have been developed. 
+ #The package rr2 is able to calculate several flavors of R2, and supports phyr’s pglmm model object. Let’s try it!
+ #
+ install.packages("rr2")
+ library(rr2)
+ rr2::R2(ecto_PA)
+ rr2::R2(ecto_PA_model_glmm)
+ rr2::R2(MCMC)
+ 
+ 
   
   names( lice_diversity)
+  
+  
+  
+  binaryPGLMM(Y ~ X1, phy=phy, data=sim.dat)
+  
+  #bayes = TRUE
   # Also exploring with a glmm ( not phylogenetically corrected)
   ecto_PA_glmm<-lme4::glmer (ectoparasites_PA~sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
                      data = ectoparasites_df, 
@@ -1028,6 +1108,9 @@ class(phylogeny)
                     s2.init = .25)
   summary( l )
   
+  rr2::R2(l)
+  
+  
   # mites only
   
   
@@ -1040,6 +1123,9 @@ m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|sp
                     verbose = TRUE, 
                     s2.init =.25)
   summary( m)
+  rr2::R2(m)
+  
+  
   
   # ticks only
 
@@ -1084,9 +1170,8 @@ m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|sp
   phylogeny_for_lice<- read.nexus("data/phylo_data/1_host_consensus_tree_lice.nex")
   
   #phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
-  
+
   # Filter only manu species 
-  
   lice_df_abundance <-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
   unique(lice_df_abundance$elevation_cat)
  
@@ -1102,12 +1187,18 @@ m <-  phyr::pglmm(Mites ~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|sp
   sd(lice_df_abundance$total_lice)
   
 str(lice_df_abundance)  
+
+lice_df_abundance1<-lice_df_abundance %>% filter(total_lice!=0) %>% view()
+
+unique(lice_df_abundance1$total_lice)
+
+
   # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
   
 
   l_a<-  phyr::pglmm(total_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
-                    data = lice_df_abundance, 
-                    family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                    data = lice_df_abundance1, 
+                    family ="poisson" , # use when bayes=true "zeroinflated.poisson",
                     cov_ranef = list(species_jetz=phylogeny_for_lice), #class phylo
                     #bayes = TRUE,
                     REML = TRUE, 
@@ -1115,6 +1206,9 @@ str(lice_df_abundance)
                     s2.init = .25)
   summary( l_a )
   
+  #pglmm_compare()  #It simultaneously estimates the strength of phylogenetic signal in the residuals and gives an approximate conditional likelihood ratio test for the hypothesis that there is no signal.
+  
+coef(l_a)
   # Modeling the mean abundances 
   
 mean_lice<-lice_df_abundance %>% group_by (species_jetz) %>% 
@@ -1141,10 +1235,15 @@ summary( l_a_mean)
 ### Trying with a glmm intend without the phylogenetic correction
   l_a_glmm<-  lme4::glmer(total_lice~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz), 
                      data = lice_df_abundance, 
-                     family=poisson(link = "log"), # use when bayes=true "zeroinflated.poisson",
+                     family=poisson (link = "log"), # use when bayes=true "zeroinflated.poisson",
                      #REML = TRUE, 
                      verbose = TRUE)
+  
+  Anova(l_a_glmm, type=3)
+  
   summary(l_a_glmm)
+  
+  anova(l_a, l_a_glmm) # not applicabel to PGLM 
   
 #### Modeling infestation   
 ### Creating an infestation variable
@@ -1152,6 +1251,7 @@ summary( l_a_mean)
 lice_df_abundance<-lice_df_abundance %>% mutate( infestation_lice = case_when(
 total_lice>20 ~ "1", 
 TRUE~  "0"))
+
 
 #write_csv(lice_df_abundance,"data/7.lice_df_abundance.csv")
   
@@ -1454,6 +1554,7 @@ l_r_model_glmm<-  lme4::glmer(richness~ sociality + (1|elevation_cat) + (1|forag
 summary(l_r_model_glmm)
 list_host_lice_diversity<-as.data.frame(unique(lice_df_richness_summary$species_jetz))
 
+
 # Model
 names( lice_abundance)
 l_r<-  phyr::pglmm(richness~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__)+(1|n_samples_lice), 
@@ -1539,8 +1640,17 @@ summary( l_a )
 ###
 ggplot(lice_diversity_sp_samplesize, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
   geom_boxplot() +
+  scat
+  ylim(0,10)+
   theme_classic(20)
 
+View(lice_diversity_sp_samplesize)
 
 
 
+
+
+# Part 10 PGLS ------------------------------------------------------------
+
+fit <- gls(response~explanatory, correlation=corPagel(1, phy=my.tree), data=dat)
+  res <- residuals(fit, type="normalized")

@@ -30,6 +30,51 @@ library(grid)
 
 # Exploratory presence absence --------------------------------------------
 
+ectos_df<-read.csv("data/5.ectos_pres_abs_df.csv") # data on presence absence
+ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+
+ectos_df$sociality<-as.factor(ectos_df$sociality)
+
+str(ectos_df)
+
+ggplot(ectos_df, aes(x = sociality, y=ectoparasites_PA_max, group=sociality, color=sociality)) +
+  geom_point(alpha=0.5)+
+  geom_boxplot(alpha = 0.10) +
+  geom_jitter(height = 0.02)+
+  labs(title="a)P/A All ectoparasites",  y="Ocurrence P/A", x = "sociality")+
+  ylim(0,1.5)+
+  theme_classic(20)
+
+ggsave("figures/1.P/A_all_parasites_sociality.pdf",
+       width=15, height=15, units="in")
+
+ggplot(ectos_df, aes(x = sociality, y=sample_size, group=sociality, color=sociality)) +
+  geom_point(alpha=0.5)+
+  geom_boxplot(alpha = 0.10) +
+  geom_jitter(height = 0.02)+
+  labs(title="a)P/A All ectoparasites",  y="Sample size", x = "sociality")+
+  ylim(0,100)+
+  theme_classic(20)
+
+ggsave("figures/1.P/A_all_parasites_sample_size.pdf",
+       width=15, height=15, units="in")
+
+ggplot(ectos_df, aes(x = elevation_cat, y=ectoparasites_PA_max, group=elevation_cat, color=elevation_cat)) +
+  geom_point(alpha=0.5)+
+  geom_boxplot(alpha = 0.10) +
+  geom_jitter(height = 0.02)+
+  labs(title="a)P/A All ectoparasites",  y="Ocurrence P/A", x = "elevation")+
+  ylim(0,2)+
+  theme_classic(20)
+
+ggsave("figures/1.P/A_all_parasites_elevation.pdf",
+       width=15, height=15, units="in")
+
+ggplot(ectos_df, aes(x = ectoparasites_PA_max)) +
+  geom_histogram(fill = "white", colour ="black") +
+  facet_grid (species_jetz~.)+
+  theme_classic(20)
+
 
 # Exploratory abundance ---------------------------------------------------
 
