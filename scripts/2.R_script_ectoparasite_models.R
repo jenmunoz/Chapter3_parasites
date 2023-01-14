@@ -100,22 +100,61 @@ library(grid)
 # #[Overall] Data summary -------------------------------------------------
 
 # Presence absence
+ectos_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
 
+# we have abundance for 62 host social species and for 27 non social species  in manu
+
+  ectos_df%>% group_by(Family,species_clean,species_jetz ) %>%  # we have abundance for 62 host social species and for 27 non social species  in manu
+  
+
+as.data.frame(unique( ectos_df$Family)) %>% View()
 ectos_df<-read.csv("data/5.ectos_pres_abs_df.csv") # data on presence absence
 ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
 
-ectos_df %>% filter( sociality=="0") # we have abundance for 88 host social species and for 45 non social species  in manu
-ectos_df %>% filter( sociality=="1") # we have abundance for 88 host social species and for 45  non social species  in manu
+View(ectos_df)
+ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+non_social<-ectos_df %>% filter( sociality=="0") # we have OCURRENCE  for 88 host social species and for 45 non social species  in manu
+social<-ectos_df %>% filter( sociality=="1") # we have OCURRENCE for 88 host social species and for 45  non social species  in manu
+
+mean(non_social$sample_size)
+mean(social$sample_size)
+
+
+# Create  summary tables of bird species sample size and family and type of parasite
+names(ectos_df)
+families<-as.data.frame(ectos_df%>% group_by(BLFamilyLatin) %>% summarize(n())) 
+write.csv(families, "tables/1.Family_sample_size_manu.csv")
+individuals <-as.data.frame(ectos_df%>% group_by(species_clean) %>% summarize(n())) 
+write.csv(individuals, "tables/1.Individuals_sample_size_manu.csv")
+
+ectos_df%>% group_by(BLFamilyLatin, species_clean) %>% summarize(total=sum(bill_tidy))
+
+
+
 # Abundance 
+
+# Lice
 
 lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
 lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
 
-lice_df_abundance %>% filter( sociality=="0") # we have abundance for 62 host social species and for 27 non social species  in manu
-lice_df_abundance %>% filter( sociality=="1") # we have abundance for 88 host social species and for 45 non social species  in manu
+lice_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
 
+lice_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+lice_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") #  lice abundance manu only 
+
+lice_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
 
 
 # Mean abundance
@@ -124,6 +163,44 @@ mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = 
 
 mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
 mean_lice_abundance %>% filter( sociality=="0") # we have abundance for 62 host social species and for 27 non social species  in mau
+
+mean_lice_abundance  %>% group_by(sociality) %>% summarize(ave=sd(mean_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+#Mites
+
+mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+names(mites_df_abundance)
+mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+mites_df_abundance<-mites_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+
+mites_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for  host social species and for  non social species  in manu
+mites_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
+
+mites_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+mites_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+mites_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_mites)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+
+
+###
+# Diversity
+##
+
+lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv")
+lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
+
+lice_richness_manu_sp %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
+
+lice_richness_manu_sp %>% filter( sociality=="0") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% filter( sociality=="1") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
+
+lice_richness_manu_sp %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
 
 
 # [Presence_absence] Part1_Ectoparasite models_  -----------------------------
@@ -146,6 +223,8 @@ mean_lice_abundance %>% filter( sociality=="0") # we have abundance for 62 host 
 ###_###_###_###_##
 # The data
 ###_###_###_###_##
+
+# Getttingthe data ready
 ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 names( ectoparasites_df)
 unique(ectoparasites_df$Mites)
@@ -154,7 +233,6 @@ class(phylogeny)
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
 
 # Re-strudture the data
 # Make sure variables are in teh right format, random effects should be factors
@@ -197,6 +275,7 @@ View(ectos_pres_abs_df)
 #write.csv(ectos_pres_abs_df, "data/5.ectos_pres_abs_df.csv")
 
 names(ectoparasites_df)
+
 
 # Reading the files 
 
@@ -297,6 +376,9 @@ rr2::R2(MCMC)
 
 
 # [Abundance]Part2_Ectoparasite models_  -----------------------------
+
+# lice
+
 #Response variable count 
 #Random effects species ( we have multiple measurements per species), account to variation between species other than phylogenetic, maybe redundat with foraging high
 #Random effect phylogeny
@@ -305,8 +387,6 @@ rr2::R2(MCMC)
 library(ape)
 library(MCMCglmm)
 
-
-
 # Read teh files
 
 lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
@@ -314,6 +394,9 @@ lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
 lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 unique (lice_df_abundance$species_jetz) 
 lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+
+lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
+
 
 phylo_lice_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
 # Make sure number in teh data and the phylogenty are consistent
@@ -336,7 +419,7 @@ l_abun_pglmm <-  phyr::pglmm(total_lice ~ sociality+ (1|elevation_cat)+(1|specie
                               family = "poisson",
                               cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
                               #bayes = TRUE,
-                              REML = FALSE,  # NOT SURE WHEN TO USE ML
+                              REML = TRUE,  # NOT SURE WHEN TO USE ML
                               verbose = TRUE,
                               s2.init = .25) # what is this last parameter for
 
@@ -429,7 +512,7 @@ unique(mean_lice_abundance$mean_lice)
 names ( mean_lice_abundance)
 l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat), 
                              data = mean_lice_abundance, 
-                             family = "poisson", #( maybe gaussian will be better in this case ?)
+                             family = "gaussian", #( maybe gaussian will be better in this case ?)
                              cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
                              #bayes = TRUE,
                              REML= TRUE,  # NOT SURE WHEN TO USE ML
@@ -442,6 +525,101 @@ rr2::R2(l_abun_mean_pglmm)
 l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz)+ (1|foraging_cat), 
                                   data = mean_lice_abundance)
 
+
+#Mites: this is all the data not manu only
+
+###_###_###_###_###_###_###_###
+# Modeling no feather mites only (cause feathers mites can be misleding)
+###_###_###_###_###_###_###_###
+
+mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+View(mites_df_abundance)
+names(mites_df_abundance)
+phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+# Abundance is counts so we can use  a poisson but it is zero infladed (no opticon in PGLMM to take care of this)
+#poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type
+# species and elevation site has to be factors
+#sociality 1, 0
+#elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
+
+mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+# Lets check for zero infalted data 
+
+100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
+
+# 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
+
+#### Abundance
+# Modeling the individual abundances
+
+#phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
+# Make sure variables are in teh right format, random effects should be factors
+#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+
+mites_df_abundance<-mites_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+mites_df_abundance$elevation_cat<-as.factor(mites_df_abundance$elevation_cat)
+mites_df_abundance$foraging_cat<-as.factor(mites_df_abundance$foraging_cat)
+mites_df_abundance$species_jetz<-as.factor(mites_df_abundance$species_jetz)
+mites_df_abundance$sociality<-as.factor(mites_df_abundance$sociality)
+
+str(mites_df_abundance)
+
+mean(mites_df_abundance$total_no_feathers_mites)
+sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
+
+# Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
+
+names( mites_df_abundance)
+m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                        data = mites_df_abundance, 
+                        family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                        cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                        #bayes = TRUE,
+                        REML = TRUE, 
+                        verbose = TRUE, 
+                        s2.init = .25)
+summary(m_a_no_f)
+
+
+m_a_meso<-  phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                        data = mites_df_abundance, 
+                        family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                        cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                        #bayes = TRUE,
+                        REML = TRUE, 
+                        verbose = TRUE, 
+                        s2.init = .25)
+summary( m_a_meso)
+
+View(mites_df_abundance)
+#### mean non feather mites 
+
+mean_mites_mesostigmatidae<-mites_df_abundance %>% group_by (species_jetz) %>% 
+  summarize(mean_mites=mean(total_mesostigmatidae)) 
+
+species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
+
+mean_mites_abundance_mesostigmatidae<-right_join(species_attributes_distict, mean_mites_mesostigmatidae, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+mean_mites_abundance_mesostigmatidae<-mean_mites_abundance_mesostigmatidae  %>% mutate_at("species_jetz", str_replace, " ", "_")
+mean_mites_abundance_mesostigmatidae$elevation_cat<-as.factor(mean_mites_abundance_mesostigmatidae$elevation_cat)
+mean_mites_abundance_mesostigmatidae$foraging_cat<-as.factor(mean_mites_abundance_mesostigmatidae$foraging_cat)
+mean_mites_abundance_mesostigmatidae$species_jetz<-as.factor(mean_mites_abundance_mesostigmatidae$species_jetz)
+mean_mites_abundance_mesostigmatidae$sociality<-as.factor(mean_mites_abundance_mesostigmatidae$sociality)
+
+
+
+mean_m_a_meso<-  phyr::pglmm(mean_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+                        data = mean_mites_abundance_mesostigmatidae, 
+                        family ="gaussian", # use when bayes=true "zeroinflated.poisson",
+                        cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                        #bayes = TRUE,
+                        REML = TRUE, 
+                        verbose = TRUE, 
+                        s2.init = .25)
+summary( mean_m_a_meso)
 
 # [Diversity] Part 3 Ectoparasite models_ -----------------------------
 ###_###_###_###_
@@ -476,7 +654,7 @@ n_samples_lice_sp<-lice_df_diversity_sp %>% group_by(species_jetz) %>%
 lice_richness_sp_df<-right_join(lice_df_richness_sp, n_samples_lice_sp, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
 
-write.csv(lice_richness_sp_df, "data/5.lice_richness_sp_df_manu.csv")
+#write.csv(lice_richness_sp_df, "data/5.lice_richness_sp_df_manu.csv")
 
 ####Correlation sample size and diversity #WARNING
 
@@ -528,32 +706,6 @@ l_d_sp_pglmm<-  phyr::pglmm(richness_sp~ sociality + (1|elevation_cat) + (1|fora
                       s2.init = .25)
 summary(l_d_sp_pglmm)
 
-
-# Plot for diversity analyses 
-
-ggplot(lice_richness_manu_sp, aes(x = sociality, y=richness_sp, group=sociality, color=sociality)) +
-  geom_point(alpha=0.5)+
-  geom_boxplot(alpha = 0.10) +
-  geom_jitter()+
-  labs(title="a) Lice diversity (total sp)",y="Total sp", x = "sociality")+
-  ylim(0,7)+
-  theme_classic(20)
-
-ggplot(lice_richness_manu_sp, aes(x = sociality, y=n_samples_lice, group=sociality, color=sociality)) +
-  geom_point(alpha=0.5)+
-  geom_boxplot(alpha = 0.10) +
-  geom_jitter()+
-  labs(title="b) Sample size",y="Total samples", x = "sociality")+
-  ylim(0,25)+
-  theme_classic(20)
-
-
-
-ggplot(lice_richness_manu_sp, aes(x =n_samples_lice, y=richness_sp)) +
-  geom_point()+
-  geom_jitter(height = 0.01)+
-  labs(title="b) Sample size")+
-  theme_classic(20)
 
 
 
@@ -765,3 +917,103 @@ ggplot(sociality_continous_diversity_lice, aes(x=n_samples_lice, y=richness_sp )
   theme_classic(20)
 
 
+# Crazy idea
+
+
+##_###_###_###_###_###_###_###_###_###_###_###_###_###_
+# Flocks
+#Preparing flock data 
+flocks<-read.csv ("data/0.flocks_manu_complete_18052022.csv")
+flocks<-flocks %>% filter(database_decision=="include") 
+#Look for duplicates there are 755 observations, 4 repited entrees
+{flocks} %>%
+  dplyr::group_by( flock_id, species_taxonomy_SACC_2021) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+#flocks %>% group_by( flock_id, species_taxonomy_SACC_2021) %>%filter(n() > 1)
+
+#eliminate duplicates 
+flocks<-flocks %>% distinct( flock_id, species_taxonomy_SACC_2021, .keep_all = TRUE)
+unique(flocks$flock_id)
+# create list of flocking species
+flocks_list<-flocks %>% 
+  distinct( species_taxonomy_SACC_2021, keep_all=FALSE) %>% 
+  add_column(flocking="yes") %>% 
+  select(-keep_all)
+View(flocks)
+
+names(flocks)
+
+
+# Number of individual per species
+
+conspecific_groups_mean<-flocks %>% group_by(species_taxonomy_SACC_2021) %>% 
+  summarize (mean_conspecific=mean(ind_per_sp)) 
+
+conspecific_groups_max<-flocks %>% group_by(species_taxonomy_SACC_2021) %>% 
+  summarize (max_conspecific=max(ind_per_sp)) 
+
+conspecifics<-full_join (conspecific_groups_mean,conspecific_groups_max, by="species_taxonomy_SACC_2021")
+
+as.data.frame(conspecifics)
+
+View(conspecifics)
+
+hist(conspecific_groups$mean_conspecific)
+# make sure the formating is consistent
+
+conspecifics<-conspecifics %>% mutate_at("species_taxonomy_SACC_2021", str_replace, " ", "_")
+# Joining with jettx taxonomy 
+
+jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_corrected.csv")%>% 
+  mutate_at("species_taxonomy_SACC_2021", str_replace, " ", "_") %>% 
+  select(species_taxonomy_SACC_2021,species,species_jetz,TipLabel) %>% 
+  distinct(species_taxonomy_SACC_2021,.keep_all = TRUE )
+
+
+conspecific_jetz<-left_join (conspecifics, jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021")
+conspecific_jetz<-conspecific_jetz %>% mutate_at("species_jetz", str_replace, " ", "_")
+
+
+
+View(conspecific_jetz)
+
+lice_df_abundance_means<-read.csv("data/5.lice_df_abundance_means.csv")
+
+lice_df_abundance_means_conspecifics<-inner_join (conspecific_jetz, lice_df_abundance_means, by="species_jetz")
+
+names (lice_df_abundance_means_conspecifics)
+ggplot(lice_df_abundance_means_conspecifics, aes(x = mean_lice, y=max_conspecific)) +
+  geom_point(alpha=0.5)+
+  geom_smooth(method=lm)
+ggplot(lice_df_abundance_means_conspecifics, aes(x = mean_lice, y=mean_conspecific)) +
+  geom_point(alpha=0.5)+
+  geom_smooth(method=lm)
+
+
+lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv")
+
+lice_df_abundance_conspecifics<-inner_join (conspecific_jetz, lice_df_abundance, by="species_jetz")
+
+ggplot(lice_df_abundance_conspecifics, aes(x =total_lice, y=mean_conspecific)) +
+  geom_point(alpha=0.5)+
+  geom_smooth(method=lm)
+
+
+mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+mites_df_abundance<-mites_df_abundance %>% mutate_at("species_jetz", str_replace, " ", "_")
+
+mites_df_abundance_conspecifics<-inner_join (conspecific_jetz, mites_df_abundance, by="species_jetz")
+
+
+
+ggplot(mites_df_abundance_conspecifics, aes(x =total_mites, y=max_conspecific)) +
+  geom_point(alpha=0.5)+
+  geom_smooth(method=lm)
+
+write.csv(degree_manu_jetz, "data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+write.csv(degree_w_manu_jetz, "data/8.network_degree_weighted_network_all_sp_manu_jetz_tax.csv")
+
+
+
+View(deg_binary)

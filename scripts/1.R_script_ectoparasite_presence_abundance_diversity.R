@@ -1435,6 +1435,17 @@ names(lice_df_abundance)
                           s2.init = .25)
   summary( m_a_meso)
   
+  #### mean non feather mites 
+  
+  mean_mites_mesostigmatidae<-mites_df_abundance %>% group_by (species_jetz) %>% 
+    summarize(mean_mites=mean(total_mesostigmatidae))
+  
+  species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+  species_attributes_distict<-distinct( species_atributes)
+  
+  mean_mites_abundance_mesostigmatidae<-right_join(species_attributes_distict, mean_mites_mesostigmatidae, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
+  
+  
   
 # Part 8 [ANALISES] Modeling abundance~Ticks-------------------------------------------------------------------------
 

@@ -1,0 +1,34 @@
+host species,Ectparasites_of_interest,Flocking (Yes/No),Flocking_degree,sample_size,n_lice_of_interest,localities,number of reported lice genera by us,number of reported genera from checklist,Possible
+Anabacerthia striaticollis,Myrsidea,1,78,2,2,2,1,0,1
+Anisognathus somptuosus,Myrsidea,1,17,1,1,1,1,0,1
+Anisognathus igniventris,Myrsidea,1,40,2,2,2,1,0,1
+Arremon taciturnus,Myrsidea,1,20,8,3,3,1,1,1
+Arremon torquatus,Myrsidea,1,10,9,1,1,1,0,1
+Buthraupis montana,Myrsidea,1,47,3,3,3,2,1,2
+Chlorochrysa calliparaea ,Myrsidea,1,106,1,1,1,1,0,1
+Chlorornis riefferi,Myrsidea,1,49,8,2,2,2,0,2
+Chlorospingus flavigularis ,Myrsidea,1,106,14,2,2,2,0,2
+Habia rubica,Myrsidea,1,19,7,2,2,1,3,3
+Iridosornis analis,Myrsidea,1,66,2,1,1,1,0,1
+Iridosornis jelskii,Myrsidea,1,23,6,2,2,1,0,1
+Kleinothraupis atropileus,Myrsidea,1,58,3,1,1,1,0,1
+Leptopogon amaurocephalus,Myrsidea,1,92,8,2,2,1,2,2
+Leptopogon superciliaris,Myrsidea,1,111,7,2,2,1,1,1
+Percnostola fortis,Myrsidea,1,9,1,1,1,1,0,1
+Phlegopsis nigromaculata ,Myrsidea,1*,NA,1,1,1,1,0,1
+Phylloscartes ophthalmicus,Myrsidea,1,67,3,1,1,1,0,1
+Pithys albifrons ,Myrsidea,1*,NA,,2,2,1,1,1
+Rhegmatorhina melanosticta ,Myrsidea,1*,NA,,1,1,1,0,1
+Sphenopsis melanotis,Myrsidea,1,72,,2,2,1,0,1
+Tangara arthus,Myrsidea,1,102,5,2,2,1,0,1
+Tangara schrankii ,Myrsidea,1,98,2,1,1,1,1,1
+Xiphorhynchus elegans ,Myrsidea,1,83,1,1,1,2,0,2
+Anisognathus igniventris ,Menoponidae,1,40,2,1,1,1,0,1
+Basileuterus tristriatus,Menoponidae,1,66,9,1,1,1,0,1
+Myioborus melanocepalus,Menoponidae,1,69,1,1,1,1,,1
+Myioborus miniatus,Menoponidae,1,119,1,1,1,1,,1
+Geotrygon,montana,0,0,,,,2,,
+Hafferia,fortis,0,0,,,,1,,
+Corythopis,torquatus,0,0,,,,1,,
+,,,,,,,,,
+Total samples,,,,,43,43,,,
