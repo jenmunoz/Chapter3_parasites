@@ -97,14 +97,14 @@ library(gridExtra)
 library(ggpubr)
 library(grid)
 
-# #[Overall] Data summary -------------------------------------------------
+# #[Overall] Part 0 Data summary -------------------------------------------------
 
 # Presence absence
 ectos_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
 
-# we have abundance for 62 host social species and for 27 non social species  in manu
+# we have presence absence for 62 host social species and for 27 non social species  in manu
 
   ectos_df%>% group_by(Family,species_clean,species_jetz ) %>%  # we have abundance for 62 host social species and for 27 non social species  in manu
   
@@ -252,7 +252,7 @@ ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
 
 # all ectos together
 
-# WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is ndividual samples because 
+# WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
 #the higher the sample size the higher teh probability to find ectos
 # this will be required in the diversity analyses
 ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
@@ -373,6 +373,79 @@ library(rr2)
 rr2::R2(ecto_PA)
 rr2::R2(ecto_PA_model_glmm)
 rr2::R2(MCMC)
+
+
+
+
+# [Probability_Presence_absence] Part1 B ( Suggestions using probabilities)_Ectoparasite models_  -----------------------------
+#All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
+
+#Notes for this analyses we are trying to incorportae phylogeny and random effect but our response variable is binomial (0,1), or probaility ( 0 to 1) or counts (abundance)
+# Because of this we can not do a PGLS ( which only takes contonous data as response varaible)
+# I run teh model with a gneral mixed effect model with out the phylogenetic correction first glmm and then PGLMM and tehn McmcPGLM 
+# The options are PGLMM AND MCMCpglmmm, there is also the opction binarypglmm but I am having troble underestanding the sintax
+# MCMCpglmm uses bayesian approach 
+# PGLMM looks straightforward to underetand but when using R2 to evaluta goodness of fit seem very low...
+# probability of parasite ocurrence is bounded a 1 or 0 so we can use binomial # but elevation can not be continuos to be entered as a random effect logit 
+
+
+#notes blog for PGLS when response variable is contonous blog from liam revel http://www.phytools.org/Cordoba2017/ex/4/PGLS.html
+#Binarypglmm blog https://rdrr.io/cran/ape/man/binaryPGLMM.html
+#MCMCglmm https://ourcodingclub.github.io/tutorials/mcmcglmm/
+
+###_###_###_###_##
+# The data
+###_###_###_###_##
+
+# Getting the data ready
+ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+names( ectoparasites_df)
+unique(ectoparasites_df$Mites)
+View(phylogeny)
+class(phylogeny)
+
+# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
+ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+# Re-strudture the data
+# Make sure variables are in teh right format, random effects should be factors
+#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+
+ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
+str( ectoparasites_df)
+
+ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
+ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
+ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
+ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
+
+###_###_###_###_##
+#The models for presence absence
+###_###_###_###_##
+
+# all ectos together
+
+# WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
+#the higher the sample size the higher teh probability to find ectos
+# this will be required in the diversity analyses
+ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
+ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
+unique(ectoparasites_df$ectoparasites_PA)
+
+ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
+  summarise(ectoparasites_PA_max=max(ectoparasites_PA), sample_size=(n())) 
+
+species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
+
+ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
+
+ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,ectoparasites_PA_max,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
+
+
+View(ectos_pres_abs_df)
+
+#write.csv(ectos_pres_abs_df, "data/5.ectos_pres_abs_df.csv")
 
 
 # [Abundance]Part2_Ectoparasite models_  -----------------------------
