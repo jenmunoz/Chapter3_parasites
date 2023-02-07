@@ -403,11 +403,20 @@ rr2::R2(MCMC)
 ###_###_###_###_##
 
 # Getting the data ready
-ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence with all variables 
 names( ectoparasites_df)
 unique(ectoparasites_df$Mites)
 View(phylogeny)
 class(phylogeny)
+
+# including other data
+#number of detections in flocks
+elevation_midpoint<-read.csv("data/1.elevation_midpoint_manu_species.csv")
+
+#anti_join(ectoparasites_df,elevation_midpoint, by=c("species_clean"="species_taxonomy_SACC_2021")) # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+ectoparasites_df<-left_join(ectoparasites_df,elevation_midpoint,by=c("species_clean"="species_taxonomy_SACC_2021"))
+
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
@@ -423,6 +432,8 @@ ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
 ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
 ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
 ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
+ectoparasites_df$elevation_midpoint<-as.numeric(ectoparasites_df$elevation_midpoint)
+
 
 ###_###_###_###_##
 #The models for presence absence
@@ -443,10 +454,10 @@ ectoparasites_df %>% group_by(ectoparasites_PA) %>%
 
 
 ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n())) %>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation_midpoint=max(elevation_midpoint)) %>% 
   mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
 
-species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean, mass_tidy,Family )
 species_attributes_distict<-distinct(species_atributes)
 
 ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
@@ -454,6 +465,7 @@ ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="sp
 ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
 
 View(ectos_pres_abs_df)
+
 
 # write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
 
@@ -516,7 +528,7 @@ names_sp = match(ectos_df$species_jetz, phylogeny_rooted$tip.label)
 z = nlme::gls(proportion_ectoparasites ~ sociality+ sample_size, data = ectos_df, correlation = corPagel(0.5,  phylogeny_rooted, fixed=FALSE))
 summary(z)
 
-See other suggestions to calculate lambd here https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
+#See other suggestions to calculate lambd here https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
 
 
 ###_###_###
