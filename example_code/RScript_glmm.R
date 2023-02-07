@@ -185,6 +185,8 @@ object = contMap(tennex, tenlist, direction = "leftwards", plot=FALSE)
 n=length(object$cols)
 object$cols[1:n]=viridis(n)
 
+tenprev
+
 
 
 png("phylotree.png", width = 2500, height = 3100, res = 300, units = "px")

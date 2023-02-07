@@ -2,7 +2,8 @@
 ### Chapter 3-parasites and flocking species                                     ###
 ### Part 1 Models                                                                           ###
 ### R-code                                                                          ###
-### Jenny Munoz                                                                     ###
+### Jenny Munoz      
+###
 ### Last update: Oct 26 2022                                                     ###
 ################################################################################
 
@@ -45,6 +46,7 @@ install.packages("rr2")
 install.packages ( "MCMCglmm")
 install.packages("phyr")
 #install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) # to be able to run bayesian inference on the PGLMM models more info here https://www.r-inla.org
+
 
 library("devtools")
 #devtools::install_github(repo = "https://github.com/hrue/r-inla", ref = "stable", subdir = "rinla", build = FALSE)
@@ -98,7 +100,7 @@ library(ggpubr)
 library(grid)
 
 # #[Overall] Part 0 Data summary -------------------------------------------------
-
+# tHis part is to calculate some general descriptive data summaries 
 # Presence absence
 ectos_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
@@ -203,7 +205,7 @@ lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()
 
 
 
-# [Presence_absence] Part1_Ectoparasite models_  -----------------------------
+# [Presence_absence] Part1_Ectoparasite models_using binary data -----------------------------
 # To underestand teh models and out puts better see this paper: https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
 # also see this blog with an example https://daijiang.github.io/phyr/articles/phyr_example_empirical.html
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
@@ -225,7 +227,7 @@ lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()
 ###_###_###_###_##
 
 # Getttingthe data ready
-ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 names( ectoparasites_df)
 unique(ectoparasites_df$Mites)
 View(phylogeny)
@@ -377,8 +379,11 @@ rr2::R2(MCMC)
 
 
 
-# [Probability_Presence_absence] Part1 B ( Suggestions using probabilities)_Ectoparasite models_  -----------------------------
+
+## [Probability_Presence_absence] Proportional data
+# Part1 Ectoparasite models_using prevalence data (Corrections after meeting with Jullie et al  using probabilities)_Ectoparasite models_  -----------------------------
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
+# In this case we will analyses proportion data arising from counts (counts base data, See https://fukamilab.github.io/BIO202/04-B-binary-data.html#glm_for_proportional_data)
 
 #Notes for this analyses we are trying to incorportae phylogeny and random effect but our response variable is binomial (0,1), or probaility ( 0 to 1) or counts (abundance)
 # Because of this we can not do a PGLS ( which only takes contonous data as response varaible)
@@ -388,17 +393,17 @@ rr2::R2(MCMC)
 # PGLMM looks straightforward to underetand but when using R2 to evaluta goodness of fit seem very low...
 # probability of parasite ocurrence is bounded a 1 or 0 so we can use binomial # but elevation can not be continuos to be entered as a random effect logit 
 
-
 #notes blog for PGLS when response variable is contonous blog from liam revel http://www.phytools.org/Cordoba2017/ex/4/PGLS.html
 #Binarypglmm blog https://rdrr.io/cran/ape/man/binaryPGLMM.html
 #MCMCglmm https://ourcodingclub.github.io/tutorials/mcmcglmm/
+
 
 ###_###_###_###_##
 # The data
 ###_###_###_###_##
 
 # Getting the data ready
-ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
+ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence
 names( ectoparasites_df)
 unique(ectoparasites_df$Mites)
 View(phylogeny)
@@ -425,33 +430,182 @@ ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
 
 # all ectos together
 
-# WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
+# INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
 #the higher the sample size the higher teh probability to find ectos
 # this will be required in the diversity analyses
 ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
 ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
 unique(ectoparasites_df$ectoparasites_PA)
 
+str(ectoparasites_df$ectoparasites_PA)
+ectoparasites_df %>% group_by(ectoparasites_PA) %>% 
+  summarise(n())
+
+
 ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_PA_max=max(ectoparasites_PA), sample_size=(n())) 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n())) %>% 
+  mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
 
 species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
-species_attributes_distict<-distinct( species_atributes)
+species_attributes_distict<-distinct(species_atributes)
 
 ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
 
-ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,ectoparasites_PA_max,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
-
+ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
 
 View(ectos_pres_abs_df)
 
-#write.csv(ectos_pres_abs_df, "data/5.ectos_pres_abs_df.csv")
+# write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
+
+# [Prevalence_Presence_absence] THE MODEL 
+
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence
+unique(ectos_df$species_jetz)
+str(ectos_df) # should have same number of rows than teh phylogeny 
+#phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
+phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+
+# Make sure the tips and the names on the file coincide
+tips<- as.data.frame(phylogeny_rooted$tip.label)
+names<-as.data.frame(ectos_df$species_jetz)
+anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz"))
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
+ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
+
+str(ectos_df)
+# Using pglmmm
+#I am not sue about including foraging cat since that some how is included in teh variation per species + 
+#elevation_cat # only hs three categories so i am not sure I can used as a ranmod effect
+# we revomed (1|foraging_cat) because it was not significant in individual models 
+
+unique(ectos_df$elevation_cat)
+
+mean(ectos_df$proportion_ectoparasites) # mean prevalnece
+
+ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ sample_size+(1|species_jetz__)+(1|elevation_cat), 
+                              data = ectos_df, 
+                              family = "binomial",
+                              cov_ranef = list(species_jetz= phylogeny_rooted), #class phylo
+                              #bayes = TRUE,
+                              REML = TRUE, 
+                              verbose = TRUE,
+                              s2.init = .25) # what is this last parameter for
+str(ecto_prevalence_pglmm)
+summary(ecto_prevalence_pglmm)
+predict(ecto_prevalence_pglmm)
+rr2::R2(ecto_prevalence_pglmm)
+class(ecto_prevalence_pglmm )
+
+# how to know if random effects are strong enough to take seriously? 
+# One way to get an idea is to run a likelihood ratio test on the random effect. 
+# This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
+# (this code from link above)
+
+LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = x))
+colnames(LRTest) <- names(ecto_prevalence_pglmm$ss)
+t(LRTest)
+
+#Pages Lambda
+
+tips<- as.data.frame(phylogeny_rooted$tip.label)
+names<-as.data.frame(ectos_df$species_jetz)
+
+names_sp = match(ectos_df$species_jetz, phylogeny_rooted$tip.label)
+z = nlme::gls(proportion_ectoparasites ~ sociality+ sample_size, data = ectos_df, correlation = corPagel(0.5,  phylogeny_rooted, fixed=FALSE))
+summary(z)
+
+See other suggestions to calculate lambd here https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
+
+
+###_###_###
+# PLOTS PREVALENCE
+###_###_###
+
+#Some examples fr plotting http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html
+# Plot phylogenetic tree and continous trait ( prevalence)
+#ContMap #Function plots a tree with a mapped continuous character. 
+#The mapping is accomplished by estimating states at internal nodes using ML with fastAnc, and then interpolating the states along each edge using equation [2] of Felsenstein (1985).
+
+#contMap(tree, x, res=100, fsize=NULL, ftype=NULL, lwd=4, legend=NULL,
+#lims=NULL, outline=TRUE, sig=3, type="phylogram", direction="rightwards", 
+#plot=TRUE, ...)
+
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
+phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+list.names=setNames(ectos_df$proportion_ectoparasites, ectos_df$species_jetz)
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
+ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
+
+
+
+object = contMap(phylogeny_rooted, list.names, direction = "leftwards", plot=FALSE)
+
+png("figures/figures_manuscript/Fig2.Prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+plot(object_color, mar=c(5.1,1,1,1), ylim=c(1-0.09*(Ntip(object$tree)-1), Ntip(object$tree)), legend=FALSE,lwd=4,fsize=0.5)
+#add.color.bar(5, object2, title = "Infection Prevalence", lims = object$lims, digits = 3, prompt=FALSE,x=0,y=1-0.08*(Ntip(object$tree)-1), lwd=4,fsize=1,subtitle="")
+add.color.bar(5, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=10,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence")
+dev.off()
+title(xlab = "Time from root (Ma)")
+
+
+####  Plot flcoking as a binomial trait on the phylogeny
+
+phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
+fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
+ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
+
+View(fmode)
+
+png("figures/figures_manuscript/Fig1.sociality_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),                                              c("1","0")),ftype="i",fsize=0.5, lwd=4)
+dev.off()
+
+# Combining both plots
+
+fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
+
+object = contMap(phylogeny_rooted, list.names, direction = "leftwards", plot=FALSE)
+object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+
+png("figures/figures_manuscript/Fig3.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
+     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
+     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
+
+add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+
+dev.off()
+
+
+############
+
+
+
+
+# Using a glmm
+ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
+                             data = ectos_df, 
+                             family = "binomial",
+                             verbose = TRUE)
+
+summary(ectos_prevalence_glmm)
+rr2::R2(ectos_prevalence_glmm)
+
 
 
 # [Abundance]Part2_Ectoparasite models_  -----------------------------
-
-# lice
-
+# Lice
 #Response variable count 
 #Random effects species ( we have multiple measurements per species), account to variation between species other than phylogenetic, maybe redundat with foraging high
 #Random effect phylogeny
@@ -462,13 +616,13 @@ library(MCMCglmm)
 
 # Read teh files
 
-lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
+lice_df_abundance<-read.csv("data/data_analyses/7.lice_df_abundance.csv")
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 unique (lice_df_abundance$species_jetz) 
-lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+#lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
 
-lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
+#lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
 
 
 phylo_lice_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
@@ -480,14 +634,26 @@ lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
 lice_df_abundance$species_jetz<-as.factor(lice_df_abundance$species_jetz)
 lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
 
+str(lice_df_abundance)
+
+#Add powder lever
+powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
+lice_df_abundance_powder<-inner_join( lice_df_abundance, powder_bias, by="Full_Label") 
+lice_df_abundance_powder$powder_level<-as.factor(lice_df_abundance_powder$powder_level)
+
+#write.csv(lice_df_abundance_powder,"data/data_analyses/7.dff_lice_abundance.csv")
+str(lice_df_abundance_powder)
 
 # Using pglmmm
+lice_df_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv") 
+unique(lice_df_abundance$powder_level)
+
 #I am not sue about including foraging cat since that some how is included in teh variation per species , 
 #also sample size seems relevant but not sure how to included since the observations are individual.
 # iTHINK THE BEST APPROACH IS TO calculate the mean abundance adn nclude sample size as a random effect
 
  
-l_abun_pglmm <-  phyr::pglmm(total_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat), 
+l_abun_pglmm <-  phyr::pglmm(total_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz__)+ (1|powder_level), 
                               data = lice_df_abundance, 
                               family = "poisson",
                               cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
@@ -504,70 +670,51 @@ R2.pred(l_abun_pglmm)
 R2.resid(l_abun_pglmm)
 class(l_abun_pglmm) # i THINK r2 ONLY ALOW TO calculate goodness of fit in gaussian (community PGLMM)
 
-# Using MCMCglmm
-#We want to investigate a possible relationship between the abundance and the cofactor : sociality
+# Using Glmm
 
-#The variables nitt and burnin are used to calibrate the MCMCM algorithm:it will iterate for burnin iterations before recording samples (to ensure convergence), and then iterate nitt times. T
-#he parameter thin helps us to save memory by saving only every `thin' value and thus, dropping highly auto-correlated values2.
-#Note that the use of nodes=`TIPS' or nodes=`ALL' in the inverseA function can have a noticeable impact on auto-correlation: whereas the latter would speed up computation, 
-#it can results in higher auto-correlation
-# Note the phylo column containing the name of the species in our dataset: it corresponds to the phylogenetic effect we are going to include in our model.
-#regarding the random effects, we need to define a set of priors for the variance components of  EACH random effect:
+#Similar results to above 
+lice_abundance_glmm<-  lme4::glmer(total_lice ~ sociality+  (1|elevation_cat)+(1|species_jetz)+ (1|powder_level),  #+1(1|foraging_cat)
+                                     data = lice_df_abundance, 
+                                     family = "poisson",
+                                     verbose = TRUE)
 
-#In we have a continous cofactor We have to add a new random effect taking into account the fact that each species has a ``multiple measurement effect''. 
-#Note the new column species, which is identical to the phylo one and will be used for that purpose. 
-#First, we will try to fit the model , using the specific mean of the cofactor: # I am not sure i have to do thica casuse i dont have cofactors that are numerical
-#lice_df_abundance$spec_mean_cf<-sapply(split(lice_df_abundance$cofactor,data$phylo),mean)[data$phylo] # use this to add the mean random effect
-
-names(lice_df_abundance)
-inv.phylo<-inverseA(phylo_lice_rooted,nodes="TIPS",scale=TRUE)
-prior2<-list(G=list(G1=list(V=1,nu=0.02,alpha.mu=0, alpha.V=10000),G2=list(V=1,nu=0.02,alpha.mu=0, alpha.V=10000),G3=list(V=1,nu=0.02,alpha.mu=0, alpha.V=10000),G4=list(V=1,nu=0.02,alpha.mu=0, alpha.V=10000)),
-             R=list(V=1,nu=0.02))
+summary(lice_abundance_glmm)
+rr2::R2(ectos_prevalence_glmm)
 
 
-model_l_a_mcmc<-MCMCglmm(total_lice~sociality,random=~species_jetz+elevation_cat+foraging_cat,
-                 family="poisson",ginverse=list(species_jetz=inv.phylo$Ainv),
-                 prior=prior2,data=lice_df_abundance,nitt=100000,burnin=1000,thin=500)
+lice_abundance_glm<-glm(total_lice ~ sociality+ powder_level,  #+1(1|foraging_cat)
+                                   data = lice_df_abundance, 
+                                   family = "poisson")
+                                   
 
-# Following are the results for the random effect variances (G-structure, containing the variance of the phylo effect) and the residual variance (R-structure, the residual variance is called units in MCMCglmm). 
-#We have information about the posterior mean of the estimate, its 95% credible interval4 and its effective sample size.
-#The latter is a measure of the auto-correlation within the parameter sample: it should be close to the MCMC sample size above, or failing that, it should be at least large enough (say more than 1,000). 
-#The summary of the fixed effects (intercept and cofactor) are similar, except we also have a ``pMCMC'' value for significance testing if the parameter is different from zero5. # so if it overlaps with zero is not significant? 
-#If we are strictly Bayesian, we should not do significance testing because such a concept belongs to the frequentists' paradigm. However, we use ``pMCMC'' as if frequentists' p-values for convenience.
-summary(model_l_a_mcmc)
-plot(model_l_a_mcmc$Sol)
-plot(model_l_a_mcmc$VCV)
+#But we know that sample size might have an effect 
+#Modeling the mean abundance to take care of the sample size
+#### Sample size
 
-lambda <- model_l_a_mcmc$VCV[,'species_jetz']/
-  (model_l_a_mcmc$VCV[,'species_jetz']+model_l_a_mcmc$VCV[,'elevation_cat']+model_l_a_mcmc$VCV[,'foraging_cat']+model_l_a_mcmc$VCV[,'units'])
-
-mean(lambda)
-posterior.mode(lambda)
-HPDinterval(lambda) 
- 
-
-#The posterior distribution of the fixed term does not overlap zero. 
-#Thus the we can infer that sociality has a statistical effect on lice ectos in this model and is a useful addition to the model
-
-posterior.mode(model_l_a_mcmc$Sol[, "sociality1"])
-HPDinterval(model_l_a_mcmc$Sol[, "sociality1"])
-
-#Modeling the mea abundance to take care of the sample size
 
 mean_lice<-lice_df_abundance %>% group_by (species_jetz) %>% 
-  summarize(mean_lice=mean(total_lice))
+  summarize(mean_lice=mean(total_lice), sample_size=(n()))
+
+
+View(mean_lice)
+View(lice_df_abundance)
+  
+  #ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
 
 species_atributes<-lice_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean) %>%  filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 species_attributes_distict<-distinct( species_atributes)
 
 mean_lice_abundance<-right_join(species_attributes_distict, mean_lice, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
+
 ###_###_####_###_
-#write_csv(mean_lice_abundance,"data/5.lice_df_abundance_means.csv")
+#write_csv(mean_lice_abundance,"data/data_analyses/7.dff_lice_abundance_means.csv")
 
 #The data
-mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
 mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+
 
 phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
 
@@ -578,12 +725,13 @@ mean_lice_abundance$foraging_cat<-as.factor(mean_lice_abundance$foraging_cat)
 mean_lice_abundance$species_jetz<-as.factor(mean_lice_abundance$species_jetz)
 mean_lice_abundance$sociality<-as.factor(mean_lice_abundance$sociality)
 
+str(mean_lice_abundance)
 # The model 
 
 hist(mean_lice_abundance$mean_lice)
 unique(mean_lice_abundance$mean_lice)
 names ( mean_lice_abundance)
-l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat), 
+l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+sample_size+(1|elevation_cat)+(1|species_jetz__), 
                              data = mean_lice_abundance, 
                              family = "gaussian", #( maybe gaussian will be better in this case ?)
                              cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
@@ -605,7 +753,16 @@ l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ (1|elevation_cat)+(1|spec
 # Modeling no feather mites only (cause feathers mites can be misleding)
 ###_###_###_###_###_###_###_###
 
-mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+mites_df_abundance<-read.csv("data/data_analyses/7.mites_df_abundance.csv") 
+
+powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
+mites_df_abundance_powder<-inner_join(mites_df_abundance, powder_bias, by="Full_Label") 
+mites_df_abundance_powder$powder_level<-as.factor(mites_df_abundance_powder$powder_level)
+
+#write.csv(mites_df_abundance_powder,"data/data_analyses/7.dff_mites_abundance.csv")
+
+mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv") 
+
 View(mites_df_abundance)
 names(mites_df_abundance)
 phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
@@ -635,8 +792,9 @@ mites_df_abundance$elevation_cat<-as.factor(mites_df_abundance$elevation_cat)
 mites_df_abundance$foraging_cat<-as.factor(mites_df_abundance$foraging_cat)
 mites_df_abundance$species_jetz<-as.factor(mites_df_abundance$species_jetz)
 mites_df_abundance$sociality<-as.factor(mites_df_abundance$sociality)
+mites_df_abundance$powder_level<-as.factor(mites_df_abundance$powder_level)
 
-str(mites_df_abundance)
+unique(mites_df_abundance$powder_level)
 
 mean(mites_df_abundance$total_no_feathers_mites)
 sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
@@ -644,7 +802,7 @@ sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
 # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
 
 names( mites_df_abundance)
-m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat)  +(1|species_jetz__)+(1|powder_level), 
                         data = mites_df_abundance, 
                         family ="poisson", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
@@ -655,7 +813,7 @@ m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat) +
 summary(m_a_no_f)
 
 
-m_a_meso<-  phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+m_a_meso<-phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat)+(1|species_jetz__)+(1|powder_level), 
                         data = mites_df_abundance, 
                         family ="poisson", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
@@ -684,7 +842,7 @@ mean_mites_abundance_mesostigmatidae$sociality<-as.factor(mean_mites_abundance_m
 
 
 
-mean_m_a_meso<-  phyr::pglmm(mean_mites~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
+mean_m_a_meso<-  phyr::pglmm(mean_mites~ sociality  + (1|foraging_cat)+(1|species_jetz__), 
                         data = mean_mites_abundance_mesostigmatidae, 
                         family ="gaussian", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
