@@ -503,6 +503,11 @@ newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
 
 newdata$Predicted_Response <- predict(ectos_prevalence_glmm, newdata = newdata, type = "response")
 
+
+fitted(ectos_prevalence_glmm, newdata = newdata)
+
+visreg(ectos_prevalence_glmm) # presented in the logit scale
+
 # model  predicts overall patterns well
 summary_predictions <- newdata %>%   # Specify data frame
   group_by(sociality)  %>%    # Specify group indicator
@@ -524,6 +529,10 @@ dev.off()
 
 unique(ectos_df$elevation_cat)
 mean(ectos_df$proportion_ectoparasites) # mean prevalnece
+
+lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression
+
+
 
 ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ sample_size+(1|species_jetz__)+(1|elevation_cat), #+elevation_midpoint
                               data = ectos_df, 
