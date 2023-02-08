@@ -486,7 +486,7 @@ anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz")
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 
-# lETS CONSIDER A MIXED EFFECT MODEL
+# lETS CONSIDER A MIXED EFFECT MODEL first
 # # Using a glmm
 ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
                                      data = ectos_df, 
@@ -517,7 +517,7 @@ ggplot(summary_predictions, aes(x = sociality, y = proportion_ectoparasites))+
 dev.off()
 
 
-# Using PGLMM
+# Using PGLMM [ Lets correct for phylogeny ]
 #I am not sue about including foraging cat since that some how is included in teh variation per species + 
 #elevation_cat # only hs three categories so i am not sure I can used as a ranmod effect
 # we revomed (1|foraging_cat) because it was not significant in individual models 

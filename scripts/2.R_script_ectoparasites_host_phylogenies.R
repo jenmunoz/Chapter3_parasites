@@ -157,7 +157,7 @@ write.tree(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consens
 ###_###
 
 #Double check the names are consistent 
-lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv") # make sure ou filtered the iquitos data  if desired
+lice_richness_manu_sp<-read.csv("data/7.lice_df_diversity_species.csv") # make sure ou filtered the iquitos data  if desired
 lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
 unique(lice_richness_manu_sp)
 taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
