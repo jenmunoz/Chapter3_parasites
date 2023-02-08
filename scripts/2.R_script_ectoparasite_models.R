@@ -412,11 +412,9 @@ class(phylogeny)
 # including other data
 #number of detections in flocks
 elevation_midpoint<-read.csv("data/1.elevation_midpoint_manu_species.csv")
-
 #anti_join(ectoparasites_df,elevation_midpoint, by=c("species_clean"="species_taxonomy_SACC_2021")) # speceis that are in the ectoparasite list that do not have a matcj in b 
 
 ectoparasites_df<-left_join(ectoparasites_df,elevation_midpoint,by=c("species_clean"="species_taxonomy_SACC_2021"))
-
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
@@ -433,7 +431,6 @@ ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
 ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
 ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
 ectoparasites_df$elevation_midpoint<-as.numeric(ectoparasites_df$elevation_midpoint)
-
 
 ###_###_###_###_##
 #The models for presence absence
@@ -452,7 +449,6 @@ str(ectoparasites_df$ectoparasites_PA)
 ectoparasites_df %>% group_by(ectoparasites_PA) %>% 
   summarise(n())
 
-
 ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
   summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation_midpoint=max(elevation_midpoint)) %>% 
   mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
@@ -466,10 +462,10 @@ ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectopa
 
 View(ectos_pres_abs_df)
 
-
 # write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
+
 ###_###_###
-# [Prevalence_Presence_absence] THE MODEL 
+# [Prevalence_Presence_absence] THE MODELS
 ###_###_###
 
 ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence FOR THE MODEL
@@ -490,6 +486,7 @@ anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz")
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 
+# lETS CONSIDER A MIXED EFFECT MODEL
 # # Using a glmm
 ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
                                      data = ectos_df, 
@@ -520,7 +517,7 @@ ggplot(summary_predictions, aes(x = sociality, y = proportion_ectoparasites))+
 dev.off()
 
 
-# Using pglmmm
+# Using PGLMM
 #I am not sue about including foraging cat since that some how is included in teh variation per species + 
 #elevation_cat # only hs three categories so i am not sure I can used as a ranmod effect
 # we revomed (1|foraging_cat) because it was not significant in individual models 
@@ -582,9 +579,8 @@ summary(z)
 
 
 
-
 ###_###_###
-# PLOTS PREVALENCE
+# PLOTS PREVALENCE [Presence Absence]
 ###_###_###
 
 # PLotting the model predictions 
@@ -623,30 +619,6 @@ ggplot(data = ectos_df_predicted, aes(x = sociality, y = Y_hat ))+
 dev.off()
 
 mean(ectos_df$proportion_ectoparasites) # mean prevalnece
-
-
-# fit a generalized linear mixed model (good suggestion by reviewer)
-z <- glmer(status ~ elevation + (1|lineage), family = binomial(link = "logit"), data = mydata)
-
-summary(z)
-
-
-newdata <- data.frame(elevation = mydata$elevation,
-                      lineage = mydata$lineage)
-
-newdata$Predicted_Response <- predict(z, newdata = newdata, type = "response")
-
-# model  predicts overall patterns well ??
-
-summary_predictions <- newdata %>%   # Specify data frame
-  group_by(elevation) %>%      # Specify group indicator
-  dplyr::summarise(prevalence <- mean(Predicted_Response))
-
-colnames(summary_predictions) <- c("elevation", "prevalence")
-
-ggplot(summary_predictions, aes(x = elevation, y = prevalence))+
-  geom_point()
-
 
 
 
