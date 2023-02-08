@@ -468,11 +468,15 @@ View(ectos_pres_abs_df)
 
 
 # write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
-
+###_###_###
 # [Prevalence_Presence_absence] THE MODEL 
+###_###_###
 
-ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence
-unique(ectos_df$species_jetz)
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence FOR THE MODEL
+# Converting variables as needed
+ectos_df$sociality<-as.factor(ectos_df$sociality)
+
+#as.data.frame(unique(ectos_df$species_jetz)) %>% View()
 str(ectos_df) # should have same number of rows than teh phylogeny 
 #phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
 phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
@@ -486,17 +490,45 @@ anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz")
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 
-str(ectos_df)
+# # Using a glmm
+ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
+                                     data = ectos_df, 
+                                     family = "binomial" (link = "logit"),
+                                     verbose = TRUE)
+summary(ectos_prevalence_glmm)
+rr2::R2(ectos_prevalence_glmm)
+
+# How well does it predict the data 
+newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
+                      species_jetz = ectos_df$species_jetz,
+                      sociality = ectos_df$sociality,
+                      sample_size = ectos_df$sample_size)
+
+newdata$Predicted_Response <- predict(ectos_prevalence_glmm, newdata = newdata, type = "response")
+
+# model  predicts overall patterns well
+summary_predictions <- newdata %>%   # Specify data frame
+  group_by(sociality)  %>%    # Specify group indicator
+  dplyr::summarise(proportion_ectoparasites <- median(Predicted_Response))
+
+colnames(summary_predictions) <- c("sociality", "proportion_ectoparasites")
+
+png("predicted", width = 2500, height = 3100, res = 300, units = "px")
+ggplot(summary_predictions, aes(x = sociality, y = proportion_ectoparasites))+
+  geom_point()+
+  ylim(0,1)
+dev.off()
+
+
 # Using pglmmm
 #I am not sue about including foraging cat since that some how is included in teh variation per species + 
 #elevation_cat # only hs three categories so i am not sure I can used as a ranmod effect
 # we revomed (1|foraging_cat) because it was not significant in individual models 
 
 unique(ectos_df$elevation_cat)
-
 mean(ectos_df$proportion_ectoparasites) # mean prevalnece
 
-ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ sample_size+(1|species_jetz__)+(1|elevation_cat), 
+ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ sample_size+(1|species_jetz__)+(1|elevation_cat), #+elevation_midpoint
                               data = ectos_df, 
                               family = "binomial",
                               cov_ranef = list(species_jetz= phylogeny_rooted), #class phylo
@@ -504,39 +536,123 @@ ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ samp
                               REML = TRUE, 
                               verbose = TRUE,
                               s2.init = .25) # what is this last parameter for
-str(ecto_prevalence_pglmm)
 summary(ecto_prevalence_pglmm)
 predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm )
 
-# how to know if random effects are strong enough to take seriously? 
+# Explore if the random effects are important?
 # One way to get an idea is to run a likelihood ratio test on the random effect. 
 # This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
-# (this code from link above)
 
 LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = x))
 colnames(LRTest) <- names(ecto_prevalence_pglmm$ss)
 t(LRTest)
 
-#Pages Lambda
+#Pages Lambda to see if there is phylogenetic signal 
+#Phylogenetic signal is generally recognized to be the tendency of related species to resemble one another; and Blomberg et al.'s (2003) K and Pagel's (1999) λ are two quantitative measures of this pattern.
+#The metrics are quite different from one another. λ is a scaling parameter for the correlations between species, relative to the correlation expected under Brownian evolution.
+#K is a scaled ratio of the variance among species over the contrasts variance (the latter of which will be low if phylogenetic signal is high). 
+#λ has a nice natural scale between zero (no correlation between species) and 1.0 (correlation between species equal to the Brownian expectation).
+#λ itself is not a correlation, but a scaling factor for a correlation, so λ>1.0 is theoretically possible. However, depending on the structure of the tree, λ>>1.0 is usually not defined.
+#K, a variance ratio, is rescaled by dividing by the Brownian motion expectation. This gives it the property of having an expected value of 1.0 under Brownian evolution, but K for empirical and simulated datasets can sometimes be >>1.0. 
+#Since they measure the qualitative tendency towards similarity of relatives in entirely different ways, we have no real expectation that they will be numerically equivalent - except (by design) under Brownian motion evolution.
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+
+phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
+ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 
 tips<- as.data.frame(phylogeny_rooted$tip.label)
 names<-as.data.frame(ectos_df$species_jetz)
 
+# caLCULATE Lambda option 1 
+# https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
+
+mydat2 <- ectos_df[, c("proportion_ectoparasites", "mass_tidy")]
+phytools::phylosig(phylogeny_rooted, as.matrix(mydat2)[,c("proportion_ectoparasites")], method = "lambda") # phylogenetic signal in trait "x"
+
+#phytools::phylosig(phylogeny_rooted, as.matrix(mydat2)[,c("sociality")], method = "lambda") # phylogenetic signal in trait "x"
+
+# Option 2 not used here but similar results
 names_sp = match(ectos_df$species_jetz, phylogeny_rooted$tip.label)
 z = nlme::gls(proportion_ectoparasites ~ sociality+ sample_size, data = ectos_df, correlation = corPagel(0.5,  phylogeny_rooted, fixed=FALSE))
 summary(z)
 
-#See other suggestions to calculate lambd here https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
+
 
 
 ###_###_###
 # PLOTS PREVALENCE
 ###_###_###
 
+# PLotting the model predictions 
+#### How well does PGLMM it predict the data
+newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
+                      species_jetz = ectos_df$species_jetz,
+                      sociality = ectos_df$sociality,
+                      sample_size = ectos_df$sample_size)
+
+predictions<- predict(ecto_prevalence_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata
+ectos_df_predicted <- cbind(ectos_df, predictions)
+
+str(ectos_df_predicted)
+
+summary <- ectos_df_predicted %>% 
+  group_by(sociality) %>%      
+  dplyr::summarise(prevalence= mean(proportion_ectoparasites), sd=sd(proportion_ectoparasites), n = n()) %>% 
+  mutate(se= sd/(sqrt(n)))
+
+colnames(summary) <- c("sociality", "prevalence", "sd", "n", "se")
+
+head(summary)
+
+# make a plot of model predictions (that also shows data)
+png("predicted3", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_df_predicted, aes(x = sociality, y = Y_hat ))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=3,width = 0.06)+
+  geom_segment(data = summary, aes(x = sociality, y = prevalence, xend = sociality, yend = prevalence+se, color="red"),show_guide = FALSE)+
+  geom_segment(data = summary, aes(x = sociality, y = prevalence, xend = sociality, yend = prevalence-se, color="red"),show_guide = FALSE)+
+  geom_point(data = summary, aes(x=sociality, y = prevalence), color="red", size=4,shape=19)+
+  scale_y_continuous("Ectoparasites prevalence", limits = c(0,1)) +
+  scale_x_discrete("Sociality")+
+  geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+mean(ectos_df$proportion_ectoparasites) # mean prevalnece
+
+
+# fit a generalized linear mixed model (good suggestion by reviewer)
+z <- glmer(status ~ elevation + (1|lineage), family = binomial(link = "logit"), data = mydata)
+
+summary(z)
+
+
+newdata <- data.frame(elevation = mydata$elevation,
+                      lineage = mydata$lineage)
+
+newdata$Predicted_Response <- predict(z, newdata = newdata, type = "response")
+
+# model  predicts overall patterns well ??
+
+summary_predictions <- newdata %>%   # Specify data frame
+  group_by(elevation) %>%      # Specify group indicator
+  dplyr::summarise(prevalence <- mean(Predicted_Response))
+
+colnames(summary_predictions) <- c("elevation", "prevalence")
+
+ggplot(summary_predictions, aes(x = elevation, y = prevalence))+
+  geom_point()
+
+
+
+
+# Plotting the traits things in the  phylogeny 
 #Some examples fr plotting http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html
-# Plot phylogenetic tree and continous trait ( prevalence)
+# Plot phylogenetic tree and  the trait continous trait ( prevalence)
 #ContMap #Function plots a tree with a mapped continuous character. 
 #The mapping is accomplished by estimating states at internal nodes using ML with fastAnc, and then interpolating the states along each edge using equation [2] of Felsenstein (1985).
 
@@ -551,8 +667,6 @@ list.names=setNames(ectos_df$proportion_ectoparasites, ectos_df$species_jetz)
 # Make sure the names  are in the same order in the phylogeny and in the traits
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
-
-
 
 object = contMap(phylogeny_rooted, list.names, direction = "leftwards", plot=FALSE)
 
@@ -603,16 +717,6 @@ dev.off()
 ############
 
 
-
-
-# Using a glmm
-ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
-                             data = ectos_df, 
-                             family = "binomial",
-                             verbose = TRUE)
-
-summary(ectos_prevalence_glmm)
-rr2::R2(ectos_prevalence_glmm)
 
 
 

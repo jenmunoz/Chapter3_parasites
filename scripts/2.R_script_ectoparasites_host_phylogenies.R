@@ -108,18 +108,20 @@ maxCladeCred_bird_tree_manu_prevalence<-phangorn::maxCladeCred(host_species_tree
 write.tree(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")
 
 
-#  [Abundance] ------------------------------------------------------------
+#  [Abundance Lice] ------------------------------------------------------------
 ####_####_
 #For lice only
 ###_###
 
 #Double check the names are consistent 
-lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv") # make sure ou filtered the iquitos data  if desired
+lice_df_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv") # make sure ou filtered the iquitos data  if desired
 lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-unique(lice_df_abundance$species_jetz)
+
 taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
 # Make sure there are not differences in the lsit of spcies with the master taxonomy from jetz
 anti_join(lice_df_abundance,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+as.data.frame(unique(lice_df_abundance$species_jetz)) %>% View()
 
 # Use the list to extract species from bird.org
 # Read the tree
@@ -149,7 +151,7 @@ maxCladeCred_bird_tree_manu_lice_abundance<-phangorn::maxCladeCred(host_species_
 write.tree(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
 
 
-#  [Diversity] ------------------------------------------------------------
+#  [Diversity lice] ------------------------------------------------------------
 ####_####_
 #For lice only
 ###_###
@@ -159,6 +161,9 @@ lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv") # make su
 lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
 unique(lice_richness_manu_sp)
 taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
+
+as.data.frame(unique(lice_richness_manu_sp$species_jetz)) %>% View()
+
 # Make sure there are not differences in the lsit of spcies with the master taxonomy from jetz
 anti_join(lice_richness_manu_sp,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
 
@@ -167,17 +172,16 @@ anti_join(lice_richness_manu_sp,taxonomy_jetz, by=c("species_jetz"="Scientific")
 #host_species_tree_lice <- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_lice_abundance.nex") # this is for all species with samples including iquitos and Manu
 #host_species_tree_lice_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1. output_lice_pres_abs_100_trees_manu_only.nex") # this is manu species only 
 host_species_tree_lice_diversity_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1_output_lice_diversity_1000_trees_manu.nex") # this is manu species only 
-
-class(host_species_tree_lice_manu)# Must be multiPhylo
+class(host_species_tree_lice_diversity_manu)# Must be multiPhylo
 
 # Check the properties of the trees
-is.rooted.multiPhylo(host_species_tree_lice_manu) # the trees are rooted
-is.ultrametric.multiPhylo(host_species_tree_lice_manu) # when using genetic data  only is not ultrametric not sure why
-print (host_species_tree_lice_manu, details=TRUE)
+is.rooted.multiPhylo(host_species_tree_lice_diversity_manu) # the trees are rooted
+is.ultrametric.multiPhylo(host_species_tree_lice_diversity_manu) # when using genetic data  only is not ultrametric not sure why
+print (host_species_tree_lice_diversity_manu, details=TRUE)
 
 #Random tree
 # Lets extract one tree ( this is just before I figure it out how to extract a concensus rooted tree if that is neccesary)
-random_host_tree_lice_manu<-sample(host_species_tree_lice_manu,size=1)[[1]] # select one tree
+random_host_tree_lice_manu<-sample(host_species_tree_lice_diversity_manu,size=1)[[1]] # select one tree
 is.rooted(random_host_tree_lice_manu)
 #write.tree(random_host_tree_lice_manu, file="data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.tre")
 #write.nexus(random_host_tree_lice_manu, file="data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
@@ -190,11 +194,70 @@ maxCladeCred_bird_tree_manu_lice_diversity<-phangorn::maxCladeCred(host_species_
 # Write the tree
 write.tree(maxCladeCred_bird_tree_manu_lice_diversity, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_diversity.nex")
 
+#  [Abundance Mites] ------------------------------------------------------------
+
+#Double check the names are consistent 
+mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv") 
+mites_df_abundance<-mites_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
+anti_join(mites_df_abundance,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
+
+# Extract the list of species 
+as.data.frame(unique(mites_df_abundance$species_jetz)) %>% View()
+
+# Use the list to extract species from bird.org
+# Read the tree
+#host_species_tree_lice <- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_lice_abundance.nex") # this is for all species with samples including iquitos and Manu
+#host_species_tree_lice_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1. output_lice_pres_abs_100_trees_manu_only.nex") # this is manu species only 
+host_species_tree_mites_abundance_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1_output_mites_abundance_1000_trees_manu.nex") # this is manu species only 
+
+class(host_species_tree_mites_abundance_manu)# Must be multiPhylo
+
+# Check the properties of the trees
+is.rooted.multiPhylo(host_species_tree_mites_abundance_manu) # the trees are rooted
+is.ultrametric.multiPhylo(host_species_tree_mites_abundance_manu) # when using genetic data  only is not ultrametric not sure why
+print (host_species_tree_mites_abundance_manu, details=TRUE)
+
+# Extract a Maximun clade credibility tree [Using phangorn]
+#maxCladeCred computes the maximum clade credibility tree from a sample of trees.
+library(phangorn)
+maxCladeCred_bird_tree_manu_lice_diversity<-phangorn::maxCladeCred(host_species_tree_mites_abundance_manu, tree = TRUE, rooted = TRUE)
+
+# Write the tree
+write.tree(maxCladeCred_bird_tree_manu_mites_abundance, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 
 
+#  [Diversity Mites] ------------------------------------------------------------
 
+#Double check the names are consistent 
+mites_df_diversity<-read.csv("data/data_analyses/7.dff_mites_diversity.csv") 
+mites_df_diversity<-mites_df_diversity %>% distinct( species_jetz,.keep_all = TRUE)
+taxonomy_jetz<-read.csv( "data/PhyloMasterTax_jetz.csv")
+anti_join(mites_df_diversity,taxonomy_jetz, by=c("species_jetz"="Scientific")) # speceis that are in the ectoparasite list that do not have a matcj in b 
 
+# Extract the list of species 
+as.data.frame(unique(mites_df_diversity$species_jetz)) %>% View()
 
+# Use the list to extract species from bird.org
+# Read the tree
+#host_species_tree_lice <- ape::read.nexus("data/phylo_data/tree_pruner/output_bird_lice_diversity.nex") # this is for all species with samples including iquitos and Manu
+#host_species_tree_lice_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1. output_lice_pres_abs_100_trees_manu_only.nex") # this is manu species only 
+host_species_tree_mites_diversity_manu<-ape::read.nexus("data/phylo_data/tree_pruner/1_output_mites_diversity_1000_trees_manu.nex") # this is manu species only 
+
+class(host_species_tree_mites_diversity_manu)# Must be multiPhylo
+
+# Check the properties of the trees
+is.rooted.multiPhylo(host_species_tree_mites_diversity_manu) # the trees are rooted
+is.ultrametric.multiPhylo(host_species_tree_mites_diversity_manu) # when using genetic data  only is not ultrametric not sure why
+print (host_species_tree_mites_diversity_manu, details=TRUE)
+
+# Extract a Maximun clade credibility tree [Using phangorn]
+#maxCladeCred computes the maximum clade credibility tree from a sample of trees.
+library(phangorn)
+maxCladeCred_bird_tree_manu_lice_diversity<-phangorn::maxCladeCred(host_species_tree_mites_diversity_manu, tree = TRUE, rooted = TRUE)
+
+# Write the tree
+write.tree(maxCladeCred_bird_tree_manu_mites_diversity, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_diversity.nex")
 
 # [Networks] ----------------------------------------------------------------
 
