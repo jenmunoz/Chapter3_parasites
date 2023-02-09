@@ -101,14 +101,18 @@ anti_join( list_sp_taxo_changes, list_manu,by="species_taxonomy_SACC_2021")
 # there are two options for reading the three
 ape::read.nexus(filename, multiPhylo=TRUE)
 multi_species_tree <- read.nexus('phylo_analyses/tree_pruner/output.nex') 
+multi_species_tree <- read.nexus('data/phylo_data/tree_pruner/1.output_ectos_pres_abs_100_trees_manu_only.nex')  
+is.rooted.multiPhylo(multi_species_tree ) # the trees are rooted
+is.ultrametric.multiPhylo(multi_species_tree )
+
 class(multi_species_tree)# Must be multiPhylo
 #multitree <- read.nexus(here('Data/1_jetz_birdtree.nex')) # From many, but I never found a data file qith taht name so I asumed is the one named output.nex
 
 #
 ##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__##__
-# Opt1 Generate a consensus tree -----------------------------------------------
+# Generate a consensus tree -----------------------------------------------
 
-# Opt 1  Generate a consensus tree  with phytotools -------------------------------
+# Opt 1  Generate a consensus tree  with phytotools ( inlcudes brach lenghts but its is unrooted) -------------------------------
 
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_###_
 # Methods to compute consensus edge lengths (branch lengths for a consensus topology
@@ -126,7 +130,7 @@ plot(manu_consensus_tree,type="fan",no.margin = TRUE, cex=0.01)
 manu.consensus
 
 # Calculate phylogenetic distance of species pairs 
-ph_distance<-cophenetic(manu.consensus)
+ph_distance<-cophenetic(manu_consensus_tree)
 ph_distance[1:10,1:10]
 View(ph_distance)
 
@@ -167,7 +171,7 @@ write.tree(manu_consensus_tree, file='phylo_analyses/outputs/birdtreeManuspecies
 #Method 3: Compute the mean edge length, but ignore trees in which the edge is absent.
 #(Function arguments method="mean.edge" and if.absent="ignore".)
 #manu.consensus<-consensus.edges(multi_species_tree,if.absent="ignore")
-
+multi_species_tree
 # We can use the library ape, function "concensus" or the library phangorn, function "maxCladeCred"
 # majority-rule consensus tree (p = 0.5)
 consensus_tree <- consensus(multi_species_tree, p = 0.5, check.labels = TRUE)
@@ -212,8 +216,6 @@ tidytree()
 #though these do not supply edge lengths. For that, one could use MrBayes. For “All species” bird trees, 
 #consensus representations can be misleading (for both edge lengths and topologies), and we advise that analyses using 
 #full trees are done across a reasonable number (»100) of draws from the distributions we supply.
-
-
 
 
 

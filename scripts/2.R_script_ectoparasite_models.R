@@ -33,6 +33,7 @@ install.packages("lme4") #for glmer (generalized linear mixed models)
 install.packages("visreg")  #extract confidence intervals and trend lines from GLMMs
 install.packages("lsmeans") #least squared means
 install.packages("MuMIn") #pseudo R squared for GLMMs
+install.packages("emmeans")
 
 # Phylogenetic component
 
@@ -78,6 +79,8 @@ library(lsmeans) #least squared means
 library(lme4) #for glmer (generalized linear mixed models) 
 library(visreg) #extract confidence intervals and trend lines from GLMMs
 library(MuMIn) #pseudo R squared for GLMMs
+library(emmeans)
+
 #library(dplyr) 
 
 #Phylogenetic component
@@ -379,8 +382,6 @@ rr2::R2(MCMC)
 
 
 
-
-## [Probability_Presence_absence] Proportional data
 # Part1 Ectoparasite models_using prevalence data (Corrections after meeting with Jullie et al  using probabilities)_Ectoparasite models_  -----------------------------
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
 # In this case we will analyses proportion data arising from counts (counts base data, See https://fukamilab.github.io/BIO202/04-B-binary-data.html#glm_for_proportional_data)
@@ -477,14 +478,25 @@ str(ectos_df) # should have same number of rows than teh phylogeny
 #phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
 phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
 
+is.ultrametric(phylogeny_rooted)
 # Make sure the tips and the names on the file coincide
 tips<- as.data.frame(phylogeny_rooted$tip.label)
 names<-as.data.frame(ectos_df$species_jetz)
 anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz"))
 
-# Make sure the names  are in the same order in the phylogeny and in the traits
+# Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
+
+#MODEL FITTING AND EVALUALLING MODEL FIT GRAOHICALLY
+
+###_###_###_ Important for model fitting
+#predict ( model) # plot predicted vlues and confidence limits on the logit scale, the points are not logit tranformed data, they are "working values to fit the model.....dificult to interpret 
+#visreg(model) # Similarly  plot predicted values and confidence limits on the logit scale, dificult to interpret
+#fitted (model) # willl give us the predicted values transformed to the original scale 
+#visreg(model, scale="response") # willl give us the predicted values transformed to the original scale 
+###_###_###_ ###_###_###_ ###_###_###_ 
+
 
 # lETS CONSIDER A MIXED EFFECT MODEL first
 # # Using a glmm
@@ -495,6 +507,8 @@ ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sampl
 summary(ectos_prevalence_glmm)
 rr2::R2(ectos_prevalence_glmm)
 
+log(1.21978)
+
 # How well does it predict the data 
 newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
                       species_jetz = ectos_df$species_jetz,
@@ -504,14 +518,14 @@ newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
 newdata$Predicted_Response <- predict(ectos_prevalence_glmm, newdata = newdata, type = "response")
 
 
-fitted(ectos_prevalence_glmm, newdata = newdata)
+# model  predicts overall patterns well?
 
-visreg(ectos_prevalence_glmm) # presented in the logit scale
+# I can plot all predicted values or just the means 
 
-# model  predicts overall patterns well
+# the mean predicted value
 summary_predictions <- newdata %>%   # Specify data frame
   group_by(sociality)  %>%    # Specify group indicator
-  dplyr::summarise(proportion_ectoparasites <- median(Predicted_Response))
+  dplyr::summarise(proportion_ectoparasites <- mean(Predicted_Response))
 
 colnames(summary_predictions) <- c("sociality", "proportion_ectoparasites")
 
@@ -520,6 +534,22 @@ ggplot(summary_predictions, aes(x = sociality, y = proportion_ectoparasites))+
   geom_point()+
   ylim(0,1)
 dev.off()
+
+# Using vis reg
+visreg(ectos_prevalence_glmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
+
+
+# all predicted values 
+ggplot(newdata, aes(x = sociality, y =Predicted_Response))+
+  geom_point()+
+  ylim(0,1)
+Predicted_Response
+
+
+visreg(ectos_prevalence_glmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
+# This is useful to obtain predicted values on the 0riginal scale 
+emmeans(ectos_prevalence_glmm,"sociality", type="response")
+
 
 
 # Using PGLMM [ Lets correct for phylogeny ]
@@ -532,9 +562,8 @@ mean(ectos_df$proportion_ectoparasites) # mean prevalnece
 
 lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression
 
-
-
-ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites ~ sociality+ sample_size+(1|species_jetz__)+(1|elevation_cat), #+elevation_midpoint
+str( ectos_df)
+ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites~sociality+sample_size+(1|species_jetz__)+(1|elevation_cat), #+elevation_midpoint
                               data = ectos_df, 
                               family = "binomial",
                               cov_ranef = list(species_jetz= phylogeny_rooted), #class phylo
@@ -555,7 +584,8 @@ LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(ecto_prevalence_
 colnames(LRTest) <- names(ecto_prevalence_pglmm$ss)
 t(LRTest)
 
-#Pages Lambda to see if there is phylogenetic signal 
+#Pages Lambda to see if there is phylogenetic signal
+#[ WARNING THIS CAN ONLY BE USED IN CONTINOUS DATA NO IN DISCRETE DATA (E.G NO IN COUNTS DATA), becase discrete data does not follow Brownian Motion mode of evo. One optionis to use kappa model but in non ultrametric trees (  with genetic info?)
 #Phylogenetic signal is generally recognized to be the tendency of related species to resemble one another; and Blomberg et al.'s (2003) K and Pagel's (1999) λ are two quantitative measures of this pattern.
 #The metrics are quite different from one another. λ is a scaling parameter for the correlations between species, relative to the correlation expected under Brownian evolution.
 #K is a scaled ratio of the variance among species over the contrasts variance (the latter of which will be low if phylogenetic signal is high). 
@@ -587,7 +617,6 @@ z = nlme::gls(proportion_ectoparasites ~ sociality+ sample_size, data = ectos_df
 summary(z)
 
 
-
 ###_###_###
 # PLOTS PREVALENCE [Presence Absence]
 ###_###_###
@@ -604,14 +633,15 @@ ectos_df_predicted <- cbind(ectos_df, predictions)
 
 str(ectos_df_predicted)
 
-summary <- ectos_df_predicted %>% 
+# lets calculae the mean of the predited values on the untransformed scale
+summary_model <- ectos_df_predicted %>% 
   group_by(sociality) %>%      
   dplyr::summarise(prevalence= mean(proportion_ectoparasites), sd=sd(proportion_ectoparasites), n = n()) %>% 
   mutate(se= sd/(sqrt(n)))
 
-colnames(summary) <- c("sociality", "prevalence", "sd", "n", "se")
+colnames(summary_model) <- c("sociality", "prevalence", "sd", "n", "se")
 
-head(summary)
+head(summary_model)
 
 # make a plot of model predictions (that also shows data)
 png("predicted3", width = 3000, height = 3000, res = 300, units = "px")
@@ -627,9 +657,12 @@ ggplot(data = ectos_df_predicted, aes(x = sociality, y = Y_hat ))+
   theme_classic(40)
 dev.off()
 
-mean(ectos_df$proportion_ectoparasites) # mean prevalnece
 
+# Vis eg does not support PGLMM
+#visreg(ecto_prevalence_pglmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
+#emmeans(ecto_prevalence_glmm, type="response")
 
+mean(ectos_df$proportion_ectoparasites) # mean prevalnece observed
 
 # Plotting the traits things in the  phylogeny 
 #Some examples fr plotting http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html
@@ -695,7 +728,18 @@ add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3,
 dev.off()
 
 
-############
+#GADGETS 
+
+# Color palette
+require(RColorBrewer)
+## Loading required package: RColorBrewer
+ColorPalette <- brewer.pal(n = 9, name = "Blues")
+# Plotting
+plot(seedplantstree, type="p", use.edge.length = TRUE, label.offset=0.01,cex=0.6)
+tiplabels(pch=21,bg=ColorPalette[maxH.cat],col="black",cex=1,adj=0.505)
+
+
+###_
 
 
 
@@ -712,19 +756,30 @@ library(ape)
 library(MCMCglmm)
 
 # Read teh files
-
-lice_df_abundance<-read.csv("data/data_analyses/7.lice_df_abundance.csv")
+#lice_df_abundance<-read.csv("data/data_analyses/7.lice_df_abundance.csv")
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-unique (lice_df_abundance$species_jetz) 
+#lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+#unique (lice_df_abundance$species_jetz) 
 #lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
 
 #lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
 
 
-phylo_lice_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
-# Make sure number in teh data and the phylogenty are consistent
 
+#Add powder lever
+#powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
+#lice_df_abundance_powder<-inner_join( lice_df_abundance, powder_bias, by="Full_Label") 
+#lice_df_abundance_powder$powder_level<-as.factor(lice_df_abundance_powder$powder_level)
+
+#write.csv(lice_df_abundance_powder,"data/data_analyses/7.dff_lice_abundance.csv")
+str(lice_df_abundance_powder)
+
+# Using pglmmm
+lice_df_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv") 
+unique(lice_df_abundance$powder_level)
+phylo_lice_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+
+# Make sure number in teh data and the phylogenty are consistent
 lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
 lice_df_abundance$elevation_cat<-as.factor(lice_df_abundance$elevation_cat)
 lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
@@ -733,17 +788,13 @@ lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
 
 str(lice_df_abundance)
 
-#Add powder lever
-powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
-lice_df_abundance_powder<-inner_join( lice_df_abundance, powder_bias, by="Full_Label") 
-lice_df_abundance_powder$powder_level<-as.factor(lice_df_abundance_powder$powder_level)
+# Important! make sure data traist and phylogeny are in teh same order
 
-#write.csv(lice_df_abundance_powder,"data/data_analyses/7.dff_lice_abundance.csv")
-str(lice_df_abundance_powder)
+rownames(lice_df_abundance) <- lice_df_abundance$species_jetz # first make it the row names 
+lice_df_abundance<- lice_df_abundance[match(phylo_lice_rooted$tip.label,rownames(lice_df_abundance)),]
 
-# Using pglmmm
-lice_df_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv") 
-unique(lice_df_abundance$powder_level)
+tips<- as.data.frame(phylo_lice_rooted$tip.label)
+names<-as.data.frame(lice_df_abundance$species_jetz)
 
 #I am not sue about including foraging cat since that some how is included in teh variation per species , 
 #also sample size seems relevant but not sure how to included since the observations are individual.
@@ -850,16 +901,14 @@ l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ (1|elevation_cat)+(1|spec
 # Modeling no feather mites only (cause feathers mites can be misleding)
 ###_###_###_###_###_###_###_###
 
-mites_df_abundance<-read.csv("data/data_analyses/7.mites_df_abundance.csv") 
-
-powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
-mites_df_abundance_powder<-inner_join(mites_df_abundance, powder_bias, by="Full_Label") 
-mites_df_abundance_powder$powder_level<-as.factor(mites_df_abundance_powder$powder_level)
+#mites_df_abundance<-read.csv("data/data_analyses/7.mites_df_abundance.csv") 
+#powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
+#mites_df_abundance_powder<-inner_join(mites_df_abundance, powder_bias, by="Full_Label") 
+#mites_df_abundance_powder$powder_level<-as.factor(mites_df_abundance_powder$powder_level)
 
 #write.csv(mites_df_abundance_powder,"data/data_analyses/7.dff_mites_abundance.csv")
 
 mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv") 
-
 View(mites_df_abundance)
 names(mites_df_abundance)
 phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
@@ -868,22 +917,17 @@ phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.ne
 # species and elevation site has to be factors
 #sociality 1, 0
 #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
-
 mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
 # Lets check for zero infalted data 
-
 100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
 
 # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
 
 #### Abundance
 # Modeling the individual abundances
-
-#phylogeny_for_lice<-read.tree("data/phylo_data/1_host_consensus_tree_lice.tre")
 # Make sure variables are in teh right format, random effects should be factors
 #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-
 mites_df_abundance<-mites_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
 mites_df_abundance$elevation_cat<-as.factor(mites_df_abundance$elevation_cat)
 mites_df_abundance$foraging_cat<-as.factor(mites_df_abundance$foraging_cat)
@@ -895,6 +939,13 @@ unique(mites_df_abundance$powder_level)
 
 mean(mites_df_abundance$total_no_feathers_mites)
 sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
+
+# IMPORTANT !!!make sure traits data nad phylogeny are in teh same order
+rownames(mites_df_abundance) <- mites_df_abundance$species_jetz # first make it the row names 
+mites_df_abundance<- mites_df_abundance[match(phylogeny_mites$tip.label,rownames(mites_df_abundance)),]
+
+tips<- as.data.frame(phylogeny_mites$tip.label)
+names<-as.data.frame(mites_df_abundance$species_jetz)
 
 # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
 
@@ -1046,7 +1097,15 @@ summary(l_d_sp_model_glmm)
 
 
 
+# [Infestation] Part 4 ----------------------------------------------------
+
+
+plotTree.datamatrix # To plot two or more discrete characters withthe phylogeny see page 169 of liam's revel book, sociality and infested yes or no
+
+
 #[Network] general calculation] ----------------------------------------
+
+
 
 
 #[Network] Degree and ectoparasite abundance ----------------------------------------

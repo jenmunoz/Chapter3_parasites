@@ -72,9 +72,9 @@ summary(mod)
 # This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
 # (this code from link above)
 
-LRTs <- sapply(1:6, FUN = function(x) phyr::pglmm_profile_LRT(mod, re.number = x))
-colnames(LRTs) <- names(mod$ss)
-t(LRTs)
+LRTest <- sapply(1:6, FUN = function(x) phyr::pglmm_profile_LRT(mod, re.number = x))
+colnames(LRTest) <- names(mod$ss)
+t(LRTest)
 
 newdata <- data.frame(elevation = mydata$elevation,
                       lineage = mydata$lineage)
@@ -119,8 +119,6 @@ ggplot(data = mydata2[mydata2$lineage%in%species20$species,], aes(x = elevation,
   scale_x_continuous("elevation (m)")+
   theme(legend.position="none")
 ggsave("Figure2.pdf", height = 4, width = 5)
-
-
 
 
 

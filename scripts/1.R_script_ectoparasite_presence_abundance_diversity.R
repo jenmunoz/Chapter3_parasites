@@ -134,17 +134,31 @@ flocks_list<-flocks %>%
   add_column(flocking="yes") %>% 
   select(-keep_all)
 View(flocks)
+
+#Including the number of detections
+detection_flocks<-flocks %>% group_by(species_clean) %>% 
+  summarize(detections_flocks=n()) %>% 
+  arrange(desc(detections_flocks)) 
+  
+#Checking for species with very low ocurrence in flcoks 
+
+View(flocks)
 ###_###_###_###_###_###_###_###_###_###_###_###_###_###_
 
-
-
-bird_traits
-
-samples_elevation
 
 phylogenetic_order<-read.csv("additional_info/jetz_information_species_manu.csv",header=TRUE, strip.white=TRUE, na.strings = c("NA","")) 
 taxonomy_2021<-read.csv("additional_info/taxonomy_revision_2021.csv",header=TRUE, strip.white=TRUE, na.strings = c("NA",""))
 
+####  elevation midpoint per species
+
+manu_detections<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022.csv") # with elevations
+
+elevation_midpoint<-manu_detections %>% group_by(species_taxonomy_SACC_2021) %>% 
+  summarize(elevation_midpoint=median(elevation))
+
+#write_csv(elevation_midpoint,"data/1.elevation_midpoint_manu_species.csv")
+
+anti_join(ectoparasite_list_clean, df_traits_list, by=c("species_clean"="species")) # speceis that are in the ectoparasite list that do not have a matcj in b 
 
 
 
@@ -642,6 +656,10 @@ ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
 
 write_csv(ectoparasites_df, "data/7.ectoparasite_df_presence_absence.csv")
 ectoparasites_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv")
+unique(ectoparasites_df$foraging_cat)
+
+
+
 
 # #Part 3.b  Abundance data------------------------------------------------------------------
 length(ectoparasites_df)
