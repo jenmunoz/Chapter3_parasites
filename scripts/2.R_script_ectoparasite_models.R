@@ -1056,9 +1056,6 @@ dev.off()
 
 
 
-
-
-
 #Mites: this is all the data not manu only
 
 ###_###_###_###_###_###_###_###
@@ -1084,7 +1081,7 @@ phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.ne
 mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
 # Lets check for zero infalted data 
-100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
+#100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
 
 # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
 
@@ -1105,8 +1102,8 @@ mean(mites_df_abundance$total_no_feathers_mites)
 sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
 
 # IMPORTANT !!!make sure traits data nad phylogeny are in teh same order
-rownames(mites_df_abundance) <- mites_df_abundance$species_jetz # first make it the row names 
-mites_df_abundance<- mites_df_abundance[match(phylogeny_mites$tip.label,rownames(mites_df_abundance)),]
+#rownames(mites_df_abundance) <- mites_df_abundance$species_jetz # first make it the row names 
+#mites_df_abundance<- mites_df_abundance[match(phylogeny_mites$tip.label,rownames(mites_df_abundance)),]
 
 tips<- as.data.frame(phylogeny_mites$tip.label)
 names<-as.data.frame(mites_df_abundance$species_jetz)
@@ -1139,30 +1136,152 @@ View(mites_df_abundance)
 #### mean non feather mites 
 
 mean_mites_mesostigmatidae<-mites_df_abundance %>% group_by (species_jetz) %>% 
-  summarize(mean_mites=mean(total_mesostigmatidae)) 
+  summarize(mean_mites=mean(total_mesostigmatidae),sample_size=n() ) 
 
 species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
 species_attributes_distict<-distinct( species_atributes)
 
+
 mean_mites_abundance_mesostigmatidae<-right_join(species_attributes_distict, mean_mites_mesostigmatidae, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
-mean_mites_abundance_mesostigmatidae<-mean_mites_abundance_mesostigmatidae  %>% mutate_at("species_jetz", str_replace, " ", "_")
-mean_mites_abundance_mesostigmatidae$elevation_cat<-as.factor(mean_mites_abundance_mesostigmatidae$elevation_cat)
-mean_mites_abundance_mesostigmatidae$foraging_cat<-as.factor(mean_mites_abundance_mesostigmatidae$foraging_cat)
-mean_mites_abundance_mesostigmatidae$species_jetz<-as.factor(mean_mites_abundance_mesostigmatidae$species_jetz)
-mean_mites_abundance_mesostigmatidae$sociality<-as.factor(mean_mites_abundance_mesostigmatidae$sociality)
+
+#write.csv(mean_mites_abundance_mesostigmatidae,"data/data_analyses/7.dff_mites_abundance_means_mesostigmatidae.csv")
+###_###_###_####_###_###_###_###_####_###_
+## the data [Mean abundance Mites]
+###_###_###_####_###_###_###_###_####_###_
 
 
+mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_mesostigmatidae.csv") %>% 
+  filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-mean_m_a_meso<-  phyr::pglmm(mean_mites~ sociality  + (1|foraging_cat)+(1|species_jetz__), 
-                        data = mean_mites_abundance_mesostigmatidae, 
+phylogeny_for_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
+
+
+mean_mites_abundance<-mean_mites_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+mean_mites_abundance$elevation_cat<-as.factor(mean_mites_abundance$elevation_cat)
+mean_mites_abundance$foraging_cat<-as.factor(mean_mites_abundance$foraging_cat)
+mean_mites_abundance$species_jetz<-as.factor(mean_mites_abundance$species_jetz)
+mean_mites_abundance$sociality<-as.factor(mean_mites_abundance$sociality)
+
+
+m_abun_mean_pglmm<-  phyr::pglmm(mean_mites~ sociality+sample_size+ (1|elevation_cat)+(1|species_jetz__), 
+                        data = mean_mites_abundance, 
                         family ="gaussian", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
                         #bayes = TRUE,
                         REML = TRUE, 
                         verbose = TRUE, 
                         s2.init = .25)
-summary( mean_m_a_meso)
+summary( m_abun_mean_pglmm)
+
+
+##_###_###
+# PLOTS  [ABUNDANCE]
+###_###_###
+
+# PLotting the model predictions 
+#### How well does PGLMM it predict the data
+newdata <- data.frame(elevation_cat = mean_mites_abundance$elevation_cat,
+                      species_jetz = mean_mites_abundance$species_jetz,
+                      sociality = mean_mites_abundance$sociality,
+                      sample_size = mean_mites_abundance$sample_size)
+
+predictions<- predict(m_abun_mean_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata
+# or use fitedd instead
+#predictions<- fitted(l_abun_mean_pglmm,newdata = newdata) ##newdata = newdata
+
+m_abun_mean_predicted <- cbind(mean_mites_abundance, predictions)
+
+
+str(ectos_df_predicted)
+
+# lets calculae the mean of the predited values on the untransformed scale
+predictions_summary_mites<- m_abun_mean_df_predicted  %>% 
+  group_by(sociality) %>%      
+  dplyr::summarise(mean_m_abundance= mean(Y_hat), sd=sd(Y_hat), n = n()) %>% 
+  mutate(se= sd/(sqrt(n)))
+
+colnames(predictions_summary_mites) <- c("sociality", "mean_m_abundance", "sd", "n", "se")
+
+head(predictions_summary_mites)
+
+# make a plot of model predictions (that also shows data)
+png("figures/figures_manuscript/Fig2_mites_abundance_means_pglmm.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = m_abun_mean_predicted, aes(x = sociality, y = mean_mites))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = m_abun_mean_predicted, aes(x=sociality, y = mean_mites),color="grey",size=3,width = 0.07)+
+  geom_segment(data = predictions_summary_mites, aes(x = sociality, y = mean_m_abundance, xend = sociality, yend =mean_m_abundance+sd, color="red"),show_guide = FALSE)+
+  geom_segment(data = predictions_summary_mites, aes(x = sociality, y = mean_m_abundance, xend = sociality, yend =mean_m_abundance-sd, color="red"),show_guide = FALSE)+
+  #geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = Y_hat), color="red", size=4,shape=19,width = 0.07)+
+  geom_point(data = predictions_summary_mites, aes(x=sociality, y = mean_m_abundance), color="red", size=4,shape=19)+
+  scale_y_continuous("mites abundance", limits = c(0,400)) +
+  scale_x_discrete("Sociality")+
+  geom_hline(yintercept = 4.999346 , linetype = "dashed")+ # the overall abundance mean of means
+  theme_classic(40)
+dev.off()
+
+mean(mean_lice_abundance$mean_lice) # the overall abundance mean of means
+
+
+# Plotting the traits things in the  phylogeny 
+#Some examples fr plotting http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html
+# Plot phylogenetic tree and  the trait continous trait ( prevalence)
+#ContMap #Function plots a tree with a mapped continuous character. 
+#The mapping is accomplished by estimating states at internal nodes using ML with fastAnc, and then interpolating the states along each edge using equation [2] of Felsenstein (1985).
+
+#contMap(tree, x, res=100, fsize=NULL, ftype=NULL, lwd=4, legend=NULL,
+#lims=NULL, outline=TRUE, sig=3, type="phylogram", direction="rightwards", 
+#plot=TRUE, ...)
+
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means_copy.csv")
+
+#mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+#phylo_lice_rooted<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
+#phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+#phylo_lice_rooted<-TreeTools::DropTip(phylo_lice_rooted, c("Chiroxiphia_boliviana","Automolus_melanopezus",
+"Simoxenops_ucayalae"))
+
+list.names=setNames(mean_lice_abundance$mean_lice, mean_lice_abundance$species_jetz)
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(mean_lice_abundance) <- mean_lice_abundance$species_jetz # first make it the row names 
+mean_lice_abundance<- mean_lice_abundance[match(phylo_lice_rooted$tip.label,rownames(mean_lice_abundance)),]
+
+###_###_###_###_###_###_###_
+# Combining both plots
+###_###_###_###_###_###_###_
+
+ColorPalette <- brewer.pal(n = 4, name = "YlGnBu")
+ColorPalette <- brewer.pal(n = 8, name = "Paired")
+
+
+fmode<-as.factor(setNames(mean_lice_abundance$sociality,mean_lice_abundance$species_jetz))
+object = contMap(phylo_lice_rooted, list.names, direction = "leftwards", plot=FALSE)
+#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+object_color<-setMap(object, ColorPalette)
+
+png("figures/figures_manuscript/Fig2a.Sociality_and_lice_abundance_phylotree1.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylo_lice_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
+     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
+     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
+
+add.color.bar(9, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
 
 # [Diversity] Part 3 Ectoparasite models_ -----------------------------
 ###_###_###_###_
