@@ -42,6 +42,7 @@ ggplot(summary_predictions, aes(x = elevation, y = prevalence))+
 # read in phylogeny
 phy <- read.nexus("example_code/mcc.nex")
 
+
 phy$tip.label
 
 splist <- unique(mydata$lineage)

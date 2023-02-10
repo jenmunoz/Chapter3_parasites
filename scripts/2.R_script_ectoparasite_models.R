@@ -1056,10 +1056,8 @@ dev.off()
 
 
 
-#Mites: this is all the data not manu only
-
 ###_###_###_###_###_###_###_###
-# Modeling no feather mites only (cause feathers mites can be misleding)
+# MITES no feather mites only (cause feathers mites can be misleading)
 ###_###_###_###_###_###_###_###
 
 #mites_df_abundance<-read.csv("data/data_analyses/7.mites_df_abundance.csv") 
@@ -1069,24 +1067,20 @@ dev.off()
 
 #write.csv(mites_df_abundance_powder,"data/data_analyses/7.dff_mites_abundance.csv")
 
-mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv") 
+mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv") %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 View(mites_df_abundance)
 names(mites_df_abundance)
-phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+phylogeny_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 # Abundance is counts so we can use  a poisson but it is zero infladed (no opticon in PGLMM to take care of this)
 #poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type
 # species and elevation site has to be factors
 #sociality 1, 0
 #elevation as a site (as factor) several levels bamboo, lowlands, montane, high andes
-mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
 # Lets check for zero infalted data 
 #100*sum(mites_df_abundance$total_no_feathers_mites== 0)/nrow(mites_df_abundance)
-
 # 21 % of our data is zeros( truth zeros)? i guess yes cause we collected the sample for teh individual
 
-#### Abundance
-# Modeling the individual abundances
+# Data structure
 # Make sure variables are in teh right format, random effects should be factors
 #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
 mites_df_abundance<-mites_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
@@ -1096,36 +1090,86 @@ mites_df_abundance$species_jetz<-as.factor(mites_df_abundance$species_jetz)
 mites_df_abundance$sociality<-as.factor(mites_df_abundance$sociality)
 mites_df_abundance$powder_level<-as.factor(mites_df_abundance$powder_level)
 
-unique(mites_df_abundance$powder_level)
+unique(mites_df_abundance$elevation_cat)
 
 mean(mites_df_abundance$total_no_feathers_mites)
 sd(mites_df_abundance$total_no_feathers_mites) # overdispersed variance> mean
 
-# IMPORTANT !!!make sure traits data nad phylogeny are in teh same order
-#rownames(mites_df_abundance) <- mites_df_abundance$species_jetz # first make it the row names 
-#mites_df_abundance<- mites_df_abundance[match(phylogeny_mites$tip.label,rownames(mites_df_abundance)),]
-
+##### Finding incongruences
 tips<- as.data.frame(phylogeny_mites$tip.label)
 names<-as.data.frame(mites_df_abundance$species_jetz)
+unique(mites_df_abundance$species_jetz)
+
+a<-tips %>% arrange(desc(phylogeny_mites$tip.label)) %>% mutate(name=phylogeny_mites$tip.label) %>% select(name)
+b<-names %>%arrange(desc( mites_df_abundance$species_jetz))%>% mutate(name=mites_df_abundance$species_jetz)%>% select(name)
+
+differences<-as.data.frame(setdiff( a,b))
+dplyr::setdiff( tips,names)
+
+differences<-as.vector(differences)
+# Drop incongruences in the  phylogeny 
+
+phylogeny_mites<-TreeTools::DropTip(phylogeny_mites,c("Phaethornis_superciliosus",
+                                                      "Selenidera_reinwardtii",
+                                                      "Capito_auratus",
+                                                      "Celeus_grammicus",
+                                                      "Micromonacha_lanceolata",
+                                                      "Chloroceryle_aenea",
+                                                      "Manacus_manacus",
+                                                      "Ramphotrigon_ruficauda",
+                                                      "Onychorhynchus_coronatus",
+                                                      "Dendrocolaptes_certhia",
+                                                      "Dendrocincla_merula",
+                                                      "Dendrocincla_fuliginosa",
+                                                      "Hyloctistes_subulatus",
+                                                      "Formicarius_colma",
+                                                      "Frederickena_unduligera",
+                                                      "Schistocichla_leucostigma",
+                                                      "Epinecrophylla_haematonota",
+                                                      "Cacicus_cela",
+                                                      "Phaeothlypis_fulvicauda"))
+
+###_###_###_###_###_###_###_###
+#### Abundance
+###_###_###_###_###_###_###_###
+
+# Modeling the individual abundances
+###_###_###_###_###_###_###_###
 
 # Modeling the data # I would prefer to use a zero inflated model however that is only aviallable in a gassioan approach bt that does no work with my model ( not sure why ye)
+# mites
+#all mites
+m_abundance<-phyr::pglmm(total_mites~ sociality + (1|elevation_cat)  +(1|species_jetz__)+(1|powder_level), 
+                      data = mites_df_abundance, 
+                      family ="poisson", # use when bayes=true "zeroinflated.poisson",
+                      cov_ranef = list(species_jetz=phylogeny_mites), #class phylo
+                      #bayes = TRUE,
+                      REML = TRUE, 
+                      verbose = TRUE, 
+                      s2.init = .25)
+summary(m_a_no_f)
 
-names( mites_df_abundance)
-m_a_no_f<-  phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat)  +(1|species_jetz__)+(1|powder_level), 
+
+#non-feather mites
+m_a_no_f<-phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat)  +(1|species_jetz__)+(1|powder_level), 
                         data = mites_df_abundance, 
                         family ="poisson", # use when bayes=true "zeroinflated.poisson",
-                        cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                        cov_ranef = list(species_jetz=phylogeny_mites), #class phylo
                         #bayes = TRUE,
                         REML = TRUE, 
                         verbose = TRUE, 
                         s2.init = .25)
 summary(m_a_no_f)
 
+mean( mites_df_abundance$total_no_feathers_mites) # data is overdisppersed 
+sd( mites_df_abundance$total_no_feathers_mites)
 
+
+#nmesostigmatidae only 
 m_a_meso<-phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat)+(1|species_jetz__)+(1|powder_level), 
                         data = mites_df_abundance, 
                         family ="poisson", # use when bayes=true "zeroinflated.poisson",
-                        cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                        cov_ranef = list(species_jetz=phylogeny_mites), #class phylo
                         #bayes = TRUE,
                         REML = TRUE, 
                         verbose = TRUE, 
@@ -1133,28 +1177,84 @@ m_a_meso<-phyr::pglmm(total_mesostigmatidae~ sociality + (1|elevation_cat)+(1|sp
 summary( m_a_meso)
 
 View(mites_df_abundance)
+
+# PLOTTING THE RANDOM EFFECTS
+plot.communityPGLMM(m_a_meso,predicted=TRUE)
+
+a<-communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=TRUE)
+
+communityPGLMM.plot.re()
+
+
+###_###_###_###_###_###_###_###_###_###_###
+# Modeling the means
+###_###_###_###_###_###_###_###
 #### mean non feather mites 
 
+
+mean_mites_n_feathers<-mites_df_abundance %>% group_by (species_jetz) %>% 
+  summarize(mean_mites=mean(total_no_feathers_mites),sample_size=n() ) 
+species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
+species_attributes_distict<-distinct( species_atributes)
+
+mean_mites_abundance_n_feathers<-right_join(species_attributes_distict, mean_mites_n_feathers, by="species_jetz")  
+
+#write.csv(mean_mites_abundance_mesostigmatidae,"data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv")
+
+# mesostigmatidae only 
 mean_mites_mesostigmatidae<-mites_df_abundance %>% group_by (species_jetz) %>% 
   summarize(mean_mites=mean(total_mesostigmatidae),sample_size=n() ) 
 
 species_atributes<-mites_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
 species_attributes_distict<-distinct( species_atributes)
 
-
 mean_mites_abundance_mesostigmatidae<-right_join(species_attributes_distict, mean_mites_mesostigmatidae, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
-
 #write.csv(mean_mites_abundance_mesostigmatidae,"data/data_analyses/7.dff_mites_abundance_means_mesostigmatidae.csv")
+
+
 ###_###_###_####_###_###_###_###_####_###_
 ## the data [Mean abundance Mites]
 ###_###_###_####_###_###_###_###_####_###_
 
+#mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_mesostigmatidae.csv") %>% 
+  #filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_mesostigmatidae.csv") %>% 
+mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv") %>% 
   filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-phylogeny_for_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
+phylogeny_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
+
+#
+tips<- as.data.frame(phylogeny_mites$tip.label)
+names<-as.data.frame(mean_mites_abundance$species_jetz)
+
+a<-tips %>% arrange(desc(phylogeny_mites$tip.label)) %>% mutate(name=phylogeny_mites$tip.label) %>% select(name)
+b<-names %>%arrange(desc(mean_mites_abundance$species_jetz))%>% mutate(name=mean_mites_abundance$species_jetz)%>% select(name)
+
+differences<-as.data.frame(setdiff( a,b))
+
+# Drop incongruences in the  phylogeny with data ( until we can get a better phylogeny)
+
+phylogeny_mites<-TreeTools::DropTip(phylogeny_mites,c("Phaethornis_superciliosus",
+                                                      "Selenidera_reinwardtii",
+                                                      "Capito_auratus",
+                                                      "Celeus_grammicus",
+                                                      "Micromonacha_lanceolata",
+                                                      "Chloroceryle_aenea",
+                                                      "Manacus_manacus",
+                                                      "Ramphotrigon_ruficauda",
+                                                      "Onychorhynchus_coronatus",
+                                                      "Dendrocolaptes_certhia",
+                                                      "Dendrocincla_merula",
+                                                      "Dendrocincla_fuliginosa",
+                                                      "Hyloctistes_subulatus",
+                                                      "Formicarius_colma",
+                                                      "Frederickena_unduligera",
+                                                      "Schistocichla_leucostigma",
+                                                      "Epinecrophylla_haematonota",
+                                                      "Cacicus_cela",
+                                                      "Phaeothlypis_fulvicauda"))
 
 
 mean_mites_abundance<-mean_mites_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
@@ -1164,7 +1264,7 @@ mean_mites_abundance$species_jetz<-as.factor(mean_mites_abundance$species_jetz)
 mean_mites_abundance$sociality<-as.factor(mean_mites_abundance$sociality)
 
 
-m_abun_mean_pglmm<-  phyr::pglmm(mean_mites~ sociality+sample_size+ (1|elevation_cat)+(1|species_jetz__), 
+m_abun_mean_pglmm<-  phyr::pglmm(mean_mites~sociality+(1|elevation_cat)+(1|species_jetz__), 
                         data = mean_mites_abundance, 
                         family ="gaussian", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
@@ -1172,8 +1272,12 @@ m_abun_mean_pglmm<-  phyr::pglmm(mean_mites~ sociality+sample_size+ (1|elevation
                         REML = TRUE, 
                         verbose = TRUE, 
                         s2.init = .25)
+
 summary( m_abun_mean_pglmm)
 
+rr2::R2(m_abun_mean_pglmm)
+
+###This is veryy zero inflated!!!! 
 
 ##_###_###
 # PLOTS  [ABUNDANCE]
@@ -1186,14 +1290,13 @@ newdata <- data.frame(elevation_cat = mean_mites_abundance$elevation_cat,
                       sociality = mean_mites_abundance$sociality,
                       sample_size = mean_mites_abundance$sample_size)
 
-predictions<- predict(m_abun_mean_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata
+predictions<- predict(m_abun_mean_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata although this is gaussian so we shoudl be ok with the scale
 # or use fitedd instead
-#predictions<- fitted(l_abun_mean_pglmm,newdata = newdata) ##newdata = newdata
+#predictions<- fitted(m_abun_mean_pglmm,newdata = newdata) ##newdata = newdata
 
 m_abun_mean_predicted <- cbind(mean_mites_abundance, predictions)
 
-
-str(ectos_df_predicted)
+str(m_abun_mean_predicted)
 
 # lets calculae the mean of the predited values on the untransformed scale
 predictions_summary_mites<- m_abun_mean_df_predicted  %>% 
@@ -1206,15 +1309,15 @@ colnames(predictions_summary_mites) <- c("sociality", "mean_m_abundance", "sd", 
 head(predictions_summary_mites)
 
 # make a plot of model predictions (that also shows data)
-png("figures/figures_manuscript/Fig2_mites_abundance_means_pglmm.png", width = 3000, height = 3000, res = 300, units = "px")
-ggplot(data = m_abun_mean_predicted, aes(x = sociality, y = mean_mites))+
+png("figures/figures_manuscript/letssee.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = m_abun_mean_predicted, aes(x = sociality, y = mean_mites))+ # teh observed
   # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
-  geom_jitter(data = m_abun_mean_predicted, aes(x=sociality, y = mean_mites),color="grey",size=3,width = 0.07)+
+  geom_jitter(data = m_abun_mean_predicted, aes(x=sociality, y = mean_mites),color="grey",size=3,width = 0.07)+ # the observed
   geom_segment(data = predictions_summary_mites, aes(x = sociality, y = mean_m_abundance, xend = sociality, yend =mean_m_abundance+sd, color="red"),show_guide = FALSE)+
   geom_segment(data = predictions_summary_mites, aes(x = sociality, y = mean_m_abundance, xend = sociality, yend =mean_m_abundance-sd, color="red"),show_guide = FALSE)+
   #geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = Y_hat), color="red", size=4,shape=19,width = 0.07)+
   geom_point(data = predictions_summary_mites, aes(x=sociality, y = mean_m_abundance), color="red", size=4,shape=19)+
-  scale_y_continuous("mites abundance", limits = c(0,400)) +
+  scale_y_continuous("mites abundance", limits = c(-20,20)) +
   scale_x_discrete("Sociality")+
   geom_hline(yintercept = 4.999346 , linetype = "dashed")+ # the overall abundance mean of means
   theme_classic(40)
@@ -1270,17 +1373,6 @@ plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize
 
 add.color.bar(9, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
 dev.off()
-
-
-
-
-
-
-
-
-
-
-
 
 
 # [Diversity] Part 3 Ectoparasite models_ -----------------------------

@@ -108,7 +108,7 @@ library(phangorn)
 maxCladeCred_bird_tree_manu_prevalence<-phangorn::maxCladeCred(host_species_tree_manu, tree = TRUE, rooted = TRUE)
 
 # Write the tree
-write.tree(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")
+write.nexus(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")
 
 #  [Abundance Lice] ------------------------------------------------------------
 ####_####_
@@ -153,7 +153,7 @@ library(phangorn)
 maxCladeCred_bird_tree_manu_lice_abundance<-phangorn::maxCladeCred(host_species_tree_lice_abundance_manu, tree = TRUE, rooted = TRUE)
 
 # Write the tree
-write.tree(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
+write.nexus(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
 
 
 #  [Diversity lice] ------------------------------------------------------------
@@ -201,7 +201,7 @@ library(phangorn)
 maxCladeCred_bird_tree_manu_lice_diversity<-phangorn::maxCladeCred(host_species_tree_lice_diversity_manu, tree = TRUE, rooted = TRUE)
 
 # Write the tree
-write.tree(maxCladeCred_bird_tree_manu_lice_diversity, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_diversity.nex")
+write.nexus(maxCladeCred_bird_tree_manu_lice_diversity, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_diversity.nex")
 
 #  [Abundance Mites] ------------------------------------------------------------
 
@@ -236,7 +236,7 @@ library(phangorn)
 maxCladeCred_bird_tree_manu_mites_abundance<-phangorn::maxCladeCred(host_species_tree_mites_abundance_manu, tree = TRUE, rooted = TRUE)
 
 # Write the tree
-write.tree(maxCladeCred_bird_tree_manu_mites_abundance, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
+write.nexus(maxCladeCred_bird_tree_manu_mites_abundance, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 
 
 #  [Diversity Mites] ------------------------------------------------------------
