@@ -1314,9 +1314,10 @@ names(lice_df_abundance)
 
 # Part 7 [ANALISES] Modeling abundance~Mite ------------------------------------------------------
   
- mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv",na.strings=c(""))
+ mites_df_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv",na.strings=c(""))
   names(mites_df_abundance)
-  phylogeny_for_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+  phylogeny_abundance_mites<- read.nexus("data/phylo_data/1_host_consensus_tree_mites.nex")
+  phylogeny_abundance_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
   # Abundance is counts so we can use  a poisson but it is zero infladed (no opticon in PGLMM to take care of this)
   #poisson error; fixed effect sociality=categories of variable of direct interest; random effect=foraging type
   # species and elevation site has to be factors
