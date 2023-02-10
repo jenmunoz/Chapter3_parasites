@@ -26,6 +26,7 @@ install.packages("devtools")
 install.packages("knitr")
 install.packages("ts")
 
+install.packages("RColorBrewer")
 #for models
 install.packages("car") #Anova command
 install.packages("lattice") #preliminary plots
@@ -46,6 +47,8 @@ install.packages("phangorn") # to reconstruct a maximum clade credibility tree
 install.packages("rr2")
 install.packages ( "MCMCglmm")
 install.packages("phyr")
+install.packages("TreeTools")
+library(TreeTools)
 #install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) # to be able to run bayesian inference on the PGLMM models more info here https://www.r-inla.org
 
 
@@ -70,6 +73,8 @@ library(ggplot2)
 library(devtools)
 library(knitr)
 library(ts)
+library(RColorBrewer)
+
 
 #libraries for models and visualizations
 
@@ -96,6 +101,8 @@ library (MCMCglmm)
 
 library(tidyverse)
 library(skimr)
+install.packages("TreeTools")
+library(TreeTools)
 
 #Libraries ofr plots
 library(gridExtra)
@@ -208,7 +215,7 @@ lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()
 
 
 
-# [Presence_absence] Part1_Ectoparasite models_using binary data -----------------------------
+# [Presence_absence] Part1_Ectoparasite models_using binary data  1/0-----------------------------
 # To underestand teh models and out puts better see this paper: https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
 # also see this blog with an example https://daijiang.github.io/phyr/articles/phyr_example_empirical.html
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
@@ -382,7 +389,7 @@ rr2::R2(MCMC)
 
 
 
-# Part1 Ectoparasite models_using prevalence data (Corrections after meeting with Jullie et al  using probabilities)_Ectoparasite models_  -----------------------------
+# [Prevalence]Part1 Ectoparasite models_using prevalence data (Corrections after meeting with Jullie et al  using probabilities)_Ectoparasite models_  -----------------------------
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
 # In this case we will analyses proportion data arising from counts (counts base data, See https://fukamilab.github.io/BIO202/04-B-binary-data.html#glm_for_proportional_data)
 
@@ -402,36 +409,21 @@ rr2::R2(MCMC)
 ###_###_###_###_##
 # The data
 ###_###_###_###_##
-
 # Getting the data ready
-ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence with all variables 
-names( ectoparasites_df)
-unique(ectoparasites_df$Mites)
-View(phylogeny)
-class(phylogeny)
+#ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence with all variables 
+#names( ectoparasites_df)
+#unique(ectoparasites_df$Mites)
+#View(phylogeny)
+#class(phylogeny)
 
 # including other data
 #number of detections in flocks
-elevation_midpoint<-read.csv("data/1.elevation_midpoint_manu_species.csv")
+#elevation_midpoint<-read.csv("data/1.elevation_midpoint_manu_species.csv")
 #anti_join(ectoparasites_df,elevation_midpoint, by=c("species_clean"="species_taxonomy_SACC_2021")) # speceis that are in the ectoparasite list that do not have a matcj in b 
-
-ectoparasites_df<-left_join(ectoparasites_df,elevation_midpoint,by=c("species_clean"="species_taxonomy_SACC_2021"))
+#ectoparasites_df<-left_join(ectoparasites_df,elevation_midpoint,by=c("species_clean"="species_taxonomy_SACC_2021"))
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-# Re-strudture the data
-# Make sure variables are in teh right format, random effects should be factors
-#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-
-ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
-str( ectoparasites_df)
-
-ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
-ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
-ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
-ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
-ectoparasites_df$elevation_midpoint<-as.numeric(ectoparasites_df$elevation_midpoint)
+#ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
 ###_###_###_###_##
 #The models for presence absence
@@ -441,27 +433,33 @@ ectoparasites_df$elevation_midpoint<-as.numeric(ectoparasites_df$elevation_midpo
 
 # INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
 #the higher the sample size the higher teh probability to find ectos
+
+# Re-strudture the data
+# Make sure variables are in teh right format, random effects should be factors
+#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+#ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
+
 # this will be required in the diversity analyses
-ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
-ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
-unique(ectoparasites_df$ectoparasites_PA)
+#ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
+#ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
+#unique(ectoparasites_df$ectoparasites_PA)
 
-str(ectoparasites_df$ectoparasites_PA)
-ectoparasites_df %>% group_by(ectoparasites_PA) %>% 
-  summarise(n())
+#str(ectoparasites_df$ectoparasites_PA)
+#ectoparasites_df %>% group_by(ectoparasites_PA) %>% 
+# summarise(n())
 
-ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation_midpoint=max(elevation_midpoint)) %>% 
-  mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
+#ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
+ # summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation_midpoint=max(elevation_midpoint)) %>% 
+ # mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
 
-species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean, mass_tidy,Family )
-species_attributes_distict<-distinct(species_atributes)
+#species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean, mass_tidy,Family )
+#species_attributes_distict<-distinct(species_atributes)
 
-ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
+#ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
 
-ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
+#ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
 
-View(ectos_pres_abs_df)
+#View(ectos_pres_abs_df)
 
 # write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
 
@@ -469,26 +467,46 @@ View(ectos_pres_abs_df)
 # [Prevalence_Presence_absence] THE MODELS
 ###_###_###
 
+#DATA
 ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence FOR THE MODEL
-# Converting variables as needed
-ectos_df$sociality<-as.factor(ectos_df$sociality)
+phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 
-#as.data.frame(unique(ectos_df$species_jetz)) %>% View()
-str(ectos_df) # should have same number of rows than teh phylogeny 
-#phylogeny<- read.nexus("data/phylo_data/1_host_consensus_tree_Manuspecies.nex") 
-phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
+ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-is.ultrametric(phylogeny_rooted)
 # Make sure the tips and the names on the file coincide
-tips<- as.data.frame(phylogeny_rooted$tip.label)
+phylogeny_prevalence$edge.length  
+phylogeny_prevalence$tip.label
+is.binary(phylogeny_prevalence)
+
+tips<- as.data.frame(phylogeny_prevalence$tip.label)
 names<-as.data.frame(ectos_df$species_jetz)
-anti_join(tips,names, by=c("phylogeny_rooted$tip.label"="ectos_df$species_jetz"))
+anti_join(tips,names, by=c("phylogeny_prevalence$tip.label"="ectos_df$species_jetz"))
 
 # Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
-ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
+ectos_df<- ectos_df[match(phylogeny_prevalence$tip.label,rownames(ectos_df)),]
 
-#MODEL FITTING AND EVALUALLING MODEL FIT GRAOHICALLY
+# Re-strudture the data
+# Make sure variables are in teh right format, random effects should be factors
+#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+
+ectos_df <-ectos_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
+
+ectos_df$elevation_cat<-as.factor(ectos_df$elevation_cat)
+ectos_df$foraging_cat<-as.factor(ectos_df$foraging_cat)
+ectos_df$species_jetz<-as.factor(ectos_df$species_jetz)
+ectos_df$sociality<-as.numeric(ectos_df$sociality)
+ectos_df$elevation_midpoint<-as.numeric(ectos_df$elevation_midpoint)
+ectos_df$sociality<-as.factor(ectos_df$sociality)
+
+#as.data.frame(unique(ectos_df$species_jetz)) %>% View()
+
+str(ectos_df) # should have same number of rows than teh phylogeny 
+
+is.ultrametric(phylogeny_prevalence)
+
+#MODEL FITTING AND EVALUALLING MODEL FIT GRAPHICALLY
 
 ###_###_###_ Important for model fitting
 #predict ( model) # plot predicted vlues and confidence limits on the logit scale, the points are not logit tranformed data, they are "working values to fit the model.....dificult to interpret 
@@ -497,17 +515,17 @@ ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 #visreg(model, scale="response") # willl give us the predicted values transformed to the original scale 
 ###_###_###_ ###_###_###_ ###_###_###_ 
 
-
+###_###_###_ 
 # lETS CONSIDER A MIXED EFFECT MODEL first
 # # Using a glmm
+###_###_###_ 
+
 ectos_prevalence_glmm<-  lme4::glmer(proportion_ectoparasites ~ sociality+ sample_size+ (1|elevation_cat)+(1|species_jetz),  #+1(1|foraging_cat)
                                      data = ectos_df, 
                                      family = "binomial" (link = "logit"),
                                      verbose = TRUE)
 summary(ectos_prevalence_glmm)
 rr2::R2(ectos_prevalence_glmm)
-
-log(1.21978)
 
 # How well does it predict the data 
 newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
@@ -538,35 +556,34 @@ dev.off()
 # Using vis reg
 visreg(ectos_prevalence_glmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
 
-
 # all predicted values 
 ggplot(newdata, aes(x = sociality, y =Predicted_Response))+
   geom_point()+
   ylim(0,1)
-Predicted_Response
 
 
 visreg(ectos_prevalence_glmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
 # This is useful to obtain predicted values on the 0riginal scale 
 emmeans(ectos_prevalence_glmm,"sociality", type="response")
 
-
-
+###_###_###_ 
 # Using PGLMM [ Lets correct for phylogeny ]
-#I am not sue about including foraging cat since that some how is included in teh variation per species + 
+###_###_###_ 
+
+#I am not sue about including foraging cat since that some how is included in teh variation per species  ( Removed) 
 #elevation_cat # only hs three categories so i am not sure I can used as a ranmod effect
 # we revomed (1|foraging_cat) because it was not significant in individual models 
 
 unique(ectos_df$elevation_cat)
 mean(ectos_df$proportion_ectoparasites) # mean prevalnece
 
-lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression
+#lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression INTERESTING
 
 str( ectos_df)
 ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites~sociality+sample_size+(1|species_jetz__)+(1|elevation_cat), #+elevation_midpoint
                               data = ectos_df, 
                               family = "binomial",
-                              cov_ranef = list(species_jetz= phylogeny_rooted), #class phylo
+                              cov_ranef = list(species_jetz= phylogeny_prevalence), #class phylo
                               #bayes = TRUE,
                               REML = TRUE, 
                               verbose = TRUE,
@@ -576,9 +593,15 @@ predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm )
 
-# Explore if the random effects are important?
+# Underestanding the summary of the random effects
+#The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
+# this implies that the parasites  prevalence is more similar in closely related species 
+
+# Explore if the random effects are important? 
 # One way to get an idea is to run a likelihood ratio test on the random effect. 
-# This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models.
+# This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models ( copied from https://daijiang.github.io/phyr/articles/phyr_example_empirical.html)
+
+phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = 1) ## here we need to specify qith random effect are we evaluating in the order we put them in the model species is number 1, phylogeny2, and elevation 3
 
 LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = x))
 colnames(LRTest) <- names(ecto_prevalence_pglmm$ss)
@@ -596,18 +619,18 @@ t(LRTest)
 
 # Make sure the names  are in the same order in the phylogeny and in the traits
 
-phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
 
 tips<- as.data.frame(phylogeny_rooted$tip.label)
 names<-as.data.frame(ectos_df$species_jetz)
 
-# caLCULATE Lambda option 1 
+# caLCULATE Lambda option 1  for continuos data only, does not apply to counts!!!
 # https://www.zoology.ubc.ca/~schluter/R/Phylogenetic.html
 
-mydat2 <- ectos_df[, c("proportion_ectoparasites", "mass_tidy")]
-phytools::phylosig(phylogeny_rooted, as.matrix(mydat2)[,c("proportion_ectoparasites")], method = "lambda") # phylogenetic signal in trait "x"
+mydata <- ectos_df[, c("proportion_ectoparasites", "mass_tidy")]
+phytools::phylosig(phylogeny_rooted, as.matrix(mydata)[,c("mass_tidy")], method = "lambda") # phylogenetic signal in trait "x"
 
 #phytools::phylosig(phylogeny_rooted, as.matrix(mydat2)[,c("sociality")], method = "lambda") # phylogenetic signal in trait "x"
 
@@ -629,28 +652,32 @@ newdata <- data.frame(elevation_cat = ectos_df$elevation_cat,
                       sample_size = ectos_df$sample_size)
 
 predictions<- predict(ecto_prevalence_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata
+# or use fitedd instead
+#predictions<- fitted(ecto_prevalence_pglmm,newdata = newdata) ##newdata = newdata
+
 ectos_df_predicted <- cbind(ectos_df, predictions)
 
 str(ectos_df_predicted)
 
 # lets calculae the mean of the predited values on the untransformed scale
-summary_model <- ectos_df_predicted %>% 
+predictions_summary<- ectos_df_predicted %>% 
   group_by(sociality) %>%      
-  dplyr::summarise(prevalence= mean(proportion_ectoparasites), sd=sd(proportion_ectoparasites), n = n()) %>% 
+  dplyr::summarise(mean_prevalence= mean(Y_hat), sd=sd(Y_hat), n = n()) %>% 
   mutate(se= sd/(sqrt(n)))
 
-colnames(summary_model) <- c("sociality", "prevalence", "sd", "n", "se")
+colnames(predictions_summary) <- c("sociality", "mean_prevalence", "sd", "n", "se")
 
-head(summary_model)
+head(predictions_summary)
 
 # make a plot of model predictions (that also shows data)
-png("predicted3", width = 3000, height = 3000, res = 300, units = "px")
-ggplot(data = ectos_df_predicted, aes(x = sociality, y = Y_hat ))+
+png("figures/figures_manuscript/Fig1_Ectoparasite_prevalence_pglmm.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_df_predicted, aes(x = sociality, y = proportion_ectoparasites))+
   # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
-  geom_jitter(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=3,width = 0.06)+
-  geom_segment(data = summary, aes(x = sociality, y = prevalence, xend = sociality, yend = prevalence+se, color="red"),show_guide = FALSE)+
-  geom_segment(data = summary, aes(x = sociality, y = prevalence, xend = sociality, yend = prevalence-se, color="red"),show_guide = FALSE)+
-  geom_point(data = summary, aes(x=sociality, y = prevalence), color="red", size=4,shape=19)+
+  geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=3,width = 0.07)+
+  geom_segment(data = predictions_summary, aes(x = sociality, y = mean_prevalence, xend = sociality, yend =mean_prevalence+sd, color="red"),show_guide = FALSE)+
+  geom_segment(data = predictions_summary, aes(x = sociality, y = mean_prevalence, xend = sociality, yend =mean_prevalence-sd, color="red"),show_guide = FALSE)+
+  #geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = Y_hat), color="red", size=4,shape=19,width = 0.07)+
+  geom_point(data = predictions_summary, aes(x=sociality, y = mean_prevalence), color="red", size=4,shape=19)+
   scale_y_continuous("Ectoparasites prevalence", limits = c(0,1)) +
   scale_x_discrete("Sociality")+
   geom_hline(yintercept = 0.775, linetype = "dashed")+
@@ -658,7 +685,7 @@ ggplot(data = ectos_df_predicted, aes(x = sociality, y = Y_hat ))+
 dev.off()
 
 
-# Vis eg does not support PGLMM
+# Visreg does not support PGLMM
 #visreg(ecto_prevalence_pglmm, scale="response", ylim=c(0,1)) # If scale='response' for a glm, the inverse link function will be applied so that the model is plotted on the scale of the original response.
 #emmeans(ecto_prevalence_glmm, type="response")
 
@@ -675,7 +702,7 @@ mean(ectos_df$proportion_ectoparasites) # mean prevalnece observed
 #plot=TRUE, ...)
 
 ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
-phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
+phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 list.names=setNames(ectos_df$proportion_ectoparasites, ectos_df$species_jetz)
 
 # Make sure the names  are in the same order in the phylogeny and in the traits
@@ -699,6 +726,8 @@ phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_r
 ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
 fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
 
+unique(ectos_df$species_jetz)
+
 # Make sure the names  are in the same order in the phylogeny and in the traits
 rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
 ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
@@ -709,14 +738,18 @@ png("figures/figures_manuscript/Fig1.sociality_phylotree.png", width = 2500, hei
 dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),                                              c("1","0")),ftype="i",fsize=0.5, lwd=4)
 dev.off()
 
+###_###_###_###_###_###_###_
 # Combining both plots
+###_###_###_###_###_###_###_
+
+ColorPalette <- brewer.pal(n = 9, name = "GnBu")
 
 fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
-
 object = contMap(phylogeny_rooted, list.names, direction = "leftwards", plot=FALSE)
-object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+object_color<-setMap(object, ColorPalette)
 
-png("figures/figures_manuscript/Fig3.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
 plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
 
 plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
@@ -724,29 +757,25 @@ plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize
      ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
 
 add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
-
 dev.off()
 
-
 #GADGETS 
-
-# Color palette
+# other option in blue colors 
 require(RColorBrewer)
-## Loading required package: RColorBrewer
-ColorPalette <- brewer.pal(n = 9, name = "Blues")
-# Plotting
-plot(seedplantstree, type="p", use.edge.length = TRUE, label.offset=0.01,cex=0.6)
-tiplabels(pch=21,bg=ColorPalette[maxH.cat],col="black",cex=1,adj=0.505)
 
-
-###_
-
-
-
+#ColorPalette <- brewer.pal(n = 9, name = "YlGnBu")
+ColorPalette <- brewer.pal(n = 9, name = "GnBu")
+object_color<-setMap(object, ColorPalette)
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=1,fsize=0.5,
+     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
+     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
 
 
 # [Abundance]Part2_Ectoparasite models_  -----------------------------
+###_###_###_###_
 # Lice
+###_###_###_###_
+
 #Response variable count 
 #Random effects species ( we have multiple measurements per species), account to variation between species other than phylogenetic, maybe redundat with foraging high
 #Random effect phylogeny
@@ -765,7 +794,6 @@ library(MCMCglmm)
 #lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
 
 
-
 #Add powder lever
 #powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
 #lice_df_abundance_powder<-inner_join( lice_df_abundance, powder_bias, by="Full_Label") 
@@ -774,10 +802,18 @@ library(MCMCglmm)
 #write.csv(lice_df_abundance_powder,"data/data_analyses/7.dff_lice_abundance.csv")
 str(lice_df_abundance_powder)
 
-# Using pglmmm
+###_###_####_###_
+#The data Abundance 
+###_###_####_###_'
+
 lice_df_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv") 
 unique(lice_df_abundance$powder_level)
-phylo_lice_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+phylo_lice_rooted<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
+
+# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
+lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+# Using pglmmm
 
 # Make sure number in teh data and the phylogenty are consistent
 lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
@@ -786,19 +822,13 @@ lice_df_abundance$foraging_cat<-as.factor(lice_df_abundance$foraging_cat)
 lice_df_abundance$species_jetz<-as.factor(lice_df_abundance$species_jetz)
 lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
 
-str(lice_df_abundance)
+unique(lice_df_abundance$species_jetz)
 
-# Important! make sure data traist and phylogeny are in teh same order
 
-rownames(lice_df_abundance) <- lice_df_abundance$species_jetz # first make it the row names 
-lice_df_abundance<- lice_df_abundance[match(phylo_lice_rooted$tip.label,rownames(lice_df_abundance)),]
-
-tips<- as.data.frame(phylo_lice_rooted$tip.label)
-names<-as.data.frame(lice_df_abundance$species_jetz)
 
 #I am not sue about including foraging cat since that some how is included in teh variation per species , 
 #also sample size seems relevant but not sure how to included since the observations are individual.
-# iTHINK THE BEST APPROACH IS TO calculate the mean abundance adn nclude sample size as a random effect
+# I THINK THE BEST APPROACH IS TO calculate the mean abundance adn nclude sample size as a random effect
 
  
 l_abun_pglmm <-  phyr::pglmm(total_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz__)+ (1|powder_level), 
@@ -819,54 +849,58 @@ R2.resid(l_abun_pglmm)
 class(l_abun_pglmm) # i THINK r2 ONLY ALOW TO calculate goodness of fit in gaussian (community PGLMM)
 
 # Using Glmm
-
 #Similar results to above 
 lice_abundance_glmm<-  lme4::glmer(total_lice ~ sociality+  (1|elevation_cat)+(1|species_jetz)+ (1|powder_level),  #+1(1|foraging_cat)
                                      data = lice_df_abundance, 
                                      family = "poisson",
                                      verbose = TRUE)
-
 summary(lice_abundance_glmm)
 rr2::R2(ectos_prevalence_glmm)
-
 
 lice_abundance_glm<-glm(total_lice ~ sociality+ powder_level,  #+1(1|foraging_cat)
                                    data = lice_df_abundance, 
                                    family = "poisson")
-                                   
-
+                                  
 #But we know that sample size might have an effect 
 #Modeling the mean abundance to take care of the sample size
-#### Sample size
 
+###_###_####_###_
+#### The effect of Sample size
+###_###_####_###_
 
 mean_lice<-lice_df_abundance %>% group_by (species_jetz) %>% 
   summarize(mean_lice=mean(total_lice), sample_size=(n()))
-
-
 View(mean_lice)
 View(lice_df_abundance)
   
-  #ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
+#ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
 
 species_atributes<-lice_df_abundance %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean) %>%  filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 species_attributes_distict<-distinct( species_atributes)
 
 mean_lice_abundance<-right_join(species_attributes_distict, mean_lice, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
-
 ###_###_####_###_
 #write_csv(mean_lice_abundance,"data/data_analyses/7.dff_lice_abundance_means.csv")
 
-#The data
+###_###_####_###_
+#The data Abundance means
+###_###_####_###_
 mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
-mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means_copy.csv") #dropped the outliers
 
-
+#mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+#phylo_lice_rooted<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
 phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
 
+install.packages("TreeTools")
+library(TreeTools)
+phylo_lice_rooted<-TreeTools::DropTip(phylo_lice_rooted, c("Chiroxiphia_boliviana"))
+#phylo_lice_rooted<-TreeTools::DropTip(phylo_lice_rooted, c("Chiroxiphia_boliviana","Automolus_melanopezus",
+"Simoxenops_ucayalae")) # outliers
 
+
+#Structure the data
 mean_lice_abundance <-mean_lice_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
 mean_lice_abundance$elevation_cat<-as.factor(mean_lice_abundance$elevation_cat)
 mean_lice_abundance$foraging_cat<-as.factor(mean_lice_abundance$foraging_cat)
@@ -874,12 +908,28 @@ mean_lice_abundance$species_jetz<-as.factor(mean_lice_abundance$species_jetz)
 mean_lice_abundance$sociality<-as.factor(mean_lice_abundance$sociality)
 
 str(mean_lice_abundance)
+
+# Make sure this two are the same numbers 
+tips<- as.data.frame(phylo_lice_rooted$tip.label)
+names<-as.data.frame(mean_lice_abundance$species_jetz)
+
+##### Finding mistmaches
+a<-tips %>% arrange(desc(phylo_lice_rooted$tip.label)) %>% mutate(name=phylo_lice_rooted$tip.label) %>% select(name)
+b<-names %>%arrange(desc( mean_lice_abundance$species_jetz))%>% mutate(name=mean_lice_abundance$species_jetz)%>% select(name)
+
+setdiff( a,b)
+dplyr::setdiff( tips,names)
+
+# Important! make sure data traist and phylogeny are in teh same order
+rownames(mean_lice_abundance) <- mean_lice_abundance$species_jetz # first make it the row names 
+mean_lice_abundance<-mean_lice_abundance[match(phylo_lice_rooted$tip.label,rownames(mean_lice_abundance)),]
+
 # The model 
 
 hist(mean_lice_abundance$mean_lice)
 unique(mean_lice_abundance$mean_lice)
 names ( mean_lice_abundance)
-l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+sample_size+(1|elevation_cat)+(1|species_jetz__), 
+l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+(1|elevation_cat)+(1|species_jetz__),
                              data = mean_lice_abundance, 
                              family = "gaussian", #( maybe gaussian will be better in this case ?)
                              cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
@@ -891,8 +941,122 @@ l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+sample_size+(1|elevation
 summary (l_abun_mean_pglmm)
 rr2::R2(l_abun_mean_pglmm)
 
-l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ (1|elevation_cat)+(1|species_jetz)+ (1|foraging_cat), 
+l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ sample_size+(1|elevation_cat), 
                                   data = mean_lice_abundance)
+
+summary (l_abun_mean_glmm)
+
+# Underestanding the summary of the random effects
+#The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
+# this implies that the parasites  prevalence is more similar in closely related species 
+
+# Explore if the random effects are important?  This only work in bonomial models
+# One way to get an idea is to run a likelihood ratio test on the random effect. 
+# This can be achieved by using the pglmm_profile_LRT() function, at least for binomial models ( copied from https://daijiang.github.io/phyr/articles/phyr_example_empirical.html)
+
+#phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = 1) ## here we need to specify qith random effect are we evaluating in the order we put them in the model species is number 1, phylogeny2, and elevation 3
+#LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(l_abun_mean_pglmm, re.number = x))
+#colnames(LRTest) <- names(mean_lice_abundance$ss)
+#t(LRTest)
+
+###_###_###
+# PLOTS  [ABUNDANCE]
+###_###_###
+
+# PLotting the model predictions 
+#### How well does PGLMM it predict the data
+newdata <- data.frame(elevation_cat = mean_lice_abundance$elevation_cat,
+                      species_jetz = mean_lice_abundance$species_jetz,
+                      sociality = mean_lice_abundance$sociality,
+                      sample_size = mean_lice_abundance$sample_size)
+
+predictions<- predict(l_abun_mean_pglmm,newdata = newdata, type = "response" ) ##newdata = newdata
+# or use fitedd instead
+#predictions<- fitted(l_abun_mean_pglmm,newdata = newdata) ##newdata = newdata
+
+l_abun_mean_df_predicted <- cbind(mean_lice_abundance, predictions)
+
+str(ectos_df_predicted)
+
+# lets calculae the mean of the predited values on the untransformed scale
+predictions_summary_lice<- l_abun_mean_df_predicted  %>% 
+  group_by(sociality) %>%      
+  dplyr::summarise(mean_l_abundance= mean(Y_hat), sd=sd(Y_hat), n = n()) %>% 
+  mutate(se= sd/(sqrt(n)))
+
+colnames(predictions_summary_lice) <- c("sociality", "mean_l_abundance", "sd", "n", "se")
+
+head(predictions_summary)
+
+# make a plot of model predictions (that also shows data)
+png("figures/figures_manuscript/Fig2_lice_abundance_means_pglmm.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = l_abun_mean_df_predicted, aes(x = sociality, y = mean_lice))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = l_abun_mean_df_predicted, aes(x=sociality, y = mean_lice),color="grey",size=3,width = 0.07)+
+  geom_segment(data = predictions_summary_lice, aes(x = sociality, y = mean_l_abundance, xend = sociality, yend =mean_l_abundance+sd, color="red"),show_guide = FALSE)+
+  geom_segment(data = predictions_summary_lice, aes(x = sociality, y = mean_l_abundance, xend = sociality, yend =mean_l_abundance-sd, color="red"),show_guide = FALSE)+
+  #geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = Y_hat), color="red", size=4,shape=19,width = 0.07)+
+  geom_point(data = predictions_summary_lice, aes(x=sociality, y = mean_l_abundance), color="red", size=4,shape=19)+
+  scale_y_continuous("Lice abundance", limits = c(0,50)) +
+  scale_x_discrete("Sociality")+
+  geom_hline(yintercept = 4.999346 , linetype = "dashed")+ # the overall abundance mean of means
+  theme_classic(40)
+dev.off()
+
+mean(mean_lice_abundance$mean_lice) # the overall abundance mean of means
+
+
+# Plotting the traits things in the  phylogeny 
+#Some examples fr plotting http://www.phytools.org/Cordoba2017/ex/15/Plotting-methods.html
+# Plot phylogenetic tree and  the trait continous trait ( prevalence)
+#ContMap #Function plots a tree with a mapped continuous character. 
+#The mapping is accomplished by estimating states at internal nodes using ML with fastAnc, and then interpolating the states along each edge using equation [2] of Felsenstein (1985).
+
+#contMap(tree, x, res=100, fsize=NULL, ftype=NULL, lwd=4, legend=NULL,
+#lims=NULL, outline=TRUE, sig=3, type="phylogram", direction="rightwards", 
+#plot=TRUE, ...)
+
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means_copy.csv")
+
+#mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+#phylo_lice_rooted<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
+#phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+#phylo_lice_rooted<-TreeTools::DropTip(phylo_lice_rooted, c("Chiroxiphia_boliviana","Automolus_melanopezus",
+                                                           "Simoxenops_ucayalae"))
+
+list.names=setNames(mean_lice_abundance$mean_lice, mean_lice_abundance$species_jetz)
+
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(mean_lice_abundance) <- mean_lice_abundance$species_jetz # first make it the row names 
+mean_lice_abundance<- mean_lice_abundance[match(phylo_lice_rooted$tip.label,rownames(mean_lice_abundance)),]
+
+###_###_###_###_###_###_###_
+# Combining both plots
+###_###_###_###_###_###_###_
+
+ColorPalette <- brewer.pal(n = 4, name = "YlGnBu")
+ColorPalette <- brewer.pal(n = 8, name = "Paired")
+
+
+fmode<-as.factor(setNames(mean_lice_abundance$sociality,mean_lice_abundance$species_jetz))
+object = contMap(phylo_lice_rooted, list.names, direction = "leftwards", plot=FALSE)
+#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+object_color<-setMap(object, ColorPalette)
+
+png("figures/figures_manuscript/Fig2a.Sociality_and_lice_abundance_phylotree1.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylo_lice_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
+     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
+     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
+
+add.color.bar(9, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+dev.off()
+
+
+
+
 
 
 #Mites: this is all the data not manu only
@@ -1404,3 +1568,60 @@ write.csv(degree_w_manu_jetz, "data/8.network_degree_weighted_network_all_sp_man
 
 
 View(deg_binary)
+
+
+#Extra code
+#####
+# Phylogenetic signal in categorical traits
+####
+
+#Make sure you have the ape package installed before running the examples or using these scripts. Also, load the code.R.
+
+#library(ape)
+#source(code.R)
+
+#newick_tree <- "PASTE_NETWICK_TREE_HERE"
+#tree <- read.tree(text=newick_tree)
+#plot(tree)
+#It is important to guarantee that all the branches are positive as this method requires a metric-tree (i.e., branch_lengths > 0). Here, we take 1% of the 1% quantile to fill in the null branches:
+  
+#tree$edge.length[tree$edge.length==0] <- quantile(tree$edge.length,0.1)*0.1
+#Now, we need to define the trait vector. Confirm that the trait order follows the species order in the tree; # you can see the species order by typing:  tree$tip.label.
+
+#trait <- c(PASTE_YOUR_TRAIT_VECTOR_HERE)
+#Now, we calculate delta:
+  
+#deltaA <- delta(trait,tree,0.1,0.0589,10000,10,100)
+#When running the delta function you may experience this warning message: Warning message: In sqrt(diag(solve(h))) : NaNs produced. Don't worry about it; it just tells me that the standard deviations of some of your rate parameters could not be calculated, and these aren't used anyways.
+
+#We can also calculate p-values. Here, we shuffle the trait vector using the function delta (for 100 iterates) and create a vector of random deltas that will work as our null hypothesis. Then we compute the probability p(random_delta>deltaA) in the null distribution, which returns the p-value.
+
+#random_delta <- rep(NA,100)
+#for (i in 1:100){
+ # rtrait <- sample(trait)
+ # random_delta[i] <- delta(rtrait,tree,0.1,0.0589,10000,10,100)}
+#p_value <- sum(random_delta>deltaA)/length(random_delta)
+#boxplot(random_delta)
+#abline(h=deltaA,col="red")
+#if p-value < level_of_test (generally 0.05), there is evidence of phylogenetic signal between the trait and the character
+#if p-value > level_of_test there is no evidence for phylogenetic signal or the trait is saturated
+#Citation
+
+#Rui Borges, João Paulo Machado, Cidália Gomes, Ana Paula Rocha, Agostinho Antunes; Measuring phylogenetic signal between categorical traits and phylogenies, Bioinformatics, https://doi.org/10.1093/bioinformatics/bty800
+
+
+####Phylogenetic signl in bonmial data
+
+#Estimating D
+#D is a measure of phylogenetic signal for binary traits (Fritz & Purvis, 2010) and is calculated as follows: D = (dobs – mean(db))/(mean(dr) - mean(db)). dobs is equal to the number of character state changes required to get the observed distribution of character states at the tips of the phylogeny.
+#To make dobs comparable among different trees and datasets, it is scaled using two null distributions: dr and db. dr is the distribution of d values obtained from 1000 permutations where the number of species with each character state is kept constant, but the values are shuffled on the tips of the phylogeny.
+#Thus dr is the expected distribution of d values if character states are randomly distributed among species without respect to phylogeny. db, on the other hand, is the expected distribution of d values if character states are distributed among species under the expectations of Brownian motion model of evolution. db is generated by simulating a continuous trait along the phylogeny then defining the character state at each tip according to some threshold value of the continuous trait. The threshold is chosen to ensure that the number of tips with each character state remains the same as in the observed data. d is then calculated and the process is repeated 1000 times to get a distribution of d values (Fritz & Purvis, 2010).
+
+#D is 1 if the distribution of the binary trait is random with respect to phylogeny, and greater than 1 if the distribution of the trait is more overdispersed than the random expectation. D is 0 if the binary trait is distributed as expected under the Brownian motion model of evolution, 
+#and less than 0 if the binary trait is more phylogenetically conserved than the Brownian expectation. The distributions dr and db can also be used to assign p-values to dobs, 
+#i.e., if dobs is larger than 95% of dr values then the distribution of the trait is significantly more overdispersed than the random expectation, if dobs is less than 95% of db values, the character is significantly more clumped than the Brownian expectation.
+
+primate <- comparative.data(phy = primatetree, data = primatedata, names.col = Binomial, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
+
+phylo.d(data=primate, binvar = Nocturnal, permut = 1000)
+

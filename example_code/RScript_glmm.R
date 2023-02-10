@@ -23,6 +23,7 @@ newdata <- data.frame(elevation = mydata$elevation,
 
 newdata$Predicted_Response <- predict(z, newdata = newdata, type = "response")
 
+
 # model  predicts overall patterns pretty well
 
 summary_predictions <- newdata %>%   # Specify data frame

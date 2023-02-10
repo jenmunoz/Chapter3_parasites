@@ -1,7 +1,13 @@
 # Chapter3_parasites
 This is the code for the chapter 3 of my PhD
 
-File names and description 
+
+## Sociality ##
+Sociality status is based on flcok observations from Manu only, some particular species have changes in teh status
+
+Lophotriccus pileatus::This species has been obserevd in flocks but those flcoks were incomplete and tehrefore not included in the analyses, I changed 0 to 1 in sociality manually
+
+##File names and description ##
 
 Raw data files:
 
