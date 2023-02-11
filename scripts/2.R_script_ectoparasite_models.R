@@ -597,11 +597,11 @@ rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm ) 
 
 
-
-
 png("figures/figures_manuscript/Fig1b.Prevalence_ecto_output_predicted.png", width = 3000, height = 3000, res = 300, units = "px")
 plot_data(ecto_prevalence_pglmm.var ="species_jetz", site.var ="sociality",predicted=TRUE)
 dev.off()
+
+
 
 # Underestanding the summary of the random effects
 #The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
@@ -1224,6 +1224,8 @@ bayes_model<-  pglmm(total_mites~sociality+(1|elevation_cat)+(1|species_jetz__),
 
 summary(bayes)
 
+fixed(bayes_model)
+
 R2(bayes_model)
 R2.lik(bayes_model)
 R2.pred(bayes_model)
@@ -1568,11 +1570,14 @@ plotTree.datamatrix # To plot two or more discrete characters withthe phylogeny 
 #The data MEAN
 
 degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
+#lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv")
 
-mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+
+#mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+
 mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+mean_lice_abundance<-mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
 
 phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
 
@@ -1595,18 +1600,25 @@ View(sociality_continous_mean_lice)
 str(sociality_continous_mean_lice )
 str( degree_df)
 
++sample_size
 #The model  PGLS 9 SINCE THE MEAN IS  CONTIINOUS VARIBLE)??
-l_abun_mean_degree<-  phyr::pglmm(mean_lice ~ deg_binary +(1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat),
+l_abun_mean_degree<-  phyr::pglmm(mean_lice ~ deg_binary+(1|elevation_cat)+(1|species_jetz__),
                                   data = sociality_continous_mean_lice, 
                                   family = "poisson", 
                                   cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
                                   #bayes = TRUE,
-                                  REML= TRUE,  # NOT SURE WHEN TO USE ML
+                                  REML=FALSE,  # NOT SURE WHEN TO USE ML
                                   verbose = TRUE,
                                   s2.init = .25) # what is this last parameter for
 summary(l_abun_mean_degree)
 
 rr2::R2(l_abun_mean_degree)
+R2.pred(l_abun_mean_degree)
+
+predictions<-pglmm_predicted_values(l_abun_mean_degree) 
+
+mydata<- cbind(sociality_continous_mean_lice, predictions)
+
 
 
 ggplot(sociality_continous_mean_lice, aes(x=deg_binary, y=mean_lice)) +
@@ -1615,10 +1627,19 @@ ggplot(sociality_continous_mean_lice, aes(x=deg_binary, y=mean_lice)) +
   labs(title="b) Degree")+
   theme_classic(20)
 
+
+
+ggplot(data = mydata, aes(x = deg_binary, y = Y_hat))+
+  geom_smooth()+
+  geom_point(data = mydata, aes(x = deg_binary, y = mean_lice))+
+  scale_y_continuous("mean_lice", limits = c(0,20)) +
+  geom_hline(yintercept = 0.4535, linetype = "dashed")+ # show average prevalence for whole dataset?
+  scale_x_continuous("degree")
+
 # INDIVIDUAL abundance and binomial degree
 
 degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
-lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv")
+#lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv")
 
 #lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
@@ -1660,8 +1681,9 @@ rr2::R2(l_abun_ind_degree)
 
 ggplot(sociality_continous_abundance_lice, aes(x=deg_binary, y=total_lice)) +
   geom_point()+
-  geom_smooth(method = lm)
+  geom_smooth(method = lm)+
   geom_jitter(height = 0.01)+
+  scale_y_continuous("mean_lice", limits = c(0,20)) +
   labs(title="b) Degree per ind ")+
   theme_classic(20)
   
@@ -1672,12 +1694,20 @@ degree_w_df<-read.csv("data/8.network_degree_weighted_network_all_sp_manu_jetz_t
 str(degree_w_df)
 degree_w_df$deg_weighted<-as.numeric(degree_w_df$deg_weighted)
 
-mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+#mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv")
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv")
+
+unique(mean_lice_abundance$species_jetz)
+
 
 mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
 #mean_lice_abundance %>% filter(sociality=="1") # we have 62 soacials speci
 
-phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+#phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+phylo_lice_rooted<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 
 #mean_lice_abundance <-mean_lice_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
 mean_lice_abundance$elevation_cat<-as.factor(mean_lice_abundance$elevation_cat)
@@ -1688,9 +1718,19 @@ mean_lice_abundance$sociality<-as.factor(mean_lice_abundance$sociality)
 sociality_continous_w_mean_lice<- inner_join(degree_w_df, mean_lice_abundance, by="species_jetz") 
 sociality_continous_w_mean_lice$species_jetz<-as.factor(sociality_continous_w_mean_lice$species_jetz)
 
-#the model
 
-l_abun_mean_w_degree<-  phyr::pglmm(mean_lice ~ deg_weighted +(1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat),
+a<-phylo_lice_rooted$tip.label%>% mutate(name=phylo_lice_rooted$tip.label) %>% select(name)
+b<-names %>%arrange(desc(mean_lice_abundance$species_jetz))%>% mutate(name=mean_lice_abundance$species_jetz)%>% select(name)
+
+
+phylo<-drop.tip(phylo_lice_rooted, setdiff(a,b)) 
+            
+
+
+#the model
+            
+
+l_abun_mean_w_degree<-  phyr::pglmm( total_no_feathers_mites~ deg_weighted +(1|elevation_cat)+(1|species_jetz__)+ (1|foraging_cat),
                                   data = sociality_continous_w_mean_lice, 
                                   family = "poisson", 
                                   cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
@@ -1699,12 +1739,16 @@ l_abun_mean_w_degree<-  phyr::pglmm(mean_lice ~ deg_weighted +(1|elevation_cat)+
                                   verbose = TRUE,
                                   s2.init = .25) # what is this last parameter for
 
+summary(l_abun_mean_w_degree)
 
 rr2::R2(l_abun_mean_degree)
 
-ggplot(sociality_continous_w_mean_lice, aes(x=deg_weighted, y=mean_lice)) +
+z
+ggplot(sociality_continous_w_mean_lice, aes(x=deg_weighted, y=mean_mites)) +
   geom_point()+
+  geom_smooth()+
   geom_jitter(height = 0.01)+
+  scale_y_continuous("mean_lice", limits = c(0,15)) +
   labs(title="b) w_Degree")+
   theme_classic(20)
 
