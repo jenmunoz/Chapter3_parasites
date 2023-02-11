@@ -588,10 +588,20 @@ ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites~sociality+sample_
                               REML = TRUE, 
                               verbose = TRUE,
                               s2.init = .25) # what is this last parameter for
+
+names(ectos_df)
+
 summary(ecto_prevalence_pglmm)
 predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
-class(ecto_prevalence_pglmm )
+class(ecto_prevalence_pglmm ) 
+
+
+
+
+png("figures/figures_manuscript/Fig1b.Prevalence_ecto_output_predicted.png", width = 3000, height = 3000, res = 300, units = "px")
+plot_data(ecto_prevalence_pglmm.var ="species_jetz", site.var ="sociality",predicted=TRUE)
+dev.off()
 
 # Underestanding the summary of the random effects
 #The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
@@ -840,6 +850,8 @@ l_abun_pglmm <-  phyr::pglmm(total_lice ~ sociality+ (1|elevation_cat)+(1|specie
                               verbose = TRUE,
                               s2.init = .25) # what is this last parameter for
 
+
+
 summary(l_abun_pglmm)
 predict(l_abun_pglmm)
 rr2::R2(l_abun_pglmm)
@@ -847,6 +859,10 @@ R2.lik(l_abun_pglmm)
 R2.pred(l_abun_pglmm)
 R2.resid(l_abun_pglmm)
 class(l_abun_pglmm) # i THINK r2 ONLY ALOW TO calculate goodness of fit in gaussian (community PGLMM)
+
+png("figures/figures_manuscript/Fig2b.lice_abundance_output_predicted.png", width = 3000, height = 3000, res = 300, units = "px")
+plot_data(l_abun_pglmm,sp.var ="species_jetz", site.var ="sociality",predicted=TRUE)
+dev.off()
 
 # Using Glmm
 #Similar results to above 
@@ -939,6 +955,9 @@ l_abun_mean_pglmm <-  phyr::pglmm(mean_lice ~ sociality+(1|elevation_cat)+(1|spe
                              s2.init = .25) # what is this last parameter for
 
 summary (l_abun_mean_pglmm)
+png("figures/figures_manuscript/Fig2b.lice_abundance_output_predicted_mean.png", width = 3000, height = 3000, res = 300, units = "px")
+plot_data(l_abun_mean_pglmm,sp.var ="species_jetz", site.var ="sociality",predicted=TRUE)
+dev.off()
 rr2::R2(l_abun_mean_pglmm)
 
 l_abun_mean_glmm <-  lme4::lmer(mean_lice ~ sociality+ sample_size+(1|elevation_cat), 
@@ -1161,6 +1180,10 @@ m_a_no_f<-phyr::pglmm(total_no_feathers_mites~ sociality + (1|elevation_cat)  +(
                         s2.init = .25)
 summary(m_a_no_f)
 
+png("figures/figures_manuscript/Fig3.Mites_abundance_non_geathers_output_predicted.png", width = 3000, height = 3000, res = 300, units = "px")
+plot_data(m_a_no_f, predicted = TRUE, sp.var="species_jetz", site.var = "sociality") # i do not underestand this plots
+dev.off()
+
 mean( mites_df_abundance$total_no_feathers_mites) # data is overdisppersed 
 sd( mites_df_abundance$total_no_feathers_mites)
 
@@ -1178,12 +1201,36 @@ summary( m_a_meso)
 
 View(mites_df_abundance)
 
-# PLOTTING THE RANDOM EFFECTS
+# PLOTTING THE RANDOM EFFECTS  FOR INTERPRETATION SEE https://daijiang.github.io/phyr/articles/plot-re.html
 plot.communityPGLMM(m_a_meso,predicted=TRUE)
 
-a<-communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=TRUE)
+communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=TRUE)
+communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=FALSE)
 
 communityPGLMM.plot.re()
+
+
+### Trying bYAESIAN FOR ZERO INFLATED 
+install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) #https://www.r-inla.org/download-install
+library(INLA)
+bayes_model<-  pglmm(total_mites~sociality+(1|elevation_cat)+(1|species_jetz__), 
+                           data = mites_df_abundance, 
+                           family ="zeroinflated.poisson", # use when bayes=true "zeroinflated.poisson",
+                           cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                           bayes = TRUE,
+                           REML =FALSE,
+                           ML.init = FALSE,
+               prior = "pc.prior.auto" )
+
+summary(bayes)
+
+R2(bayes_model)
+R2.lik(bayes_model)
+R2.pred(bayes_model)
+class(bayes_model)
+
+plot_bayes(bayes, sort=TRUE)
+species_jetz<-bayes$ss[4]
 
 
 ###_###_###_###_###_###_###_###_###_###_###
@@ -1268,16 +1315,29 @@ m_abun_mean_pglmm<-  phyr::pglmm(mean_mites~sociality+(1|elevation_cat)+(1|speci
                         data = mean_mites_abundance, 
                         family ="gaussian", # use when bayes=true "zeroinflated.poisson",
                         cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
-                        #bayes = TRUE,
+                        bayes = TRUE,
                         REML = TRUE, 
                         verbose = TRUE, 
                         s2.init = .25)
+
+
+### Trying bYAESIAN FOR ZERO INFLATED 
+install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) #https://www.r-inla.org/download-install
+library(INLA)
+m_abun_mean_pglmm<-  pglmm(mean_mites~sociality+(1|elevation_cat)+(1|species_jetz__), 
+                                 data = mean_mites_abundance, 
+                                 family ="zeroinflated.poisson", # use when bayes=true "zeroinflated.poisson",
+                                 cov_ranef = list(species_jetz=phylogeny_for_mites), #class phylo
+                                 bayes = TRUE,
+                                 REML = TRUE, 
+                                 verbose = TRUE, 
+                                 s2.init = .25)
 
 summary( m_abun_mean_pglmm)
 
 rr2::R2(m_abun_mean_pglmm)
 
-###This is veryy zero inflated!!!! 
+###This is veryy zero inflated!!!!  also the predicted values seems wrong 
 
 ##_###_###
 # PLOTS  [ABUNDANCE]
@@ -1336,42 +1396,62 @@ mean(mean_lice_abundance$mean_lice) # the overall abundance mean of means
 #lims=NULL, outline=TRUE, sig=3, type="phylogram", direction="rightwards", 
 #plot=TRUE, ...)
 
-mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
-mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means_copy.csv")
 
-#mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-#phylo_lice_rooted<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
-#phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
-#phylo_lice_rooted<-TreeTools::DropTip(phylo_lice_rooted, c("Chiroxiphia_boliviana","Automolus_melanopezus",
-"Simoxenops_ucayalae"))
+mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv") %>% 
+  filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos") %>% 
+  distinct(species_jetz,.keep_all = TRUE)
+  
+phylogeny_mites<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 
-list.names=setNames(mean_lice_abundance$mean_lice, mean_lice_abundance$species_jetz)
+phylogeny_mites<-TreeTools::DropTip(phylogeny_mites,c("Phaethornis_superciliosus",
+                                                      "Selenidera_reinwardtii",
+                                                      "Capito_auratus",
+                                                      "Celeus_grammicus",
+                                                      "Micromonacha_lanceolata",
+                                                      "Chloroceryle_aenea",
+                                                      "Manacus_manacus",
+                                                      "Ramphotrigon_ruficauda",
+                                                      "Onychorhynchus_coronatus",
+                                                      "Dendrocolaptes_certhia",
+                                                      "Dendrocincla_merula",
+                                                      "Dendrocincla_fuliginosa",
+                                                      "Hyloctistes_subulatus",
+                                                      "Formicarius_colma",
+                                                      "Frederickena_unduligera",
+                                                      "Schistocichla_leucostigma",
+                                                      "Epinecrophylla_haematonota",
+                                                      "Cacicus_cela",
+                                                      "Phaeothlypis_fulvicauda"))
+
+unique(mean_mites_abundance$species_jetz)
 
 # Make sure the names  are in the same order in the phylogeny and in the traits
-rownames(mean_lice_abundance) <- mean_lice_abundance$species_jetz # first make it the row names 
-mean_lice_abundance<- mean_lice_abundance[match(phylo_lice_rooted$tip.label,rownames(mean_lice_abundance)),]
+rownames(mean_mites_abundance) <- mean_mites_abundance$species_jetz # first make it the row names 
+mean_mites_abundance<- mean_mites_abundance[match(phylogeny_mites$tip.label,rownames(mean_mites_abundance)),]
+
+list.names=setNames(mean_mites_abundance$mean_mites, mean_mites_abundance$species_jetz)
+
 
 ###_###_###_###_###_###_###_
 # Combining both plots
 ###_###_###_###_###_###_###_
 
-ColorPalette <- brewer.pal(n = 4, name = "YlGnBu")
+#ColorPalette <- brewer.pal(n = 4, name = "YlGnBu")
 ColorPalette <- brewer.pal(n = 8, name = "Paired")
 
-
-fmode<-as.factor(setNames(mean_lice_abundance$sociality,mean_lice_abundance$species_jetz))
-object = contMap(phylo_lice_rooted, list.names, direction = "leftwards", plot=FALSE)
+fmode<-as.factor(setNames(mean_mites_abundance$sociality,mean_mites_abundance$species_jetz))
+object = contMap(phylogeny_mites, list.names, direction = "leftwards", plot=FALSE)
 #object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
 object_color<-setMap(object, ColorPalette)
 
-png("figures/figures_manuscript/Fig2a.Sociality_and_lice_abundance_phylotree1.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylo_lice_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+png("figures/figures_manuscript/Fig3a.Sociality_and_nonfeather_mites_abundance_means.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylogeny_mites,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
 
 plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
      xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
      ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
 
-add.color.bar(9, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+add.color.bar(9, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Mean mites abundance",pos=4)
 dev.off()
 
 
