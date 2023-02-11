@@ -62,5 +62,18 @@ These files are the ones used for the analyses it  includes the parasite informa
 # 
 
 
+Notes on analyses with PGLMM phyr
+
+Goodness of Fit ( package rr2)
+Another question about our model is simply how well it fits the data. A metric appealing in its simplicity is the classic R2 metric, which purports to estimate the proportion of the variance in the response explained by the model predictors. Once again, though, when using non-Gaussian errors this can become a bit tricky. An additional complication is created by model with random effects. Given that random effects are very flexible model components (for example, nothing stops you from fitting a random effect for each observation in your dataset), a straight-up calculation of variance explains isn’t meaningful. That said, methods that can produce a useful R2 metric in the complex situation have been developed. The package rr2 is able to calculate several flavors of R2, and supports phyr’s pglmm model object. Let’s try it!
+
+rr2::R2(mod)
+
+rr2::R2(mod_bayes)
+
+
+
+
+
 
 
