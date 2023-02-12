@@ -52,7 +52,9 @@ theme_set(theme_few())
 # 2. Read the data --------------------------------------------------------
 #My data
 
-flocks_manu<-read.csv ("data/0.flocks_manu_complete_18052022.csv", header=T)
+flocks_manu<-read.csv ("data/0.flocks_manu_complete_18052022.csv", header=T) %>% 
+  mutate_at("species_taxonomy_SACC_2021", str_replace, " ", "_") 
+  
 
 jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_corrected.csv")
 
@@ -77,6 +79,18 @@ flocks_list<-flocks_manu %>%
 n_unique(flocks_manu$flock_id) ##  ## how many unique flocks?
 
 
+jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_corrected.csv")%>% 
+  mutate_at("species_taxonomy_SACC_2021", str_replace, " ", "_") %>% 
+  select(species_taxonomy_SACC_2021,species,species_jetz,TipLabel) %>% 
+  distinct(species_taxonomy_SACC_2021,.keep_all = TRUE )
+
+
+flocks_manu_jetz<-left_join (flocks_manu, jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021")
+
+flocks_list_jetz<-flocks_manu_jetz %>% 
+  distinct( species_taxonomy_SACC_2021, keep_all=FALSE) %>% 
+  select(-keep_all)
+
 
 # 3. Networks along the gradient (nont separated data by communities) ------------------------------------------
 #(i) mapping species interactions, 
@@ -88,7 +102,7 @@ n_unique(flocks_manu$flock_id) ##  ## how many unique flocks?
 ####Create matrices
 
 #create a column with values 
-flocks_manu_net<-flocks_manu%>% mutate(value=1)
+flocks_manu_net<-flocks_manu_jetz%>% mutate(value=1)
 flocks_manu_net<-flocks_manu_net%>% group_by(species_taxonomy_SACC_2021, flock_id, elevation) %>% 
   summarise(presence=sum(value))
 #Change to presence absence
@@ -97,7 +111,9 @@ flocks_manu_net$presence[flocks_manu_net$presence>0] <- 1 #(if needed to use pre
 detection_matrix_flocks_manu<-flocks_manu_net %>%select(flock_id,presence,species_taxonomy_SACC_2021) %>% 
 pivot_wider(names_from=species_taxonomy_SACC_2021, values_from=presence)
 
+
 as.data.frame(detection_matrix_flocks_manu)# save as data frame
+
 
 #replaces na with zeros
 detection_matrix_flocks_manu[is.na(detection_matrix_flocks_manu)] <- 0
@@ -106,17 +122,23 @@ View(detection_matrix_flocks_manu)
 
 # create the matrix
 #write.csv(detection_matrix_flocks_manu, "8.detection_matrix_all_flocks_manu_gradient.csv")
+write.csv(detection_matrix_flocks_manu, "data/8.detection_matrix_all_flocks_manu_gradient_jetz.csv")
 
 
 # 2.C. Create the networks -----------------------------------------------------
 ###
 View(network)
-matrix<-read.csv("8.detection_matrix_all_flocks_manu_gradient.csv",header=TRUE) # Full network manu
+#matrix<-read.csv("data/8.detection_matrix_all_flocks_manu_gradient.csv",header=TRUE) # Full network manu
+matrix<-read.csv("data/8.detection_matrix_all_flocks_manu_gradient_jetz.csv",header=TRUE) # Full network manu with jetz taxonomy 
+
 matrix<-arrange(matrix, flock_id) # arrange by flcok number
 
+View(matrix)
 
-attributes<-read.csv<-read.csv("data/8.attributes_all_flocks_manu.csv", header=T,stringsAsFactors=FALSE) ####Remember that this MUST be in teh same order that the matrix of  detections our case by Flock site
+attributes<-read.csv("data/8.attributes_all_flocks_manu.csv", header=T,stringsAsFactors=FALSE) ####Remember that this MUST be in teh same order that the matrix of  detections our case by Flock site
 attributes<-arrange(attributes, flock_id) # arrange by flcok number
+
+atributes_species<-read.csv("data/7.dff_lice_abundance_means.csv", header=T,stringsAsFactors=FALSE)
 
 ##-##-##-##_##_##_##_##_##_##-##-##-##_##_##_##_##_##_
 #Warning!!! #Delete the first column with the flock id  and check that the first row and the first column actually contain data rather than column names or row names
@@ -142,8 +164,9 @@ class(matrix)
 #Using  "asnipe" we create the network of species associations[matrix of degrees, association strengh or co-ocurrence between species pairs] 
 #the fuction get_network() is using the SRI (Simple ration Index that is already accounting for opportunity). See help for other options
 
-network_manu<-get_network(association_data=matrix,data_format = "GBI",association_index = "SRI",) #lall manu
-net_manu<-graph.adjacency(network_manu, mode="undirected", weighted=TRUE, diag=FALSE)
+network_manu<-asnipe::get_network(association_data=matrix,data_format = "GBI",association_index = "SRI",) #lall manu
+net_manu<-igraph::graph.adjacency(network_manu, mode="undirected", weighted=TRUE, diag=FALSE)
+plot(net_manu)
 class(network_manu)
 ##_###_
 #measure weighted degree [or node’s strength , that is, the sum of the weights of all its links (Barrat, Barthelemy, et al., 2004 #Calculate the degree weighthed [ the sum of the weight of the edges for each node()] using igraph
@@ -158,8 +181,8 @@ network_binary[network_binary> 0] <- 1
 deg_binary <- rowSums(network_binary)
 deg_binary<-as.data.frame(deg_binary)
 
-write.csv(deg_binary, "data/8.network_outputdegree_network_all_sp_manu.csv")
-write.csv(deg_weighted, "data/8.network_degree_weighted_network_all_sp_manu.csv")
+#write.csv(deg_binary, "data/8.network_outputdegree_network_all_sp_manu.csv")
+#write.csv(deg_weighted, "data/8.network_degree_weighted_network_all_sp_manu.csv")
 
 # Adding a column for  jetz taxonomy
 
@@ -177,12 +200,11 @@ jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_correct
   distinct(species_taxonomy_SACC_2021,.keep_all = TRUE )
 
 
-
 degree_manu_jetz<-left_join (degree_manu, jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021")
 degree_w_manu_jetz<-left_join (degree_w_manu, jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021")
 
-write.csv(degree_manu_jetz, "data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
-write.csv(degree_w_manu_jetz, "data/8.network_degree_weighted_network_all_sp_manu_jetz_tax.csv")
+#write.csv(degree_manu_jetz, "data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+#write.csv(degree_w_manu_jetz, "data/8.network_degree_weighted_network_all_sp_manu_jetz_tax.csv")
 
                                 
 
@@ -205,4 +227,70 @@ hist(degree_distribution(net_manu, cumulative = FALSE, mode=c("total")))
 hist(degree_distribution())
 #Weighted degree or strenght!!!
 deg_igraph <- graph.strength(net_manu) %>% view()
+
+# Plotting ectoparasites in thenexworks 
+network_manu<-get_network(association_data=matrix,data_format = "GBI",association_index = "SRI",) #lall manu
+net_manu<-graph.adjacency(network_manu, mode="undirected", weighted=TRUE, diag=FALSE)
+
+
+# add attributesto the igrah object 
+
+flocks_list_jetz<-flocks_manu_jetz %>% 
+  distinct( species_jetz, keep_all=FALSE) %>% 
+  select(-keep_all) %>% 
+  mutate_at("species_jetz", str_replace, " ", "_") 
+  
+
+
+atributes_species<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv", header=T,stringsAsFactors=FALSE) %>% select(species_jetz, mean_lice)
+flock_species_ectos<-left_join(flocks_list_jetz,atributes_species, by="species_jetz")
+#flock_species_ectos[is.na(flock_species_ectos)] <- 0
+
+#Set attributes in the igraph object V is for vertex 
+
+unique(flock_species_ectos$mean_lice )
+
+# if names matches you can add attributes to the igraph object
+V(net_manu)$lice<-flock_species_ectos$mean_lice # adding lice abundance o plot it later
+#V(net_manu)$color<-col[V(net_manu)$lice]
+
+V(net_manu)$degree<-deg_binary # adding degree
+V(net_manu)$strength<-deg_weighted # adding weoghted degree
+
+# degree comes from here
+network_binary<-network_manu
+network_binary[network_binary> 0] <- 1
+deg_binary <- rowSums(network_binary)
+class(deg_binary)
+
+# the plot
+png("figures/figures_manuscript/Fig5.Network_degree_lice_abundance_NET.png", width = 2500, height = 3100, res = 300, units = "px")
+plot (net_manu,layout=layout_nicely(net_manu),vertex.size=V(net_manu)$degree*0.09,vertex.label.cex=0.2, edge.width=0.2,  edge.lty=c("solid"), edge.color="#00798c", vertex.color=ColorPalette[as.numeric(V(net_manu)$lice)])
+dev.off()
+
+png("figures/figures_manuscript/Fig5.Network_strength_lice_abundance_NET.png", width = 2500, height = 3100, res = 300, units = "px")
+plot (net_manu,layout=layout_nicely(net_manu),vertex.size=V(net_manu)$strength,vertex.label.cex=0.2, edge.width=0.2,  edge.lty=c("solid"), edge.color="#00798c", vertex.color=ColorPalette[as.numeric(V(net_manu)$lice)])
+dev.off()
+
+
+# THE COLOR PALLETS
+
+palf <- colorRampPalette(c("gray80", "dark red"))
+col.1 <- adjustcolor("orange red", alpha=0.9)
+col.2 <- adjustcolor("orange", alpha=0.9)
+node.pal <- colorRampPalette(c(col.1, col.2), alpha = TRUE) 
+node.col <- node.pal (10)
+
+ColorPalette <- brewer.pal(n = 20, name = "Reds")
+
+ColorPalette <- brewer.pal(n = 20, name = "Greens")
+
+
+slategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+object_color<-setMap(fmode,ColorPalette)
+
+png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+
+
 
