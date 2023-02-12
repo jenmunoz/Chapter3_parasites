@@ -1489,7 +1489,6 @@ n_samples_lice_sp<-lice_df_diversity_sp %>% group_by(species_jetz) %>%
 
 lice_richness_sp_df<-right_join(lice_df_richness_sp, n_samples_lice_sp, by="species_jetz")  # speceis that are in the ectoparasite list that do not have a matcj in b 
 
-
 #write.csv(lice_richness_sp_df, "data/5.lice_richness_sp_df_manu.csv")
 
 ####Correlation sample size and diversity #WARNING
@@ -1517,9 +1516,7 @@ lice_richness_manu_sp$foraging_cat<-as.factor(lice_richness_manu_sp$foraging_cat
 lice_richness_manu_sp$species_jetz<-as.factor(lice_richness_manu_sp$species_jetz)
 lice_richness_manu_sp$sociality<-as.factor(lice_richness_manu_sp$sociality)
 
-
 #The model pglmm
-
 l_d_sp_pglmm<-  phyr::pglmm(richness_sp~ sociality + n_samples_lice+ (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz__), 
                       data = lice_richness_manu_sp, 
                       family ="poisson", # use when bayes=true "zeroinflated.poisson",
@@ -1543,8 +1540,6 @@ l_d_sp_pglmm<-  phyr::pglmm(richness_sp~ sociality + (1|elevation_cat) + (1|fora
 summary(l_d_sp_pglmm)
 
 
-
-
 l_d_sp_model_glmm<-  lme4::glmer(richness_sp~ sociality + (1|elevation_cat) + (1|foraging_cat)+(1|species_jetz) +(1|n_samples_lice), 
                                  data = lice_diversity_sp_samplesize, 
                                  family=poisson(), # use when bayes=true "zeroinflated.poisson",
@@ -1563,78 +1558,255 @@ plotTree.datamatrix # To plot two or more discrete characters withthe phylogeny 
 #[Network] general calculation] ----------------------------------------
 
 
-
-
 #[Network] Degree and ectoparasite abundance ----------------------------------------
 
-#The data MEAN
+###_####_###_####_####_###_
+#Degree and prevalence 
+###_####_###_####_####_###_
 
 degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
-mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
-#lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv")
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence FOR THE MODEL
+ectos_df<-ectos_df %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
+# Reformating 
+degree_df<-degree_df%>% mutate_at("species_jetz", str_replace, " ", "_")
+degree_df$deg_binary <-as.numeric(degree_df$deg_binary )
+
+ectos_df$elevation_cat<-as.factor(ectos_df$elevation_cat)
+ectos_df$foraging_cat<-as.factor(ectos_df$foraging_cat)
+ectos_df$species_jetz<-as.factor(ectos_df$species_jetz)
+ectos_df$sociality<-as.factor(ectos_df$sociality)
+
+sociality_continous_ectos<- inner_join(degree_df, ectos_df, by="species_jetz") 
+sociality_continous_ectos$species_jetz<-as.factor(sociality_continous_ectos$species_jetz)
+# MAKING Ssure phylo and data alings 
+a<-(as.data.frame(phylogeny_prevalence$tip.label))%>% mutate(name=phylogeny_prevalence$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(sociality_continous_ectos$species_jetz))%>% mutate(name=sociality_continous_ectos$species_jetz) %>% select(name) %>% arrange(desc(name))
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+phylo<-drop.tip (phylogeny_prevalence, tip$name)
+
+# Same order
+rownames(sociality_continous_ectos) <- sociality_continous_ectos$species_jetz # first make it the row names 
+sociality_continous_ectos<- sociality_continous_ectos[match(phylo$tip.label,rownames(sociality_continous_ectos)),]
+
+sociality_continous_ectos<-sociality_continous_ectos %>% select(proportion_ectoparasites,deg_binary,sample_size,elevation_cat, species_jetz )
+# The model 
+ectos_prev_degree <-phyr::pglmm(proportion_ectoparasites~deg_binary+sample_size+(1|species_jetz__)+(1|elevation_cat),
+                                  data = sociality_continous_ectos, 
+                                  family = "binomial", 
+                                  cov_ranef = list(species_jetz=phylo), #class phylo
+                                  #bayes = TRUE,
+                                  REML=FALSE,  # NOT SURE WHEN TO USE ML
+                                  verbose = TRUE,
+                                  s2.init = .25) # what is this last parameter for
+summary(ectos_prev_degree)
+
+rr2::R2(ectos_prev_degree) 
+
+length(sociality_continous_ectos)
+length(phylo)
+
+visreg(ectos_prev_degree, "deg_binary", scale="response")
+
+# The predictions and plot 
+predictions<-fitted(ectos_prev_degree) 
+#predictions1<-pglmm_predicted_values(ectos_prev_degree,type="response") 
+#predictions<- predict(m_abun_mean_pglmm,newdata = newdata, type = "response" )
+data<- cbind(sociality_continous_ectos, predictions)
+
+png("figures/figures_manuscript/Fig5.Networks_degree_prevalence.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = data, aes(x = deg_binary, y = predictions))+
+  geom_smooth(method = glm)+
+  geom_point(data =data, aes(x =deg_binary, y = proportion_ectoparasites))+
+  scale_y_continuous("Ectoparasite prevalence", limits = c(0,1)) +
+  geom_hline(yintercept = 0.775, linetype = "dashed")+ # show average prevalence for whole dataset?
+  scale_x_continuous("Network degree")+
+  theme_classic(40)
+dev.off()
+
+mean(ectos_df$proportion_ectoparasites)
+
+# tPlotting degree in the phylogeny (for fun)
+
+ColorPalette <- brewer.pal(n = 8, name = "Blues")
+
+list.names=setNames(sociality_continous_ectos$deg_binary, sociality_continous_ectos$species_jetz)
+# Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(sociality_continous_ectos) <- sociality_continous_ectos$species_jetz # first make it the row names 
+sociality_continous_ectos<- sociality_continous_ectos[match(phylo$tip.label,rownames(sociality_continous_ectos)),]
+object = contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
+
+png("figures/figures_manuscript/Fig5.Networks_degree_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+object_color<-setMap(object, ColorPalette)
+#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+plot(object_color, mar=c(5.1,1,1,1), ylim=c(1-0.09*(Ntip(object$tree)-1), Ntip(object$tree)), legend=FALSE,lwd=4,fsize=0.5)
+#add.color.bar(5, object2, title = "Infection Prevalence", lims = object$lims, digits = 3, prompt=FALSE,x=0,y=1-0.08*(Ntip(object$tree)-1), lwd=4,fsize=1,subtitle="")
+add.color.bar(5, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=10,y=-5, lwd=4,fsize=1,subtitle="Network degree")
+dev.off()
 
 
-#mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+###_####_###_####_####_###_
+#Degree and abundance 
+###_####_###_####_####_###_
 
-mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-mean_lice_abundance<-mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+# The individual values lices
+###_####_###_####_####_###_
+degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance.csv")
+lice_abundance<-lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+phylo_lice<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_lice_abundance.nex")
+# Reformating 
+degree_df<-degree_df%>% mutate_at("species_jetz", str_replace, " ", "_")
+degree_df$deg_binary <-as.numeric(degree_df$deg_binary )
 
-phylo_lice_rooted<-read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun.nex")
+lice_abundance$elevation_cat<-as.factor(lice_abundance$elevation_cat)
+lice_abundance$foraging_cat<-as.factor(lice_abundance$foraging_cat)
+lice_abundance$species_jetz<-as.factor(lice_abundance$species_jetz)
+lice_abundance$sociality<-as.factor(lice_abundance$sociality)
+
+sociality_continous_lice<- inner_join(degree_df, lice_abundance, by="species_jetz") 
+sociality_continous_lice$species_jetz<-as.factor(sociality_continous_lice$species_jetz)
+
+unique(sociality_continous_lice$sp_jetz)
+
+# MAKING Ssure phylo and data alings 
+a<-(as.data.frame(phylo_lice$tip.label))%>% mutate(name=phylo_lice$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(sociality_continous_lice$species_jetz))%>% mutate(name=sociality_continous_lice$species_jetz) %>% select(name) %>% arrange(desc(name))
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+phylo<-drop.tip (phylogeny_prevalence, tip$name)
+
+# Same order
+#rownames(sociality_continous_lice) <- sociality_continous_lice$species_jetz # first make it the row names 
+#sociality_continous_lice<- sociality_continous_lice[match(phylo$tip.label,rownames(sociality_continous_lice)),]
+
+# The model
+names(sociality_continous_lice)
+#The model  pglmm
+lice_abun_degree<-phyr::pglmm(total_lice ~ deg_binary+(1|elevation_cat)+(1|species_jetz__)+(1|powder_level),
+                                  data = sociality_continous_lice, 
+                                  family = "poisson", 
+                                  cov_ranef = list(species_jetz= phylo), #class phylo
+                                  #bayes = TRUE,
+                                  REML=FALSE,  # NOT SURE WHEN TO USE ML
+                                  verbose = TRUE,
+                                  s2.init = .25) # what is this last parameter for
+summary(lice_abun_degree)
+
+rr2::R2(lice_abun_degree)
+R2.pred(lice_abun_degree)
+
+visreg(lice_abun_degree, "deg_binary", scale="response")
+
+# predicting teh model fit
+predictions<-fitted(lice_abun_degree) 
+data<- cbind(sociality_continous_lice, predictions)
+
+png("figures/figures_manuscript/Fig5.Networks_degree_lice_abundance_ind.png", width = 2500, height = 3100, res = 300, units = "px")
+ggplot(data = data, aes(x = deg_binary, y = predictions))+
+  geom_smooth(method=glm)+
+  geom_point(data =data, aes(x =deg_binary, y = total_lice))+
+  scale_y_continuous("Lice abundance", limits = c(0,50)) +
+  geom_hline(yintercept = 5.8, linetype = "dashed")+ # show average prevalence for whole dataset?
+  scale_x_continuous("Network degree")+
+  theme_classic(40)
+dev.off()
+
+mean(data$total_lice)
+
+
+
+
+# The individual values mites
+###_####_###_####_####_###_
+
+degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+mite_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance.csv")
+lice_abundance<-lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+phylo_mites<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
+# Reformating 
+degree_df<-degree_df%>% mutate_at("species_jetz", str_replace, " ", "_")
+degree_df$deg_binary <-as.numeric(degree_df$deg_binary )
+
+
+
+#The mean values mites
+###_####_###_####_####_###_
+degree_df<-read.csv("data/8.network_outputdegree_network_all_sp_manu_jetz_tax.csv")
+mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv")
+mean_mites_abundance<-mean_mites_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+mean_mites_abundance<-mean_mites_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+phylo_mites<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_mites_abundance.nex")
 
 # Reformating 
 degree_df<-degree_df%>% mutate_at("species_jetz", str_replace, " ", "_")
 degree_df$deg_binary <-as.numeric(degree_df$deg_binary )
 
-#mean_lice_abundance <-mean_lice_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
-mean_lice_abundance$elevation_cat<-as.factor(mean_lice_abundance$elevation_cat)
-mean_lice_abundance$foraging_cat<-as.factor(mean_lice_abundance$foraging_cat)
-mean_lice_abundance$species_jetz<-as.factor(mean_lice_abundance$species_jetz)
-mean_lice_abundance$sociality<-as.factor(mean_lice_abundance$sociality)
+mean_mites_abundance$elevation_cat<-as.factor(mean_mites_abundance$elevation_cat)
+mean_mites_abundance$foraging_cat<-as.factor(mean_mites_abundance$foraging_cat)
+mean_mites_abundance$species_jetz<-as.factor(mean_mites_abundance$species_jetz)
+mean_mites_abundance$sociality<-as.factor(mean_mites_abundance$sociality)
 
-sociality_continous_mean_lice<- inner_join(degree_df, mean_lice_abundance, by="species_jetz") 
+sociality_continous_mites_mean<- inner_join(degree_df, mean_mites_abundance, by="species_jetz") 
+sociality_continous_mites_mean$species_jetz<-as.factor(sociality_continous_mites_mean$species_jetz)
 
-#sociality_continous_mean_lice<-sociality_continous_mean_lice %>% rename("species_jetz"="species_taxonomy_SACC_2021")
-sociality_continous_mean_lice$species_jetz<-as.factor(sociality_continous_mean_lice$species_jetz)
+unique(sociality_continous_mites_mean$sp_jetz)
 
-View(sociality_continous_mean_lice)
-str(sociality_continous_mean_lice )
-str( degree_df)
+# MAKING Ssure phylo and data alings 
+a<-(as.data.frame(phylo_mites$tip.label))%>% mutate(name=phylo_mites$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(sociality_continous_mites_mean$species_jetz))%>% mutate(name=sociality_continous_mites_mean$species_jetz) %>% select(name) %>% arrange(desc(name))
 
-+sample_size
-#The model  PGLS 9 SINCE THE MEAN IS  CONTIINOUS VARIBLE)??
-l_abun_mean_degree<-  phyr::pglmm(mean_lice ~ deg_binary+(1|elevation_cat)+(1|species_jetz__),
-                                  data = sociality_continous_mean_lice, 
-                                  family = "poisson", 
-                                  cov_ranef = list(species_jetz= phylo_lice_rooted), #class phylo
-                                  #bayes = TRUE,
-                                  REML=FALSE,  # NOT SURE WHEN TO USE ML
-                                  verbose = TRUE,
-                                  s2.init = .25) # what is this last parameter for
-summary(l_abun_mean_degree)
+tip<-as.list(setdiff(a,b))
+print(tip)
+phylo<-drop.tip (phylo_mites, tip$name)
 
-rr2::R2(l_abun_mean_degree)
-R2.pred(l_abun_mean_degree)
+# Same order
+rownames(sociality_continous_mites_mean) <- sociality_continous_mites_mean$species_jetz # first make it the row names 
+sociality_continous_mites_mean<- sociality_continous_mites_mean[match(phylo$tip.label,rownames(sociality_continous_mites_mean)),]
 
-predictions<-pglmm_predicted_values(l_abun_mean_degree) 
+# the model 
 
-mydata<- cbind(sociality_continous_mean_lice, predictions)
-
-
-
-ggplot(sociality_continous_mean_lice, aes(x=deg_binary, y=mean_lice)) +
-  geom_point()+
-  geom_jitter(height = 0.01)+
-  labs(title="b) Degree")+
-  theme_classic(20)
+mites_abun_mean_degree<-phyr::pglmm(mean_mites ~ deg_binary+sample_size+(1|elevation_cat)+(1|species_jetz__),
+                              data = sociality_continous_mites_mean, 
+                              family = "gaussian", 
+                              cov_ranef = list(species_jetz= phylo), #class phylo
+                              #bayes = TRUE,
+                              REML=FALSE,  # NOT SURE WHEN TO USE ML
+                              verbose = TRUE,
+                              s2.init = .25) # what is this last parameter for
+summary(mites_abun_mean_degree)
 
 
+# predicting teh model fit
+predictions<-fitted(mites_abun_mean_degree) 
+data<- cbind(sociality_continous_mites_mean, predictions)
 
-ggplot(data = mydata, aes(x = deg_binary, y = Y_hat))+
-  geom_smooth()+
-  geom_point(data = mydata, aes(x = deg_binary, y = mean_lice))+
-  scale_y_continuous("mean_lice", limits = c(0,20)) +
-  geom_hline(yintercept = 0.4535, linetype = "dashed")+ # show average prevalence for whole dataset?
-  scale_x_continuous("degree")
+png("figures/figures_manuscript/Fig5.Networks_degree_mites_abundance_mean.png", width = 2500, height = 3100, res = 300, units = "px")
+ggplot(data = data, aes(x =deg_binary, y = predictions))+
+  geom_smooth(method=glm)+
+  geom_point(data =data, aes(x =deg_binary, y = mean_mites))+
+  scale_y_continuous("mites abundance means", limits = c(0,16)) +
+  geom_hline(yintercept = 1.05, linetype = "dashed")+ # show average prevalence for whole dataset?
+  scale_x_continuous("Network degree")+
+  theme_classic(40)
+dev.off()
+
+mean(data$mean_mites)
+
+
+
+
+
+
+
+
+
+
+# up to here for now 
+
 
 # INDIVIDUAL abundance and binomial degree
 
@@ -1686,7 +1858,14 @@ ggplot(sociality_continous_abundance_lice, aes(x=deg_binary, y=total_lice)) +
   scale_y_continuous("mean_lice", limits = c(0,20)) +
   labs(title="b) Degree per ind ")+
   theme_classic(20)
-  
+
+###_####_###_####_####_###_
+#Degree and diversity 
+###_####_###_####_####_###_
+
+
+
+
 
 # DEGREE weighted 
 
@@ -1715,7 +1894,8 @@ mean_lice_abundance$foraging_cat<-as.factor(mean_lice_abundance$foraging_cat)
 mean_lice_abundance$species_jetz<-as.factor(mean_lice_abundance$species_jetz)
 mean_lice_abundance$sociality<-as.factor(mean_lice_abundance$sociality)
 
-sociality_continous_w_mean_lice<- inner_join(degree_w_df, mean_lice_abundance, by="species_jetz") 
+sociality_continous_w_mean_lice<- inner_join(degree_w_df, mean_lice_abundance, by="species_jetz")  
+
 sociality_continous_w_mean_lice$species_jetz<-as.factor(sociality_continous_w_mean_lice$species_jetz)
 
 
@@ -1743,12 +1923,11 @@ summary(l_abun_mean_w_degree)
 
 rr2::R2(l_abun_mean_degree)
 
-z
-ggplot(sociality_continous_w_mean_lice, aes(x=deg_weighted, y=mean_mites)) +
+ ggplot(sociality_continous_w_mean_lice, aes(x=deg_weighted, y=total_no_feathers_mites )) +
   geom_point()+
   geom_smooth()+
   geom_jitter(height = 0.01)+
-  scale_y_continuous("mean_lice", limits = c(0,15)) +
+  scale_y_continuous("mean_lice", limits = c(0,50)) +
   labs(title="b) w_Degree")+
   theme_classic(20)
 
