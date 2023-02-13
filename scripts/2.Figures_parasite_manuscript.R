@@ -338,8 +338,7 @@ ggplot(lice_df_richness_sp_summary, aes(x = richness_sp)) +
 # Model abundance ---------------------------------------------------------
 
 # PLOTTING TRANDOM EFFECTS an example 
-plot.communityPGLMM(m_a_meso,predicted=TRUE)
 
-a<-communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=TRUE)
+communityPGLMM.plot.re(x=m_a_meso, sp.var = "species_jetz", site.var = "total_mesostigmatidae",predicted=TRUE)
 
 communityPGLMM.plot.re()
