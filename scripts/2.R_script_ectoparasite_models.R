@@ -48,6 +48,7 @@ install.packages("rr2")
 install.packages ( "MCMCglmm")
 install.packages("phyr")
 install.packages("TreeTools")
+
 library(TreeTools)
 #install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) # to be able to run bayesian inference on the PGLMM models more info here https://www.r-inla.org
 
@@ -590,18 +591,21 @@ ecto_prevalence_pglmm <-  phyr::pglmm(proportion_ectoparasites~sociality+sample_
                               s2.init = .25) # what is this last parameter for
 
 names(ectos_df)
-
 summary(ecto_prevalence_pglmm)
+print(ecto_prevalence_pglmm)
+fixef(ecto_prevalence_pglmm)
 predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm ) 
+
+str(ecto_prevalence_pglmm)
 
 
 png("figures/figures_manuscript/Fig1b.Prevalence_ecto_output_predicted.png", width = 3000, height = 3000, res = 300, units = "px")
 plot_data(ecto_prevalence_pglmm.var ="species_jetz", site.var ="sociality",predicted=TRUE)
 dev.off()
 
-
+plot(a)
 
 # Underestanding the summary of the random effects
 #The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
@@ -693,6 +697,18 @@ ggplot(data = ectos_df_predicted, aes(x = sociality, y = proportion_ectoparasite
   geom_hline(yintercept = 0.775, linetype = "dashed")+
   theme_classic(40)
 dev.off()
+
+
+
+ggplot(data = ectos_df_predicted, aes(x = sociality, y = proportion_ectoparasites))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=3,width = 0.07)+
+  geom_point(data = ectos_df_predicted, aes(x=sociality, y = proportion_ectoparasites), color="red", size=4,shape=19)+
+  scale_y_continuous("Ectoparasites prevalence", limits = c(0,1)) +
+  scale_x_discrete("Sociality")+
+  geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+
 
 
 # Visreg does not support PGLMM
@@ -2221,4 +2237,14 @@ View(deg_binary)
 primate <- comparative.data(phy = primatetree, data = primatedata, names.col = Binomial, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
 
 phylo.d(data=primate, binvar = Nocturnal, permut = 1000)
+
+
+
+# To evaluate model assumptions -------------------------------------------
+
+install.packages("DHARMa")
+a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
+
+
+
 
