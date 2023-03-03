@@ -286,11 +286,135 @@ ColorPalette <- brewer.pal(n = 20, name = "Reds")
 ColorPalette <- brewer.pal(n = 20, name = "Greens")
 
 
-slategray3","dodgerblue","darkolivegreen3","goldenrod1"))
-object_color<-setMap(fmode,ColorPalette)
+#slategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+##object_color<-setMap(fmode,ColorPalette)
 
-png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+#png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
+#plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
 
+
+
+# # The models for networks -----------------------------------------------
+
+# data prep
+ectos_dfff<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
+phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
+mean_lice_abundance<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv") %>% select(species_jetz, mean_lice)
+mean_mites_abundance<-read.csv("data/data_analyses/7.dff_mites_abundance_means_non_feathers.csv") %>% select(species_jetz, mean_mites)
+ectos_dff<-left_join(ectos_dfff, mean_lice_abundance, by="species_jetz")
+ectos_dff$mean_lice[is.na(ectos_dff$mean_lice)] <- 0
+ectos_dff<-ectos_dff %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+write.csv(ectos_dff, "data/data_analyses/1_dff_ectoparasites_prevalence_abundance_w_zeros.csv")
+#
+
+# DATA
+network_parameters<-read.csv("data/data_analyses/1.dff_degree_n_strength_network_jetz_manu.csv", header=T,stringsAsFactors=FALSE) %>% select(species_jetz, deg_binary, deg_weighted,species_taxonomy_SACC_2021)
+lice_means<-read.csv("data/data_analyses/7.dff_lice_abundance_means.csv")
+pasite_parameters<-read.csv("data/data_analyses/1_dff_ectoparasites_prevalence_abundance_w_zeros.csv")
+network_parasite_parameters<-inner_join(network_parameters,pasite_parameters, by="species_jetz")
+
+unique(network_parasite_parameters$species_jetz)
+
+phylo=phylo_lice_rooted_abund_networks_manu<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abunmanu_networks.nex")
+str(phylo_lice_rooted_abund_networks_manu)
+phylo_lice_rooted_abund_networks_manu$tip.label
+# Make sure number in teh data and the phylogenty are consistent
+
+# Reformating 
+#lice_df_abundance <-lice_df_abundance  %>% mutate_at("species_jetz", str_replace, " ", "_")
+network_parasite_parameters$elevation_cat<-as.factor(network_parasite_parameters$elevation_cat)
+
+network_parasite_parameters$species_jetz<-as.factor(network_parasite_parameters$species_jetz)
+network_parasite_parameters$sociality<-as.factor(network_parasite_parameters$sociality)
+
+network_parasite_parameters$deg_binary <-as.numeric(network_parasite_parameters$deg_binary )
+network_parasite_parameters$deg_weighted  <-as.numeric(network_parasite_parameters$deg_weighted)
+
+
+# Aling phylogeny and atributes
+
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(network_parasite_parameters$species_jetz))%>% mutate(name=network_parasite_parameters$species_jetz) %>% select(name) %>% arrange(desc(name))
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+phylo<-drop.tip (phylo, tip$name)
+
+network_parasite_parameters %>% filter(species_jetz==c(a$species_jetz))
+
+network_parasite_parameters_filtered<-inner_join(network_parasite_parameters,a, by=c("species_jetz"="name"))
+
+
+
+# THE MODEL
+
+names(sociality_continous_abundance_lice)
+
+l_abun_degree<-  phyr::pglmm(mean_lice~deg_binary +(1|elevation_cat)+(1|species_jetz__),
+                                 data = network_parasite_parameters_filtered,
+                                 family = "gaussian", 
+                                 cov_ranef = list(species_jetz=phylo), #class phylo
+                                 #bayes = TRUE,
+                                 REML= FALSE,  # NOT SURE WHEN TO USE ML
+                                 verbose = TRUE,
+                                 s2.init = .25) # what is this last parameter for
+
+l_abun_degree_w<-  phyr::pglmm(mean_lice~deg_weighted +(1|elevation_cat)+(1|species_jetz__),
+                             data = network_parasite_parameters_filtered,
+                             family = "gaussian", 
+                             cov_ranef = list(species_jetz=phylo), #class phylo
+                             #bayes = TRUE,
+                             REML= FALSE,  # NOT SURE WHEN TO USE ML
+                             verbose = TRUE,
+                             s2.init = .25) # what is this last parameter for
+
+rr2::R2(l_abun_degree_w)
+
+ggplot(network_parasite_parameters_filtered, aes(x=deg_binary, y= mean_lice)) +
+  geom_point()+
+  geom_smooth(method = glm)+
+  geom_jitter(height = 0.01)+
+  scale_y_continuous("mean_lice", limits = c(0,20)) +
+  labs(title="b) Degree per species ")+
+  theme_classic(20)
+
+
+ggplot(network_parasite_parameters_filtered, aes(x=deg_weighted, y= mean_lice)) +
+  geom_point()+
+  geom_smooth(method = gam)+
+  geom_jitter(height = 0.01)+
+  scale_y_continuous("mean_lice", limits = c(0,20)) +
+  labs(title="b) Degree_W_per species ")+
+  theme_classic(20)
+
+
+predictions<-predict(l_abun_degree_w, type="response")
+data<- cbind(network_parasite_parameters_filtered, predictions)
+ 
+ data %>% 
+  ggplot(aes(x=deg_weighted, y=mean_lice)) +
+  geom_smooth(aes(x=deg_weighted, y=Y_hat))+
+  scale_y_continuous("mean_lice", limits = c(0,10)) 
+   
+                 
+ data %>% 
+   ggplot(aes(x=deg_binary, y=mean_lice)) +
+   geom_smooth(aes(x=deg_binary, y=Y_hat))+
+   scale_y_continuous("mean_lice", limits = c(0,10)) 
+ 
+  
+
+  
+  ggplot(aes(x2, fit)) +
+  geom_smooth_ci(f1
+  
+
+predict_gam(model_2, values = list(f1 = c(0.5, 1, 1.5))) %>%
+  ggplot(aes(x2, fit)) +
+  geom_smooth_ci(f1)
+
+# Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits
+rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
+ectos_df<- ectos_df[match(phylogeny_prevalence$tip.label,rownames(ectos_df)),]
 
 

@@ -2245,6 +2245,30 @@ phylo.d(data=primate, binvar = Nocturnal, permut = 1000)
 install.packages("DHARMa")
 a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
 
+# Oher alternative using a Brms bayesian approach that allows the incorporation of several measures per individual
 
+
+install.packages("brms")
+library(brms)
+
+# See some documentation for BRMS ABD PHYLOGENETIC ANALYSES https://cran.r-project.org/web/packages/brms/vignettes/brms_phylogenetics.html
+# The cool thing about BRSM is that it allow for repeated measurements of an species 
+mite_abundance
+
+names(mite_abundance)
+
+
+m1 <- brm(mite_abundance ~ sociality + within_spec_mass + relabund_odespecies + nri + lake_sa + chem_pc1 + climate_pc1 + veg_pc1 + veg_pc2 + 
+            (1 | genus_species) + (1|sitename), 
+          data=data, family=negbinomial(), 
+          iter=6000, cov_ranef = list(genus_species = phy_cov), thin=2,
+          control=list(adapt_delta=0.999, max_treedepth=12))
+
+
+m1 <- brm(mite_abundance ~ spec_mean_mass + within_spec_mass + relabund_odespecies + nri + lake_sa + chem_pc1 + climate_pc1 + veg_pc1 + veg_pc2 + 
+            (1 | genus_species) + (1|sitename), 
+          data=data, family=negbinomial(), 
+          iter=6000, cov_ranef = list(genus_species = phy_cov), thin=2,
+          control=list(adapt_delta=0.999, max_treedepth=12))
 
 

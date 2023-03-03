@@ -1,0 +1,164 @@
+"","X","elevation_cat","sociality","foraging_cat","species_jetz","sample_size","species_clean","mass_tidy","Family","ectoparasites_presence","elevation_midpoint","proportion_ectoparasites","notes","mean_lice"
+"1",1,"high_montane_manu",0,"ground","Chamaeza_mollissima",1,"Chamaeza mollissima",72.6175,"Formicariidae",1,2585,1,"",6
+"2",2,"high_montane_manu",1,"undersory-midhigh","Pipreola_intermedia",19,"Pipreola intermedia",48.25075,"Cotingidae
+",16,2648,0.842105263,"",1.5
+"3",3,"high_montane_manu",0,"undersory-midhigh","Pipreola_arcuata",8,"Pipreola arcuata",101.4315,"Cotingidae
+",5,2750,0.625,"",6.333333333
+"4",4,"high_montane_manu",1,"understory","Rhynchocyclus_fulvipectus",6,"Rhynchocyclus fulvipectus",24.23724138,"Tyrannidae",4,1365,0.666666667,"",0
+"5",5,"high_montane_manu",1,"midhigh","Chlorornis_riefferii",14,"Chlorornis riefferii",48.93459016,"Thraupidae",14,2728,1,"",5
+"6",6,"high_montane_manu",1,"midhigh","Anisognathus_igniventris",14,"Anisognathus igniventris",34.8345,"Thraupidae
+",10,2932,0.714285714,"",1.5
+"7",7,"high_montane_manu",1,"understory","Iridosornis_jelskii",18,"Iridosornis jelskii",20.34714286,"Thraupidae
+",15,2859,0.833333333,"",6.333333333
+"8",8,"high_montane_manu",1,"undersory-midhigh","Arremon_torquatus",13,"Arremon torquatus",42.28636364,"Passerellidae
+",11,2742,0.846153846,"",6.777777778
+"9",9,"high_montane_manu",1,"understory","Hemispingus_atropileus",28,"Kleinothraupis atropileus",20.552,"Thraupidae
+",22,2742,0.785714286,"",5
+"10",10,"high_montane_manu",1,"canopy","Myioborus_melanocephalus",12,"Myioborus melanocephalus",11.53984848,"Parulidae
+",9,2578,0.75,"",1
+"11",11,"high_montane_manu",1,"midhigh-canopy","Mecocerculus_stictopterus",1,"Mecocerculus stictopterus",10.18833333,"Tyrannidae
+",1,2739,1,"",0
+"12",12,"high_montane_manu",1,"understory","Pyrrhomyias_cinnamomeus",3,"Pyrrhomyias cinnamomeus",11.10103448,"Tyrannidae",3,2324,1,"",1
+"13",13,"high_montane_manu",1,"midhigh","Buthraupis_montana",4,"Buthraupis montana",89.22766667,"Thraupidae",3,2784,0.75,"",1.333333333
+"14",14,"high_montane_manu",1,"understory","Hemispingus_melanotis",10,"Sphenopsis melanotis",18.04464286,"Thraupidae",7,1515,0.7,"",3.333333333
+"15",15,"high_montane_manu",1,"canopy","Thraupis_cyanocephala",12,"Sporathraupis cyanocephala",38.99776119,"Thraupidae",10,2742.5,0.833333333,"",13
+"16",16,"high_montane_manu",0,"understory","Dubusia_taeniata",1,"Dubusia taeniata",38.46333333,"Thraupidae",1,2734,1,"",0
+"17",17,"high_montane_manu",0,"ground","Haplospiza_rustica",5,"Haplospiza rustica",16.3045,"Thraupidae",5,2391,1,"",2
+"18",18,"lowland_manu",0,"ground","Formicarius_analis",7,"Formicarius analis",57.04347826,"Formicariidae",5,430,0.714285714,"",4
+"19",19,"lowland_manu",0,"ground","Formicarius_rufipectus",1,"Formicarius rufipectus",63.83571429,"Formicariidae",1,1431,1,"",5
+"20",20,"lowland_manu",1,"other","Myrmotherula_hauxwelli",21,"Isleria hauxwelli",11.27941606,"Thamnophilidae",10,415,0.476190476,"",0
+"21",21,"lowland_manu",1,"midhigh","Thamnomanes_ardesiacus",13,"Thamnomanes ardesiacus",18.58714286,"Thamnophilidae",7,421,0.538461538,"",0
+"22",22,"lowland_manu",1,"midhigh","Myrmotherula_axillaris",20,"Myrmotherula axillaris",8.457105263,"Thamnophilidae",12,415,0.6,"",8.5
+"23",23,"lowland_manu",1,"understory","Hylophilus_ochraceiceps",6,"Tunchiornis ochraceiceps",11.72933333,"Vireonidae",1,892,0.166666667,"",0
+"24",24,"lowland_manu",1,"midhigh","Thamnomanes_schistogynus",12,"Thamnomanes schistogynus",17.905,"Thamnophilidae",10,430,0.833333333,"",0
+"25",25,"lowland_manu",0,"ground","Corythopis_torquatus",14,"Corythopis torquatus",17.01754717,"Tyrannidae",9,419,0.642857143,"",1.333333333
+"26",26,"lowland_manu",0,"ground","Willisornis_poecilinotus",26,"Willisornis poecilinotus",18.39630137,"Thamnophilidae",15,419,0.576923077,"",3
+"27",27,"lowland_manu",0,"ground","Sclerurus_caudacutus",9,"Sclerurus caudacutus",37.54095238,"Furnariidae
+",8,413,0.888888889,"",4
+"28",28,"lowland_manu",0,"ground-understory","Microcerculus_marginatus",12,"Microcerculus marginatus",18.81613333,"Troglodytidae",10,754,0.833333333,"",0
+"29",29,"lowland_manu",1,"canopy","Lanio_versicolor",5,"Lanio versicolor",19.76205128,"Thraupidae
+",5,438,1,"",7
+"30",30,"lowland_manu",1,"ground-midhigh","Monasa_morphoeus",3,"Monasa morphoeus",73.41272727,"Bucconidae",0,417,0,"",0
+"31",31,"lowland_manu",1,"undersory-midhigh","Lepidothrix_coronata",16,"Lepidothrix coronata",9.769768786,"Pipridae",14,417.5,0.875,"",3.5
+"32",32,"lowland_manu",0,"ground-midhigh","Malacoptila_semicincta",5,"Malacoptila semicincta",45.21722222,"Bucconidae",1,494.5,0.2,"",2
+"33",33,"lowland_manu",1,"undersory-midhigh","Pipra_chloromeros",102,"Ceratopipra chloromeros",16.72324324,"Pipridae",78,416,0.764705882,"",5.555555556
+"34",34,"lowland_manu",1,"other","Monasa_nigrifrons",2,"Monasa nigrifrons",80.46733333,"Bucconidae
+",0,409,0,"",0
+"35",35,"lowland_manu",0,"ground-midhigh","Rupicola_peruvianus",8,"Rupicola peruvianus",207.3219231,"Cotingidae
+",8,1362,1,"",17.125
+"36",36,"lowland_manu",1,"midhigh","Galbula_cyanescens",2,"Galbula cyanescens",24.96074074,"Galbulidae
+",1,486.5,0.5,"",1
+"37",37,"lowland_manu",0,"understory","Schiffornis_turdina",9,"Schiffornis turdina",30.18625,"Tityridae",5,876,0.555555556,"",5.25
+"38",38,"lowland_manu",1,"other","Chlorothraupis_carmioli",6,"Chlorothraupis carmioli",37.5053125,"Cardinalidae
+",6,600,1,"",4.166666667
+"39",39,"lowland_manu",1,"midhigh","Myiobius_barbatus",5,"Myiobius barbatus",12.84714286,"Tityridae
+",4,424,0.8,"",0
+"40",40,"lowland_manu",1,"canopy","Glyphorynchus_spirurus",8,"Glyphorynchus spirurus",15.41370221,"Furnariidae",7,421,0.875,"",6.75
+"41",41,"lowland_manu",0,"midhigh","Platyrinchus_platyrhynchos",6,"Platyrinchus platyrhynchos",12.27526316,"Tyrannidae
+",0,421.5,0,"",0
+"42",42,"lowland_manu",0,"understory","Hylophylax_naevius",10,"Hylophylax naevius",13.63936508,"Thamnophilidae",10,850,1,"",1
+"43",43,"lowland_manu",1,"understory","Mionectes_olivaceus",23,"Mionectes olivaceus",14.85200461,"Tyrannidae",19,1262,0.826086957,"",4.611111111
+"44",44,"lowland_manu",1,"undersory-midhigh","Leptopogon_amaurocephalus",17,"Leptopogon amaurocephalus",11.67782609,"Tyrannidae
+",15,417,0.882352941,"",6.25
+"45",45,"lowland_manu",1,"undersory-midhigh","Pipra_fasciicauda",25,"Pipra fasciicauda",16.82485876,"Pipridae",23,413,0.92,"",7.473684211
+"46",46,"lowland_manu",1,"midhigh","Habia_rubica",12,"Habia rubica",33.58774194,"Cardinalidae
+",11,413,0.916666667,"",5.714285714
+"47",47,"lowland_manu",0,"ground-midhigh","Momotus_momota",2,"Momotus momota",110.3235714,"Momotidae",2,429,1,"",1
+"48",48,"lowland_manu",1,"undersory-midhigh","Myrmotherula_longipennis",4,"Myrmotherula longipennis",9.109375,"Thamnophilidae",2,418.5,0.5,"",0
+"49",49,"lowland_manu",1,"midhigh","Mionectes_macconnelli",14,"Mionectes macconnelli",12.63060606,"Tyrannidae",14,414,1,"",11.38461538
+"50",50,"lowland_manu",0,"ground","Geotrygon_montana",5,"Geotrygon montana",114.4062791,"Columbidae
+",4,426,0.8,"",3.5
+"51",51,"lowland_manu",0,"canopy","Psarocolius_angustifrons",1,"Psarocolius angustifrons",168.4071429,"Icteridae",1,537,1,"",2
+"52",52,"lowland_manu",1,"ground","Myrmoborus_leucophrys",1,"Myrmoborus leucophrys",19.82189189,"Thamnophilidae",0,889,0,"",0
+"53",53,"lowland_manu",1,"midhigh","Terenotriccus_erythrurus",7,"Terenotriccus erythrurus",7.369767442,"Tityridae
+",6,413,0.857142857,"",1
+"54",54,"lowland_manu",1,"undersory-midhigh","Ramphotrigon_fuscicauda",3,"Ramphotrigon fuscicauda",18.96923077,"Tyrannidae",3,431,1,"",0
+"55",55,"lowland_manu",1,"ground-understory","Myrmoborus_myotherinus",5,"Myrmoborus myotherinus",20.73168831,"Thamnophilidae",4,426,0.8,"",1.5
+"56",56,"lowland_manu",0,"undersory-midhigh","Laniocera_hypopyrra",3,"Laniocera hypopyrra",48.87571429,"Tityridae
+",3,416,1,"",5.5
+"57",57,"lowland_manu",1,"understory","Automolus_ochrolaemus",10,"Automolus ochrolaemus",34.96803922,"Furnariidae",8,680,0.8,"",4.75
+"58",58,"lowland_manu",1,"canopy","Xenops_tenuirostris",1,"Xenops tenuirostris",9.2,"Furnariidae",0,430,0,"",0
+"59",59,"lowland_manu",1,"midhigh","Tangara_schrankii",6,"Tangara schrankii",19.85320755,"Thraupidae",3,421,0.5,"",5
+"60",60,"lowland_manu",0,"ground","Turdus_albicollis",3,"Turdus albicollis",50.02123288,"Turdidae",3,411.5,1,"",8
+"61",61,"lowland_manu",0,"canopy","Pteroglossus_azara",2,"Pteroglossus azara",136.565,"Ramphastidae",2,714,1,"",0
+"62",62,"lowland_manu",0,"understory","Synallaxis_cabanisi",1,"Synallaxis cabanisi",18.982,"Furnariidae",1,1084,1,"",1
+"63",63,"lowland_manu",1,"undersory-midhigh","Mionectes_oleagineus",15,"Mionectes oleagineus",11.49915698,"Tyrannidae",14,421,0.933333333,"",6.75
+"64",64,"lowland_manu",0,"ground","Gymnopithys_salvini",19,"Oneillornis salvini",25.86508475,"Thamnophilidae",16,415,0.842105263,"",3.888888889
+"65",65,"lowland_manu",0,"canopy","Pteroglossus_beauharnaesii",2,"Pteroglossus beauharnaisii",202.1216667,"Ramphastidae",2,426,1,"",0
+"66",66,"lowland_manu",0,"understory","Platyrinchus_coronatus",2,"Platyrinchus coronatus",9.838095238,"Tyrannidae",0,413,0,"",0
+"67",67,"lowland_manu",1,"midhigh","Euphonia_xanthogaster",1,"Euphonia xanthogaster",13.62148594,"Fringillidae",1,1337,1,"",0
+"68",68,"lowland_manu",1,"midhigh-canopy","Philydor_erythropterum",1,"Dendroma erythroptera",30,"Furnariidae",0,430,0,"",0
+"69",69,"lowland_manu",1,"undersory-midhigh","Xenops_minutus",5,"Xenops minutus",12.16725806,"Furnariidae",4,414,0.8,"",0
+"70",70,"lowland_manu",0,"ground-understory","Catharus_ustulatus",3,"Catharus ustulatus",27.51957672,"Turdidae",3,1307,1,"",0
+"71",71,"lowland_manu",1,"midhigh","Thamnophilus_schistaceus",13,"Thamnophilus schistaceus",21.191,"Thamnophilidae",10,439,0.769230769,"",6.666666667
+"72",72,"lowland_manu",1,"understory","Epinecrophylla_leucophthalma",2,"Epinecrophylla leucophthalma",10.10645161,"Thamnophilidae",1,415,0.5,"",0
+"73",73,"lowland_manu",1,"ground-understory","Arremon_taciturnus",17,"Arremon taciturnus",27.7755,"Passerellidae",14,429,0.823529412,"",3.375
+"74",74,"lowland_manu",0,"midhigh","Campylopterus_largipennis",1,"Campylopterus largipennis",8.337727273,"Trochilidae",1,457,1,"",0
+"75",75,"lowland_manu",1,"undersory-midhigh","Hyloctistes_subulatus",1,"Automolus subulatus",28.85,"Furnariidae",0,419,0,"",0
+"76",76,"lowland_manu",0,"midhigh","Neoctantes_niger",1,"Neoctantes niger",35.6,"Thamnophilidae",0,414,0,"",0
+"77",77,"lowland_manu",1,"midhigh","Epinecrophylla_erythrura",1,"Epinecrophylla erythrura",10.562,"Thamnophilidae",1,424,1,"",1
+"78",78,"lowland_manu",1,"ground","Cyanocompsa_cyanoides",7,"Cyanoloxia cyanoides",26.23404255,"Cardinalidae",6,423.5,0.857142857,"",1.333333333
+"79",79,"lowland_manu",1,"understory","Trogon_violaceus",1,"Trogon violaceus",46.18,"Trogonidae",0,583,0,"",0
+"80",80,"lowland_manu",1,"other","Saltator_maximus",1,"Saltator maximus",45.26047619,"Thraupidae",1,989,1,"",1
+"81",81,"lowland_manu",0,"ground","Phlegopsis_nigromaculata",5,"Phlegopsis nigromaculata",48.78089286,"Thamnophilidae",4,413,0.8,"",1
+"82",82,"lowland_manu",1,"understory","Automolus_melanopezus",1,"Automolus melanopezus",31.118,"Furnariidae",1,413,1,"",40
+"83",83,"lowland_manu",1,"understory","Simoxenops_ucayalae",1,"Syndactyla ucayalae",52.21692308,"Furnariidae
+",1,717,1,"",44
+"84",84,"lowland_manu",1,"ground-understory","Myrmeciza_goeldii",24,"Akletos goeldii",44.03666667,"Thamnophilidae",24,438,1,"",6
+"85",85,"lowland_manu",0,"ground-understory","Cyphorhinus_arada",1,"Cyphorhinus arada",26.05117647,"Troglodytidae",1,404,1,"",0
+"86",86,"lowland_manu",0,"canopy","Ramphastos_tucanus",1,"Ramphastos tucanus",377.88,"Ramphastidae",1,425,1,"",1
+"87",87,"lowland_manu",1,"midhigh","Anabazenops_dorsalis",1,"Anabazenops dorsalis",34.91,"Furnariidae",1,827.5,1,"",1
+"88",88,"lowland_manu",0,"canopy","Philydor_rufum",1,"Dendroma rufa",22.25,"Furnariidae
+",1,1068,1,"",6
+"89",89,"lowland_manu",1,"midhigh","Deconychura_longicauda",5,"Deconychura longicauda",30.6912,"Furnariidae
+",3,439,0.6,"",0
+"90",90,"lowland_manu",0,"canopy","Piprites_chloris",1,"Piprites chloris",18.9,"Tyrannidae",1,426,1,"",0
+"91",91,"lowland_manu",1,"understory","Automolus_infuscatus",1,"Automolus infuscatus",39.19135135,"Furnariidae",1,419,1,"",5
+"92",92,"lowland_manu",1,"ground","Conopophaga_peruviana",1,"Conopophaga peruviana",24.6675,"Conopophagidae",1,415.5,1,"",9
+"93",93,"lowland_manu",0,"ground","Dichrozona_cincta",1,"Dichrozona cincta",14.8,"Thamnophilidae",1,417,1,"",0
+"94",94,"lowland_manu",1,"ground-understory","Percnostola_lophotes",6,"Myrmoborus lophotes",30.48875,"Thamnophilidae",6,670,1,"",5
+"95",95,"lowland_manu",0,"ground-understory","Myrmeciza_hemimelaena",4,"Sciaphylax hemimelaena",16.58849057,"Thamnophilidae",3,818,0.75,"",1
+"96",96,"lowland_manu",0,"undersory-midhigh","Rhytipterna_simplex",3,"Rhytipterna simplex",39.808,"Tyrannidae",3,526,1,"",1
+"97",97,"lowland_manu",1,"midhigh","Myrmotherula_menetriesii",2,"Myrmotherula menetriesii",9.046,"Thamnophilidae",2,423.5,1,"",0
+"98",98,"lowland_manu",1,"midhigh","Xiphorhynchus_elegans",3,"Xiphorhynchus elegans",38.50835294,"Furnariidae",2,421,0.666666667,"",0
+"99",99,"lowland_manu",0,"understory","Phaethornis_koepckeae",1,"Phaethornis koepckeae",5.275526316,"Trochilidae",1,418,1,"",0
+"100",100,"lowland_manu",1,"ground","Myrmeciza_fortis",1,"Hafferia fortis",48.60083333,"Thamnophilidae",1,422.5,1,"",1
+"101",101,"lowland_manu",0,"ground","Rhegmatorhina_melanosticta",5,"Rhegmatorhina melanosticta",32.28411765,"Thamnophilidae",5,600,1,"",1.666666667
+"102",102,"lowland_manu",0,"other","Thalurania_furcata",1,"Thalurania furcata",4.515660377,"Trochilidae",1,420,1,"",1
+"103",103,"lowland_manu",1,"ground-understory","Ancistrops_strigilatus",2,"Ancistrops strigilatus",33.46333333,"Furnariidae",2,476.5,1,"",3
+"104",104,"lowland_manu",1,"midhigh","Mionectes_striaticollis",1,"Mionectes striaticollis",14.66976498,"Tyrannidae",1,1573,1,"",0
+"105",105,"montane_manu",1,"undersory-midhigh","Malacoptila_fulvogularis",7,"Malacoptila fulvogularis",48.74470588,"Bucconidae",4,1395,0.571428571,"",1
+"106",106,"montane_manu",0,"ground-midhigh","Micromonacha_lanceolata",1,"Micromonacha lanceolata",23.34,"Bucconidae
+",0,1113.5,0,"",0
+"107",107,"montane_manu",1,"understory","Chlorospingus_flavigularis",16,"Chlorospingus flavigularis",25.95577586,"Passerellidae
+",15,1362,0.9375,"",10.21428571
+"108",108,"montane_manu",1,"midhigh","Tangara_arthus",10,"Tangara arthus",21.19101695,"Thraupidae",10,1308.5,1,"",3.8
+"109",109,"montane_manu",1,"midhigh","Leptopogon_superciliaris",8,"Leptopogon superciliaris",13.20830645,"Tyrannidae
+",8,1387,1,"",3
+"110",110,"montane_manu",1,"understory","Premnoplex_brunnescens",28,"Premnoplex brunnescens",15.77809045,"Furnariidae
+",27,1366,0.964285714,"",1.666666667
+"111",111,"montane_manu",1,"midhigh","Myioborus_miniatus",5,"Myioborus miniatus",9.782295082,"Parulidae",5,1404,1,"",6
+"112",112,"montane_manu",1,"understory","Basileuterus_tristriatus",11,"Basileuterus tristriatus",12.9,"Parulidae",11,1459,1,"",1.888888889
+"113",113,"montane_manu",1,"other","Chlorospingus_ophthalmicus",5,"Chlorospingus flavopectus",21.97914286,"Passerellidae
+",4,1821,0.8,"",6.333333333
+"114",114,"montane_manu",0,"understory","Eutoxeres_condamini",1,"Eutoxeres condamini",9.882727273,"Parulidae",1,1309,1,"",0
+"115",115,"montane_manu",1,"midhigh","Anabacerthia_striaticollis",8,"Anabacerthia striaticollis",24.58886525,"Furnariidae",5,1397,0.625,"",4.5
+"116",116,"montane_manu",1,"midhigh","Phylloscartes_ophthalmicus",6,"Phylloscartes ophthalmicus",9.276296296,"Tyrannidae
+",6,1371,1,"",6.333333333
+"117",117,"montane_manu",1,"midhigh-canopy","Chlorochrysa_calliparaea",3,"Chlorochrysa calliparaea",17.34217391,"Thraupidae",3,1387,1,"",2
+"118",118,"montane_manu",1,"undersory-midhigh","Chiroxiphia_boliviana",1,"Chiroxiphia boliviana",17.23620087,"",1,1449,1,"",0
+"119",119,"montane_manu",1,"midhigh","Myrmotherula_schisticolor",3,"Myrmotherula schisticolor",9.628441558,"Thamnophilidae",3,1487,1,"",0
+"120",120,"montane_manu",1,"understory","Basileuterus_coronatus",12,"Myiothlypis coronata",16.03027273,"Parulidae",10,1541,0.833333333,"",4
+"121",121,"montane_manu",0,"ground","Cyphorhinus_thoracicus",13,"Cyphorhinus thoracicus",32.136625,"Troglodytidae",13,1348,1,"",1.75
+"122",122,"montane_manu",1,"other","Trichothraupis_melanops",8,"Trichothraupis melanops",24.68761468,"Thraupidae",8,1387,1,"",1
+"123",123,"montane_manu",1,"understory","Thripadectes_melanorhynchus",14,"Thripadectes melanorhynchus",45.98929688,"Furnariidae",12,1337,0.857142857,"",9
+"124",124,"montane_manu",1,"midhigh","Basileuterus_bivittatus",11,"Myiothlypis bivittata",15.17214286,"Parulidae",9,1217,0.818181818,"",5.8
+"125",125,"montane_manu",1,"midhigh","Lophotriccus_pileatus",4,"Lophotriccus pileatus",8.351454545,"Tyrannidae",3,1384.5,0.75,"This species has been obserevd in flocks but those flcoks were incomplete, I changed 0 to 1 in sociality",0
+"126",126,"montane_manu",1,"midhigh","Myrmotherula_longicauda",2,"Myrmotherula longicauda",8.21,"Thamnophilidae",1,1210,0.5,"",0
+"127",127,"montane_manu",0,"understory","Sporophila_nigricollis",3,"Sporophila nigricollis",11.3925,"Thraupidae",2,1337,0.666666667,"",0
+"128",128,"montane_manu",1,"midhigh","Diglossa_glauca",1,"Diglossa glauca",12.82984848,"Thraupidae",1,1758,1,"",4
+"129",129,"montane_manu",0,"ground","Ammodramus_aurifrons",2,"Ammodramus aurifrons",17.815,"Emberizidae",1,387,0.5,"",0
+"130",130,"montane_manu",1,"midhigh","Xiphorhynchus_triangularis",1,"Xiphorhynchus triangularis",43.98926829,"Furnariidae",0,1501,0,"",0
+"131",131,"montane_manu",1,"canopy","Cyanerpes_caeruleus",2,"Cyanerpes caeruleus",12.668,"Thraupidae",1,1124,0.5,"",0
+"132",132,"montane_manu",1,"midhigh","Anisognathus_somptuosus",2,"Anisognathus somptuosus",38.233,"Thraupidae",1,1950,0.5,"",6
+"133",133,"montane_manu",1,"understory","Iridosornis_analis",2,"Iridosornis analis",27.53977273,"Thraupidae",2,1541,1,"",3
