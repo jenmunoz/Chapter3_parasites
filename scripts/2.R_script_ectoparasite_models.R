@@ -248,12 +248,13 @@ rr2::R2(MCMC)
 #MCMCglmm https://ourcodingclub.github.io/tutorials/mcmcglmm/
 
 
-
 ###_###_###
 # [Prevalence_Presence_absence] THE MODELS
 ###_###_###
 
 #DATA
+
+ectoparasites_dff_elevations
 ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs_species.csv")# data on prevalence FOR THE MODEL
 phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 
