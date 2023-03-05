@@ -92,11 +92,11 @@ library(ggpubr)
 library(grid)
 
 # Part 1 Data --------------------------------------------------------------------
-ectoparasites_general<-read.csv("data/7.ectoparasite_raw_pres_abs_07222022.csv")
-lice_only<-read.csv("data/7.ectoparsite_raw_lice_abundance_07222022.csv")
+ectoparasites_general<-read.csv("data/data_raw/7.ectoparasite_raw_pres_abs_07222022.csv")
+lice_only<-read.csv("data/data_raw/7.ectoparsite_raw_lice_abundance_07222022.csv")
 unique(lice_only$total_lice)
-mites_only<-read.csv("data/7.ectoparsite_raw_mites_abundance_07222022.csv")
-ticks_only<-read.csv("data/7.ectoparsite_raw_ticks_abundance_07222022.csv")
+mites_only<-read.csv("data/data_raw/7.ectoparsite_raw_mites_abundance_07222022.csv")
+ticks_only<-read.csv("data/data_raw/7.ectoparsite_raw_ticks_abundance_07222022.csv")
 
 flocks<-read.csv ("data/0.flocks_manu_complete_18052022.csv")
 bird_traits_manu<-read.csv("data/4.df_traits_manu_birds.csv") # this is t he final file with traits of Manu  this files includes sociality data binomial 1_0 AND including diet and foraging from PCoA
@@ -822,7 +822,7 @@ gathercols <- c("Lice.Genus", "Lice.Genus2", "Lice.Genus3")
 lice_df_diversity_genus<-gather(lice_df_wide, keycol, valuecol, gathercols)%>% arrange(desc(species_jetz)) 
 
 ###_###_###_###
-write_csv(lice_df_diversity_genus,"data/7.lice_df_diversity_genus.csv")
+#write_csv(lice_df_diversity_genus,"data/7.lice_df_diversity_genus.csv")
 ###_###_###_###
 
 

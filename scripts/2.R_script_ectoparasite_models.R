@@ -110,111 +110,6 @@ library(gridExtra)
 library(ggpubr)
 library(grid)
 
-# #[Overall] Part 0 Data summary -------------------------------------------------
-# tHis part is to calculate some general descriptive data summaries 
-# Presence absence
-ectos_df<-read.csv("data/7.ectoparasite_df_presence_absence.csv") # data on presence absence
-ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-# we have presence absence for 62 host social species and for 27 non social species  in manu
-
-  ectos_df%>% group_by(Family,species_clean,species_jetz ) %>%  # we have abundance for 62 host social species and for 27 non social species  in manu
-  
-
-as.data.frame(unique( ectos_df$Family)) %>% View()
-ectos_df<-read.csv("data/5.ectos_pres_abs_df.csv") # data on presence absence
-ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-View(ectos_df)
-ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-non_social<-ectos_df %>% filter( sociality=="0") # we have OCURRENCE  for 88 host social species and for 45 non social species  in manu
-social<-ectos_df %>% filter( sociality=="1") # we have OCURRENCE for 88 host social species and for 45  non social species  in manu
-
-mean(non_social$sample_size)
-mean(social$sample_size)
-
-
-# Create  summary tables of bird species sample size and family and type of parasite
-names(ectos_df)
-families<-as.data.frame(ectos_df%>% group_by(BLFamilyLatin) %>% summarize(n())) 
-write.csv(families, "tables/1.Family_sample_size_manu.csv")
-individuals <-as.data.frame(ectos_df%>% group_by(species_clean) %>% summarize(n())) 
-write.csv(individuals, "tables/1.Individuals_sample_size_manu.csv")
-
-ectos_df%>% group_by(BLFamilyLatin, species_clean) %>% summarize(total=sum(bill_tidy))
-
-
-
-# Abundance 
-
-# Lice
-
-lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
-# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
-
-lice_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-lice_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-lice_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") #  lice abundance manu only 
-
-lice_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-# Mean abundance
-mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
-mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
-mean_lice_abundance %>% filter( sociality=="0") # we have abundance for 62 host social species and for 27 non social species  in mau
-
-mean_lice_abundance  %>% group_by(sociality) %>% summarize(ave=sd(mean_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-#Mites
-
-mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
-names(mites_df_abundance)
-mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-mites_df_abundance<-mites_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
-
-mites_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for  host social species and for  non social species  in manu
-mites_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-mites_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-mites_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-mites_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_mites)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-
-
-###
-# Diversity
-##
-
-lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv")
-lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
-
-lice_richness_manu_sp %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-lice_richness_manu_sp %>% filter( sociality=="0") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% filter( sociality=="1") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
-
-lice_richness_manu_sp %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
 
 # [Presence_absence] Part1_Ectoparasite models_using binary data  1/0-----------------------------
 # To underestand teh models and out puts better see this paper: https://www.iecolab.org/wp-content/uploads/2020/10/phyr_2020.pdf
@@ -233,61 +128,7 @@ lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()
 #Binarypglmm blog https://rdrr.io/cran/ape/man/binaryPGLMM.html
 #MCMCglmm https://ourcodingclub.github.io/tutorials/mcmcglmm/
 
-###_###_###_###_##
-# The data
-###_###_###_###_##
 
-# Getttingthe data ready
-ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence
-names( ectoparasites_df)
-unique(ectoparasites_df$Mites)
-View(phylogeny)
-class(phylogeny)
-
-# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-# Re-strudture the data
-# Make sure variables are in teh right format, random effects should be factors
-#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-
-ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
-str( ectoparasites_df)
-
-ectoparasites_df$elevation_cat<-as.factor(ectoparasites_df$elevation_cat)
-ectoparasites_df$foraging_cat<-as.factor(ectoparasites_df$foraging_cat)
-ectoparasites_df$species_jetz<-as.factor(ectoparasites_df$species_jetz)
-ectoparasites_df$sociality<-as.numeric(ectoparasites_df$sociality)
-
-###_###_###_###_##
-#The models for presence absence
-###_###_###_###_##
-
-# all ectos together
-
-# WARNING STILL NEED TO INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
-#the higher the sample size the higher teh probability to find ectos
-# this will be required in the diversity analyses
-ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
-ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
-unique(ectoparasites_df$ectoparasites_PA)
-
-ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_PA_max=max(ectoparasites_PA), sample_size=(n())) 
-
-species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean)
-species_attributes_distict<-distinct( species_atributes)
-
-ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
-
-ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,ectoparasites_PA_max,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
-  
-
-View(ectos_pres_abs_df)
-
-#write.csv(ectos_pres_abs_df, "data/5.ectos_pres_abs_df.csv")
-
-names(ectoparasites_df)
 
 
 # Reading the files 
@@ -407,69 +248,13 @@ rr2::R2(MCMC)
 #MCMCglmm https://ourcodingclub.github.io/tutorials/mcmcglmm/
 
 
-###_###_###_###_##
-# The data
-###_###_###_###_##
-# Getting the data ready
-#ectoparasites_df<-read.csv("data/data_analyses/7.ectoparasite_df_presence_absence.csv") # data on presence absence with all variables 
-#names( ectoparasites_df)
-#unique(ectoparasites_df$Mites)
-#View(phylogeny)
-#class(phylogeny)
-
-# including other data
-#number of detections in flocks
-#elevation_midpoint<-read.csv("data/1.elevation_midpoint_manu_species.csv")
-#anti_join(ectoparasites_df,elevation_midpoint, by=c("species_clean"="species_taxonomy_SACC_2021")) # speceis that are in the ectoparasite list that do not have a matcj in b 
-#ectoparasites_df<-left_join(ectoparasites_df,elevation_midpoint,by=c("species_clean"="species_taxonomy_SACC_2021"))
-
-# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-#ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-###_###_###_###_##
-#The models for presence absence
-###_###_###_###_##
-
-# all ectos together
-
-# INCLUDE SAMPLE SIZE IN THE ANALYSES AS A RANDOM EFFECT but maybe not here because it is individual samples because 
-#the higher the sample size the higher teh probability to find ectos
-
-# Re-strudture the data
-# Make sure variables are in teh right format, random effects should be factors
-#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
-#ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
-
-# this will be required in the diversity analyses
-#ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
-#ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
-#unique(ectoparasites_df$ectoparasites_PA)
-
-#str(ectoparasites_df$ectoparasites_PA)
-#ectoparasites_df %>% group_by(ectoparasites_PA) %>% 
-# summarise(n())
-
-#ectos_pres_abs<-ectoparasites_df %>% group_by(species_jetz ) %>% 
- # summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation_midpoint=max(elevation_midpoint)) %>% 
- # mutate(proportion_ectoparasites=ectoparasites_presence/sample_size)
-
-#species_atributes<-ectoparasites_df %>% select(elevation_cat, sociality, foraging_cat, species_jetz, species_clean, mass_tidy,Family )
-#species_attributes_distict<-distinct(species_atributes)
-
-#ectos_pres_abs_df<-right_join(species_attributes_distict, ectos_pres_abs, by="species_jetz")   %>% arrange(elevation_cat)
-
-#ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE) # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
-
-#View(ectos_pres_abs_df)
-
-# write.csv(ectos_pres_abs_df, "data/data_analyses/7.dff_ectos_pres_abs.csv")
 
 ###_###_###
 # [Prevalence_Presence_absence] THE MODELS
 ###_###_###
 
 #DATA
-ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence FOR THE MODEL
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs_species.csv")# data on prevalence FOR THE MODEL
 phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
@@ -727,7 +512,7 @@ mean(ectos_df$proportion_ectoparasites) # mean prevalnece observed
 #lims=NULL, outline=TRUE, sig=3, type="phylogram", direction="rightwards", 
 #plot=TRUE, ...)
 
-ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
+ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs_species.csv")# data on prevalence # should have same number of rows than teh phylogeny 
 phylogeny_prevalence<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 
 
@@ -815,24 +600,6 @@ plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=1,fsize
 library(ape)
 library(MCMCglmm)
 
-# Read teh files
-#lice_df_abundance<-read.csv("data/data_analyses/7.lice_df_abundance.csv")
-# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-#lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-#unique (lice_df_abundance$species_jetz) 
-#lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
-
-#lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") # data for manu only
-
-
-#Add powder lever
-#powder_bias<-read.csv("data/data_analyses/7.ectos_samples_powder_level.csv")
-#lice_df_abundance_powder<-inner_join( lice_df_abundance, powder_bias, by="Full_Label") 
-#lice_df_abundance_powder$powder_level<-as.factor(lice_df_abundance_powder$powder_level)
-
-#write.csv(lice_df_abundance_powder,"data/data_analyses/7.dff_lice_abundance.csv")
-str(lice_df_abundance_powder)
-
 ###_###_####_###_
 #The data Abundance 
 ###_###_####_###_'
@@ -854,7 +621,6 @@ lice_df_abundance$species_jetz<-as.factor(lice_df_abundance$species_jetz)
 lice_df_abundance$sociality<-as.factor(lice_df_abundance$sociality)
 
 unique(lice_df_abundance$species_jetz)
-
 
 
 #I am not sue about including foraging cat since that some how is included in teh variation per species , 
@@ -1818,7 +1584,7 @@ mean(data$mean_lice)
 
 
 
-
+###_####_###_####_####_###_
 # The individual values mites
 ###_####_###_####_####_###_
 

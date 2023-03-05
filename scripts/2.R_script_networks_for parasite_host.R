@@ -1,6 +1,6 @@
 ####################################################################
 ####################################################################
-##  Network analyses for parasite host across te gradient
+##  Network analyses for parasite host across the gradient
 ## 
 ## Explorartory analyses for Manu Networks
 ## R-code Adapted from SNA workshop (Farine 2020)
