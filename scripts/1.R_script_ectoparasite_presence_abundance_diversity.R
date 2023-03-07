@@ -1,6 +1,6 @@
 #######################################################################################
 ### Chapter 3-parasites and flocking species                                     ###
-### Part 1 Abundance                                                                             ###
+### Part 1 Taxonomy cleaning Abundance                                                                             ###
 ### R-code                                                                          ###
 ### Jenny Munoz                                                                     ###
 ### Last update: Oct 26 2022                                                     ###

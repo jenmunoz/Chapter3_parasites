@@ -3,15 +3,15 @@ This is the code for the chapter 3 of my PhD
 
 
 ## Sociality ##
-Sociality status is based on flcok observations from Manu only, some particular species have changes in teh status
+Sociality status is based on flcok observations from Manu only, some particular species have changes in thh status
 
-Lophotriccus pileatus::This species has been obserevd in flocks but those flcoks were incomplete and tehrefore not included in the analyses, I changed 0 to 1 in sociality manually
+Lophotriccus pileatus::This species has been obserevd in flocks but those floks were incomplete and therefore not included in the analyses, I changed 0 to 1 in sociality manually
 
 ##File names and description ##
 
 Raw data files:
 
-[1]The raw files of bird doversity form Manu diversity 
+[1]The raw files of bird diversity form Manu diversity 
 
 0.flocks_manu_complete_18052022.csv
 0.netting_manu_complete_18052022.csv
@@ -43,10 +43,10 @@ The above files were used to create the datafiles (df)  using script 1.
 5.ectos_pres_abs_df.csv # this files includes data from manu and iquitos
 
 5.lice_df_abundance_manu.csv # lice manu only 
-5.lice_df_abundance_means    # lice abundance manu onlu
+5.lice_df_abundance_means    # lice abundance manu only
 5.lice_richness_sp_df_manu.csv  # lice richness manu only 
 
-These files are the ones used for the analyses it  includes the parasite information with traits information, jetz taxonomy  and taxonomy corrected to 2022
+These files are the ones used for the analyses it  includes the parasite information with traits information, jetz taxonomy  and taxonomy corrected to 2022: 
 
 7.ectoparasite_df_presence_absence.csv 
 7.lice_df_abundance_means.csv
@@ -59,7 +59,41 @@ These files are the ones used for the analyses it  includes the parasite informa
 7.mites_df_diversity_group.csv
 7.ticks_df_abundance.csv
 
-# 
+# From those files we generated the datasets for data_analyses, selecting only relevant collumns with the following characeterustics: Script 2 
+
+Jetz taxonomy
+only Manu data, 
+excluded iquitos, 
+included sociality_binomial
+included and selected some bird traits
+included elevation of the sample
+included elevation midpoint ofthe species 
+
+
+# files 
+7.dff_all_ectos_prevalence_abundance_individual.csv # includes  Abundance and prevalence 
+
+###
+We the included the individual elevation for the samples using teh metadata from samples 
+#0.ectoparasite_samples_elevation_metadata.csv
+
+And for some ( few smples nputed data manually)
+
+#P121006	Rupicola_peruvianus 1362 The correct name of this is SP121006 AND THE ELEVATION 1362
+#"P120889" is Leptopogon superciliaris CORRRECT NAME SP120889  AND THE ELEVATION IS 1395
+#P120085 Formicarius rufipectus   correct name  SP120085 elev 1362
+#P115912 Leptopogon amaurocephalus elevation 381 
+
+
+### Created collumn with extrapolated date 
+This column take the NA for elevation and use the information about date and station to see which other species were captured the same data in the same station and used that elevation 
+
+
+included degree_general_network (at the species level)
+included refined degree at the individual level
+
+
+
 
 
 Notes on analyses with PGLMM phyr
