@@ -173,6 +173,9 @@ class(network_manu)
 ##_###_
 deg_weighted <- graph.strength(net_manu)
 deg_weighted<-as.data.frame(deg_weighted)
+
+deg_w <- rowSums(network_manu)
+
 #######
 ##Calculating degree#
 #######

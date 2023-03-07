@@ -82,47 +82,136 @@ association.db<-association.db %>%
 manu_detections<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022.csv")# with elevations
 jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_corrected.csv") %>% 
   distinct(species_taxonomy_SACC_2021, .keep_all = TRUE)
+
 list_manu_jetz<-read.csv("data/0.list_manu_species_jetz_taxonomy.csv") %>% select( species_jetz, species_from_detections,species_taxonomy_SACC_2021) %>% 
   distinct(species_taxonomy_SACC_2021, .keep_all = TRUE)
 
 #list_manu<-manu_detections %>% distinct(species_clean,species_taxonomy_SACC_2021)
 #list_manu_jetz<-full_join(list_manu,jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021") %>% rename(species_from_detections=species_clean)
-#write.csv(list_manu_jetz, "data/0.list_manu_species_jetz_taxonomy.csv")
+#write.csv(list_manu_jetz, "data/1.list_manu_species_jetz_taxonomy.csv")
 
 manu_detections_jetz<-left_join(manu_detections, list_manu_jetz, by=("species_taxonomy_SACC_2021"), multiple='all')
-#write.csv(manu_detections_jetz, "data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_included.csv")
+#write.csv(manu_detections_jetz, "data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv")
+
+
+###_###_###_###_###_###_###_###_###_###_###_###_###_###_
+# Flocks
+#Preparing flock data 
+flocks<-read.csv ("data/0.flocks_manu_complete_18052022.csv")
+flocks<-flocks %>% filter(database_decision=="include") 
+#Look for duplicates there are 755 observations, 4 repited entrees
+{flocks} %>%
+  dplyr::group_by( flock_id, species_taxonomy_SACC_2021) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+#flocks %>% group_by( flock_id, species_taxonomy_SACC_2021) %>%filter(n() > 1)
+
+#eliminate duplicates 
+flocks<-flocks %>% distinct( flock_id, species_taxonomy_SACC_2021, .keep_all = TRUE)
+unique(flocks$flock_id)
+# create list of flocking species
+flocks_list<-flocks %>% 
+  distinct( species_taxonomy_SACC_2021, keep_all=FALSE) %>% 
+  add_column(flocking="yes") %>% 
+  select(-keep_all)
+View(flocks)
+
 
 ###_###_###_###_
 # The data 
 ###_###_###_###_
 
-manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_included.csv")
-samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv")
+# Detections
+manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv")
+# ectoparasite samples for social species only 
+samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv") %>% 
+  rename(elevation=elevation_extrapolated_date) %>% 
+  filter(sociality=="1")
+unique(samples$sociality)
 
 # the ranges observed
 observed_species_range_limits<-manu_detections_jetz %>% group_by(species_jetz) %>% 
   summarise(low_limit=min(elevation), high_limit=max(elevation)) %>% 
   mutate_at("species_jetz", str_replace, " ", "_")
 
+#write.csv(observed_species_range_limits,"data/data_analyses/1.observed_species_range_limits.csv")
+
+# the flocks lists
+flocks_list<-read.csv("data/data_analyses/1.manu_bird_species_list_flocks.csv")
+
+list_manu_jetz<-read.csv("data/1.list_manu_species_jetz_taxonomy.csv") %>% select( species_jetz, species_from_detections,species_taxonomy_SACC_2021) %>% 
+  distinct(species_taxonomy_SACC_2021, .keep_all = TRUE) %>% 
+  mutate_at("species_jetz", str_replace, " ", "_") %>% 
+  mutate_at("species_taxonomy_SACC_2021", str_replace, " ", "_")
+
+flock_list_jetz<-inner_join(flocks_list,list_manu_jetz, by="species_taxonomy_SACC_2021" )
+
+
+# the ranges observed flock members
+observed_species_range_limits_flocks<-inner_join(observed_species_range_limits,flock_list_jetz, by=("species_jetz"))
+#write.csv(observed_species_range_limits_flocks,"data/data_analyses/1.observed_species_range_limits_flocks.csv")
+
 #View(species_range_limits)
 flocks_networks<-read.csv("data/9_flocks_for_networks_all_flocks.csv")
 #flocks_networks_file<-read.csv("data/9_flocks_for_networks_all_flocks_reformatted.csv")
 
 
-  
-
-
-
-
 association.db<-NULL
-for(i in 2:nrow(samples)){
+for(i in 1:nrow(samples)){
   elevation<-samples$elevation[i]
-  species_list<-species_range_limits[species_range_limits$low_limit<(elevation)&species_range_limits$high_limit>(elevation),]
-  flock_list<-flocks_networks %>% select(c( elevation,species_list$species))
-  rownames(flock_list) <- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
-  flock_list_1<-(flock_list[,-1])
+  species<-samples$species_taxonomy_SACC_2021[i]
+  sample_full_label<-samples$Full_Label[i]
+  species_list<-observed_species_range_limits_flocks[observed_species_range_limits_flocks$low_limit<(elevation)&observed_species_range_limits_flocks$high_limit>(elevation),]
+  flock_list<-flocks_networks %>% select(c(flock_id,species_list$species_taxonomy_SACC_2021)) # do teh same with jetz_species
+  rownames(flock_list)<- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
+  flocks_formatted<-(flock_list[,-1]) # delete first row
+  network_flock_elevation<-asnipe::get_network(association_data=flocks_formatted,data_format = "GBI",association_index = "SRI")
+  net_flocks_elevation<-igraph::graph.adjacency(network_flock_elevation, mode="undirected", weighted=TRUE, diag=FALSE)
+  degree_centrality<-as.data.frame(igraph::degree(net_flocks_elevation))
+  degree_centrality$species_network<-row.names(degree_centrality )
+  degree_centrality_species<-degree_centrality %>% filter(species_network==species) %>% rename(degree=`igraph::degree(net_flocks_elevation)`)
+  #w_degree<-rowSums(network_flock_elevation) # manually but unsure his is correct
+  deg_weighted<-as.data.frame(igraph::graph.strength(net_flocks_elevation))
+  deg_weighted$species_network<-row.names(deg_weighted)
+  deg_weighted_species<-deg_weighted %>% filter(species_network==species)%>% rename(w_degree=`igraph::graph.strength(net_flocks_elevation)`)
+  association.db<-bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree)
+}
+
+species
+
+degree_centrality$HeaderName<- row.names(degree_centrality )
+
+
+
+class(deg_weighted)
+
+View(degree_centrality)
+
+unique(deg_weighted$name)
+##_###_
+#measure weighted degree [or node’s strength , that is, the sum of the weights of all its links (Barrat, Barthelemy, et al., 2004 #Calculate the degree weighthed [ the sum of the weight of the edges for each node()] using igraph
+##_###_
+deg_weighted <- graph.strength(net_manu)
+deg_weighted<-as.data.frame(deg_weighted)
+
+net_manu<-igraph::graph.adjacency(network_manu, mode="undirected", weighted=TRUE, diag=FALSE)
+
+#######
+##Calculating degree#
+#######
+network_binary<-network_manu
+network_binary[network_binary> 0] <- 1
+deg_binary <- rowSums(network_binary)
+deg_binary<-as.data.frame(deg_binary)
+
+
+
   #my_network10<-get_network(association_data= network_matrix,data_format = "GBI",association_index = "SRI")
 }
+
+species_taxonomy_SACC_2021
+
+View(flock_list1)
 
 
 association.db<-NULL
