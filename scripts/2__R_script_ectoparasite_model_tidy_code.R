@@ -214,7 +214,7 @@ ecto_abundance_pglmm <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jet
 
 summary(ecto_abundance_pglmm)
 
-
+View(ectos_df)
 
 ecto_abundance_pglmm <-phyr::pglmm(total_mites~sociality+elevation+(1|species_jetz__)+Powder.lvl, #+elevation_midpoint
                                    data = ectos_df, 

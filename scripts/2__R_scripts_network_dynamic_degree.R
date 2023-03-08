@@ -31,7 +31,7 @@ library(ndtv) #helpful to create dynamic plots, and dynamic networks
 library(bipartite)
 #library(betalinkr)
 
-flocks_networks<-read.csv("data/9.flocks_for_networks_all_flocks.csv")
+flocks_networks<-read.csv("data/9_flocks_for_networks_all_flocks.csv")
 pairwise_range_limits<-read.csv("data/9.pairwise_range_limits_thamnophilidae.csv")
 
 # Creating a function to extract the networks
@@ -126,8 +126,10 @@ manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonom
 # ectoparasite samples for social species only 
 samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv") %>% 
   rename(elevation=elevation_extrapolated_date) %>% 
-  filter(sociality=="1")
-unique(samples$sociality)
+  filter(sociality=="1") %>% 
+  filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
+unique(samples$elevation)
+
 
 # the ranges observed
 observed_species_range_limits<-manu_detections_jetz %>% group_by(species_jetz) %>% 
@@ -155,14 +157,28 @@ observed_species_range_limits_flocks<-inner_join(observed_species_range_limits,f
 flocks_networks<-read.csv("data/9_flocks_for_networks_all_flocks.csv")
 #flocks_networks_file<-read.csv("data/9_flocks_for_networks_all_flocks_reformatted.csv")
 
+###_###_###_###_###_###_###_###_###_
+# Steps to extract degree for each indivuald sample
+###_###_###_###_###_###_###_###_###_
 
-association.db<-NULL
+#i)Extract the elevation of a sample
+#ii) Extract the species name and sample level
+#iii) Extract the flocking species list of species co-ocurring at that elevation
+#iv) Filter in the individual flocks, the flpcking species only
+# v) Buld the network 
+# vi) Extract the parameters for each individual species at that elevation 
+
+# ALternatively 
+# Repit i) to iii), then build one network and subset by the species list 
+#shoudl give the same result 
+
+network_metrics_ectos_samples.db<-NULL
 for(i in 1:nrow(samples)){
   elevation<-samples$elevation[i]
   species<-samples$species_taxonomy_SACC_2021[i]
   sample_full_label<-samples$Full_Label[i]
   species_list<-observed_species_range_limits_flocks[observed_species_range_limits_flocks$low_limit<(elevation)&observed_species_range_limits_flocks$high_limit>(elevation),]
-  flock_list<-flocks_networks %>% select(c(flock_id,species_list$species_taxonomy_SACC_2021)) # do teh same with jetz_species
+  flock_list<-flocks_networks %>% select(c(flock_id,species_list$species_taxonomy_SACC_2021)) # 
   rownames(flock_list)<- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
   flocks_formatted<-(flock_list[,-1]) # delete first row
   network_flock_elevation<-asnipe::get_network(association_data=flocks_formatted,data_format = "GBI",association_index = "SRI")
@@ -174,9 +190,106 @@ for(i in 1:nrow(samples)){
   deg_weighted<-as.data.frame(igraph::graph.strength(net_flocks_elevation))
   deg_weighted$species_network<-row.names(deg_weighted)
   deg_weighted_species<-deg_weighted %>% filter(species_network==species)%>% rename(w_degree=`igraph::graph.strength(net_flocks_elevation)`)
-  association.db<-bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree)
+  network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+  network_metrics_ectos_samples.db<-rbind(network_metrics_ectos_samples.db,network_metrics) # this is an odd wa of writing it but it works
 }
 
+network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_samples.db) %>% 
+  rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
+#network_metrics<-data.frame(sample_full_label,species ,degree_centrality_species$degree, deg_weighted_species$w_degree, elevation)
+
+write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE.csv")
+
+plot(network_metrics_ectoparasite_samples$elevation,data$degree)
+plot(network_metrics_ectoparasite_samples$elevation,data$w_degree)
+
+ggplot( network_metrics_ectoparasite_samples, aes(x=elevation, y=degree, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  stat_smooth(method=glm,by=species)+
+  guides(colour=FALSE)
+  
+
+
+# the other approach 
+
+
+network_metrics_ectos_samples.db<-NULL
+for(i in 1:nrow(samples)){
+  elevation<-samples$elevation[i]
+  species<-samples$species_taxonomy_SACC_2021[i]
+  sample_full_label<-samples$Full_Label[i]
+  species_list<-observed_species_range_limits_flocks[observed_species_range_limits_flocks$low_limit<(elevation)&observed_species_range_limits_flocks$high_limit>(elevation),]
+  flock_list<-flocks_networks %>% select(c(-elevation,-X)) # 
+  rownames(flock_list)<- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
+  flocks_formatted<-(flock_list[,-1]) # delete first row
+  network_flock_elevation<-asnipe::get_network(association_data=flocks_formatted,data_format = "GBI",association_index = "SRI")
+  net_flocks_elevation<-igraph::graph.adjacency(network_flock_elevation, mode="undirected", weighted=TRUE, diag=FALSE)
+  subset<-subgraph(net_flocks_elevation,species_list$species_taxonomy_SACC_2021 )
+  degree_centrality<-as.data.frame(igraph::degree(subset))
+  degree_centrality$species_network<-row.names(degree_centrality )
+  degree_centrality_species<-degree_centrality %>% filter(species_network==species) %>% rename(degree=`igraph::degree(subset)`)
+  #w_degree<-rowSums(network_flock_elevation) # manually but unsure his is correct
+  deg_weighted<-as.data.frame(igraph::graph.strength(subset))
+  deg_weighted$species_network<-row.names(deg_weighted)
+  deg_weighted_species<-deg_weighted %>% filter(species_network==species)%>% rename(w_degree=`igraph::graph.strength(subset)`)
+  network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+  network_metrics_ectos_samples.db<-rbind(network_metrics_ectos_samples.db,network_metrics) # this is an odd wa of writing it but it works
+}
+
+network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_samples.db) %>% 
+  rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
+
+write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE_method2.csv")
+
+
+##### just exploring the change in degre by species
+
+manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv") %>% 
+  filter(method=="flock") %>% 
+  distinct(species_taxonomy_SACC_2021,elevation)
+
+
+network_metrics_gradient.db<-NULL
+for(i in 1:nrow(manu_detections_jetz)){
+  elevation<-manu_detections_jetz$elevation[i]
+  species<-manu_detections_jetz$species_taxonomy_SACC_2021[i]
+  method<-manu_detections_jetz$methodl[i]
+  species_list<-observed_species_range_limits_flocks[observed_species_range_limits_flocks$low_limit<(elevation)&observed_species_range_limits_flocks$high_limit>(elevation),]
+  flock_list<-flocks_networks %>% select(c(-elevation,-X)) # 
+  rownames(flock_list)<- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
+  flocks_formatted<-(flock_list[,-1]) # delete first row
+  network_flock_elevation<-asnipe::get_network(association_data=flocks_formatted,data_format = "GBI",association_index = "SRI")
+  net_flocks_elevation<-igraph::graph.adjacency(network_flock_elevation, mode="undirected", weighted=TRUE, diag=FALSE)
+  subset<-subgraph(net_flocks_elevation,species_list$species_taxonomy_SACC_2021 )
+  degree_centrality<-as.data.frame(igraph::degree(subset))
+  degree_centrality$species_network<-row.names(degree_centrality )
+  degree_centrality_species<-degree_centrality %>% filter(species_network==species) %>% rename(degree=`igraph::degree(subset)`)
+  #w_degree<-rowSums(network_flock_elevation) # manually but unsure his is correct
+  deg_weighted<-as.data.frame(igraph::graph.strength(subset))
+  deg_weighted$species_network<-row.names(deg_weighted)
+  deg_weighted_species<-deg_weighted %>% filter(species_network==species)%>% rename(w_degree=`igraph::graph.strength(subset)`)
+  network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+  network_metrics_gradient.db<-rbind(network_metrics_ectos_samples.db,network_metrics) # this is an odd wa of writing it but it works
+}
+
+
+
+
+
+
+create a file with changes every 50 m of elevation and see how degree changes
+
+network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+
+association_pair<-data.frame(species1=species[1], species2=species[2],association=association,n=nrow(flock_list))
+
+association.db<-rbind(association.db, association_pair)
+
+network_metrics_ectos_samples.db
+
+network_metrics_ectos_samples
+
+View(network_metrics_ectos_samples.db)
 species
 
 degree_centrality$HeaderName<- row.names(degree_centrality )
