@@ -210,7 +210,7 @@ ggplot( network_metrics_ectoparasite_samples, aes(x=elevation, y=degree, by=spec
   
 
 
-# the other approach 
+# the other approach  gives the same results
 
 
 network_metrics_ectos_samples.db<-NULL
@@ -239,21 +239,51 @@ for(i in 1:nrow(samples)){
 network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_samples.db) %>% 
   rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
 
-write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE_method2.csv")
+#write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE_method2.csv")
+
+network_metrics_ectoparasite_samples<-read.csv("data/data_analyses/7_dff_network_metrics_ectoparasite_samples_FILE.csv")
+df_ectos<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv")
+
+df_ectos_network_metrics<-inner_join( df_ectos,network_metrics_ectoparasite_samples, by=c("Full_Label"="sample"))
+
+write.csv(df_ectos_network_metrics,"data/data_analyses/7.dff_ectos_network_metrics_individuals_FILE.csv")
+df_ectos_netowrk_metrics_n_z <-df_ectos_netowrk_metrics %>% filter(total_mites!=0) 
+
+df_ectos_netowrk_metrics <-df_ectos_netowrk_metrics %>% 
+  filter(species_jetz=="Myrmotherula_axillaris")
 
 
-##### just exploring the change in degre by species
+
+ggplot(df_ectos_netowrk_metrics_n_z, aes(x=degree, y=total_lice, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='glm', by=species)+
+  #facet_wrap(~species_jetz, ncol=4)+
+  guides(colour=FALSE)
+
+# Extra code for other manuscripts ideas ----------------------------------
+
+####_###_###_####_###_###_
+####_###_###_
+#Extra code for other ideas
+
+##### just exploring the change in degre by species personal curiosity adn other potential paper
+
+# Detections
 
 manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv") %>% 
   filter(method=="flock") %>% 
-  distinct(species_taxonomy_SACC_2021,elevation)
+  distinct(species_taxonomy_SACC_2021,elevation) 
+
+
+  #filter(species_taxonomy_SACC_2021==c("Thamnomanes_schistogynus",
+                                       "Diglossa_cyanea"))
+
 
 
 network_metrics_gradient.db<-NULL
 for(i in 1:nrow(manu_detections_jetz)){
   elevation<-manu_detections_jetz$elevation[i]
   species<-manu_detections_jetz$species_taxonomy_SACC_2021[i]
-  method<-manu_detections_jetz$methodl[i]
   species_list<-observed_species_range_limits_flocks[observed_species_range_limits_flocks$low_limit<(elevation)&observed_species_range_limits_flocks$high_limit>(elevation),]
   flock_list<-flocks_networks %>% select(c(-elevation,-X)) # 
   rownames(flock_list)<- flock_list[,1] # make the first column the raw names(flock id shoudl be the row names)
@@ -268,160 +298,105 @@ for(i in 1:nrow(manu_detections_jetz)){
   deg_weighted<-as.data.frame(igraph::graph.strength(subset))
   deg_weighted$species_network<-row.names(deg_weighted)
   deg_weighted_species<-deg_weighted %>% filter(species_network==species)%>% rename(w_degree=`igraph::graph.strength(subset)`)
-  network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
-  network_metrics_gradient.db<-rbind(network_metrics_ectos_samples.db,network_metrics) # this is an odd wa of writing it but it works
+  network_metrics<-as.data.frame(bind_cols(species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+  network_metrics_gradient.db<-rbind(network_metrics_gradient.db,network_metrics) # this is an odd wa of writing it but it works
 }
 
+network_metrics_birds_gradient<-as.data.frame(network_metrics_gradient.db) %>% 
+  rename(species=...1,degree=...2, elevation=...4,w_degree=...3) 
+
+View(network_metrics_birds_gradient)
+
+network_metrics_birds_gradient_obligate<-network_metrics_birds_gradient %>% filter(species=="Thamnomanes_schistogynus" |
+                                                                                     species=="Thamnomanes_ardesiacus"|
+                                                                                     species=="Tangara_arthus"|
+                                                                                     species=="Myrmotherula_axillaris"|
+                                                                                     species=="Myrmotherula_menetriesii"|
+                                                                                     species=="Tangara_chilensis"|
+                                                                                     species=="Lanio_versicolor"|
+                                                                                     species=="Chlorospingus_flavigularis"|
+                                                                                     species=="Chlorospingus_flavigularis"|
+                                                                                     species=="Chlorochrysa_calliparaea"|
+                                                                                     species=="Leptopogon superciliaris"|
+                                                                                     species=="Mecocerculus_stictopterus"|
+                                                                                     species=="Anisognathus_igniventris"|
+                                                                                     species=="Hemispingus_superciliaris"|
+                                                                                     species=="Hemispingus_atropileus"|
+                                                                                     species=="Myioborus_miniatus")
+                                                                              
+network_metrics_birds_gradient_non_obligate<-network_metrics_birds_gradient %>% filter(species=="Diglossa_cyanea" |
+                                                                                     species=="Eubucco_versicolor"|
+                                                                                     species=="Mecocerculus_leucophrys"|
+                                                                                     species=="Myrmotherula_menetriesii"|
+                                                                                     species=="Pyrrhomyias_cinnamomeus"|
+                                                                                     species=="Lanio_versicolor"|
+                                                                                     species=="Tangara_gyrola"|
+                                                                                     species=="Tangara_schrankii"|
+                                                                                     species=="Thamnophilus_schistaceus"|
+                                                                                     species=="Trogon_viridis"|
+                                                                                     species=="Xiphorhynchus_triangularis")
 
 
 
+network_metrics_birds_gradient_regular<-network_metrics_birds_gradient %>% filter(species==c("Diglossa_cyanea"))
+
+                                                                                              
+View(network_metrics_birds_gradient_obligate)    
 
 
-create a file with changes every 50 m of elevation and see how degree changes
+# see this for plotting models in ggplot 
 
-network_metrics<-as.data.frame(bind_cols(sample_full_label,species, degree_centrality_species$degree, deg_weighted_species$w_degree, elevation))
+#https://aosmith.rbind.io/2018/11/16/plot-fitted-lines/
 
-association_pair<-data.frame(species1=species[1], species2=species[2],association=association,n=nrow(flock_list))
+ggplot( network_metrics_birds_gradient, aes(x=elevation, y=degree))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='gam')+
+  #facet_grid(species~.)+
+  #stat_smooth(method=glm,by=species,se=FALSE)+
+  guides(colour=FALSE)
 
-association.db<-rbind(association.db, association_pair)
-
-network_metrics_ectos_samples.db
-
-network_metrics_ectos_samples
-
-View(network_metrics_ectos_samples.db)
-species
-
-degree_centrality$HeaderName<- row.names(degree_centrality )
-
-
-
-class(deg_weighted)
-
-View(degree_centrality)
-
-unique(deg_weighted$name)
-##_###_
-#measure weighted degree [or node’s strength , that is, the sum of the weights of all its links (Barrat, Barthelemy, et al., 2004 #Calculate the degree weighthed [ the sum of the weight of the edges for each node()] using igraph
-##_###_
-deg_weighted <- graph.strength(net_manu)
-deg_weighted<-as.data.frame(deg_weighted)
-
-net_manu<-igraph::graph.adjacency(network_manu, mode="undirected", weighted=TRUE, diag=FALSE)
-
-#######
-##Calculating degree#
-#######
-network_binary<-network_manu
-network_binary[network_binary> 0] <- 1
-deg_binary <- rowSums(network_binary)
-deg_binary<-as.data.frame(deg_binary)
+ggplot( network_metrics_birds_gradient, aes(x=elevation, y=w_degree))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='loess')+
+  #facet_grid(species~.)+
+  #stat_smooth(method=glm,by=species,se=FALSE)+
+  guides(colour=FALSE)
 
 
 
-  #my_network10<-get_network(association_data= network_matrix,data_format = "GBI",association_index = "SRI")
-}
+ggplot( network_metrics_birds_gradient, aes(x=elevation, y=degree,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='gam')+
+  #facet_grid(species~.)+
+  #stat_smooth(method=glm,by=species,se=FALSE)+
+  guides(colour=FALSE)
 
-species_taxonomy_SACC_2021
+ggplot( network_metrics_birds_gradient, aes(x=elevation, y=degree, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='glm')+
+  #facet_grid(species~.)+
+  #stat_smooth(method=glm,by=species,se=FALSE)+
+  guides(colour=FALSE)
 
-View(flock_list1)
+ggplot(network_metrics_birds_gradient_obligate, aes(x=elevation, y=w_degree, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='gam', by=species)+
+  facet_wrap(~species, ncol=4)+
+  guides(colour=FALSE)
+#stat_smooth(method=glm,by=species,se=FALSE)+
 
-
-association.db<-NULL
-for(i in 1:nrow(samples)){
-  elevation<-samples$elevation[i]
-  species_list<-species_range_limits[observed_species_range_limits$low_limit<(elevation)&observed_species_range_limits$high_limit>(elevation),]
-  flock_list<-flocks_networks_file %>% filter(species %in% species_list$species)
-  network_matrix<- t(flock_list)
-  names(network_matrix)<-network_matrix[1,]
-  #my_network10<-get_network(association_data= network_matrix,data_format = "GBI",association_index = "SRI")
-}
-
-
-
-
-
-flocks_networks %>% select(c(species_list$species))
-
-
-step 1: Copy 1st row to header:
-  
-  names(dat) <- dat[1,]
-step 2: Delete 1st row :
-  
-  dat <- dat[-1,]
+ggplot(network_metrics_birds_gradient_obligate, aes(x=elevation, y=degree, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='gam', by=species)+
+  facet_wrap(~species, ncol=4)+
+  guides(colour=FALSE)
 
 
-
-
-network3
-View( network_matrix)
-
-class(network_matrix)
-View(network_matrix)
-
-flock_list3<-flocks_networks_file[flocks_networks_file$species==(species_list$species)]
-
-flocks_networks_file %>% filter(species %in% species_list$species)
-
-flock_list<-flocks_networks_file[flocks_networks_file$species%in%(species_list$species)]
-
-flock_list<-match_df(flocks_networks_file,species_list)
-
-network3
-
-
-flock_list<-flocks_networks_file[a]
-
-match_d
-
-flock_list<-flocks_networks_file["flocks_networks_file$species"=="species_list$species"]
-
-View(flock_list)
-net<-igraph::graph.adjacency(  my_network5, mode="undirected", weighted=TRUE, diag=FALSE)
-plot(net)
-
-class(network_matrix)
-View(flock_list)
-
-flocks_networks_file$species
-
-
-a<-species_list$species
-
-
-flock_list<-flocks_networks_file[species_list$species,]
-
-View(flock_list)
-
-
-for (i in 1:nrow(samples)) {
-  low<-species_range_limits$low_limit[i]
-  high<-species_range_limits$high_limit[i]
-  flock_list<-flocks_networks[flocks_networks$elevation>(low)& flocks_networks$elevation<(high),]
-  network0<-(flock_list[,-1])
-  network1<-(network0[,-1])
-  rownames(network1) <- network1[,1] # make the first column the raw names(flock id shoudl be the row names)
-  network2<-(network1[,-1])
-  network3<-as.matrix(network2)
-  detected<-apply(network3, 2, sum) # filter species that have more than 2 detections
-  network3<-network3[,detected>3]
-  if(!is.null(nrow(network3))){ if(nrow(network3)>20){
-    my_network<-get_network(association_data=network3,data_format = "GBI",association_index = "SRI")
-    species<-unlist(strsplit(pairwise_range_limits$species_pair[i],"&"))
-    row_vector<-dimnames(my_network)[[1]]
-    col_vector<-dimnames(my_network)[[2]]
-    association<-my_network[row_vector==species[1], col_vector==species[2]] 
-    if (length(association)==0) {association<-NA}# when in the range there are ot enoug bandadas to compute
-    association_pair<-data.frame(species1=species[1], species2=species[2],association=association,n=nrow(flock_list))
-    association.db<-rbind(association.db, association_pair)}}
-}
-
-for (i in 1:nrow(species_range_limits)) {
-elevation<-species_range_limits$low_limit[i]
-  high<-species_range_limits$high_limit[i]
-flock_list<-flocks_networks[flocks_networks$elevation>(low)& flocks_networks$elevation<(high),]
-
+ggplot(network_metrics_birds_gradient_non_obligate, aes(x=elevation, y=w_degree, by=species,color=species))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='gam', by=species)+
+  facet_wrap(~species, ncol=4)+
+  guides(colour=FALSE)
 
 
 
