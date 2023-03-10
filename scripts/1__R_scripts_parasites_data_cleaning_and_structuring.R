@@ -4,7 +4,7 @@
 ### R-code                                                                          ###
 ### Jenny Munoz      
 ###
-### Last update: Oct 26 2022                                                     ###
+### Last update: feb 2023                                                   ###
 ################################################################################
 
 # Loading packages --------------------------------------------------------
@@ -353,20 +353,24 @@ ectoparasites_df<-ectoparasites_df %>% filter(elevation_cat!="lowland_iquitos",e
 #We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
 ectoparasites_df <-ectoparasites_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
 
-# Summarize the parasite prevalence 
+# Summarize the parasite prevalence per individual
 ectoparasites_df<- ectoparasites_df %>% mutate(ectoparasites_PA=Lice+Mites+Ticks)
 ectoparasites_df$ectoparasites_PA[ectoparasites_df$ectoparasites_PA>=1]<-1   # convert the numerical values that we have without core to lowland iquitos
 unique(ectoparasites_df$ectoparasites_PA)
 
-# select relevant columns
+# select relevant columns and delete repited rows ( surpridinly we have repited rows!!!!)
 
 ectos_pres_abs_df_individuals<-ectoparasites_df %>% 
   select(sample,Sample_label,Sample_No,Full_Label,species_jetz, species_clean,species_binomial,BLFamilyLatin, sociality,mass_tidy,elevation_cat, foraging_cat,Powder.lvl,  elevation_midpoint, ectoparasites_PA, Lice, Mites, Ticks) %>% 
-  rename(family=BLFamilyLatin)%>% distinct(Full_Label,.keep_all = TRUE)
+  rename(family=BLFamilyLatin)%>% 
+  distinct(Full_Label,.keep_all = TRUE)
+
+dim(ectos_pres_abs_df_individuals )
+
 
 # Importnat to make sure  that there are not repited samples 
 
-write.csv(ectos_pres_abs_df_individuals, "data/data_analyses/7.dff_ectos_pres_abs_individuals.csv")
+#write.csv(ectos_pres_abs_df_individuals, "data/data_analyses/7.dff_ectos_pres_abs_individuals.csv")
 
 names(ectoparasites_df )
 species_attributes_distict<-distinct(species_atributes)

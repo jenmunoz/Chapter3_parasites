@@ -291,3 +291,20 @@ is.rooted(random_host_tree_lice_manu_abun_networks)
 write.tree(random_host_tree_lice_manu_abun_networks, file="data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abun_manu_networks.tre")
 write.nexus(random_host_tree_lice_manu_abun_networks, file="data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_lice_abunmanu_networks.nex")
 
+
+
+# Extract tree for Peru bird species  -------------------------------------
+
+# This is the list of Manu species  used to extract the phylogenetic trees
+manu_list_jetz<-read.csv("data/data_analyses/1.list_manu_species_jetz_taxonomy.csv") %>% 
+  distinct(species_jetz)
+
+
+# We can acCess the new tree of life website //vertlife.org/phylosubsets
+
+
+
+# Extract tree for Colombian  bird species  -------------------------------------
+
+
+

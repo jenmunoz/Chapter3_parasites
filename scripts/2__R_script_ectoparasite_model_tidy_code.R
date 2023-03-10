@@ -97,8 +97,7 @@ library(gridExtra)
 library(ggpubr)
 library(grid)
 
-# [Presence_absence] Part1_Ectoparasite models_using binary data  1/0
-
+# [Presence_absence] Part1_Ectoparasite models_using binary data  1/0 Unsure if this is useful or will give similar results thanthe one below need to rethink this piece
 
 # [Prevalence]Part1 Ectoparasite models_using prevalence data (Corrections after meeting with Jullie et al  using probabilities)_Ectoparasite models_  -----------------------------
 #All models fitted with pglmm() have class of communityPGLMM. Here is a list of functions that can be used to these models.
@@ -121,16 +120,18 @@ library(grid)
 ###_###_###
 
 #DATA
-ectos_df<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+# This dataset contains all parasites samples (887) after removing duplicated rows, for which we have an assignated elevation, for 783 in total out of 998 that we had originally  (this included some duplicates)
+ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date)
-phylo<- read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
 
 unique(ectos_df$species_jetz )
 
 # Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
 #ectos_df<-ectos_df %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
 
-# Make sure the tips and the names on the file coincide
+# Make sure the tips and the names on the file coincide and formating of name is consitent
 phylo$edge.length  
 phylo$tip.label
 is.binary(phylo)
@@ -138,11 +139,13 @@ is.binary(phylo)
 # Make sure this two are the same numbers 
 
 a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
-b<-(as.data.frame(ectos_df$species_jetz))%>% mutate(name=ectos_df$species_jetz) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(ectos_df$species_jetz)) %>% mutate(name=ectos_df$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
 
 tip<-as.list(setdiff(a,b))
 print(tip)
-#phylo<-drop.tip (phylogeny_prevalence, tip$name) USE IF NEED TO DROP SOME TIPS
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using teh full phylogeny
+#phylo<-drop.tip (phylogeny_prevalence, tip$name) 
 
 # Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits 
 #( I am not sure if this is relevatnt for the PGLMM cause we have multiple observations)
@@ -150,8 +153,8 @@ print(tip)
 #ectos_df<- ectos_df[match(phylo$tip.label,rownames(ectos_df)),]
 
 # Re-strudture the data
-# Make sure variables are in teh right format, random effects should be factors
-#We need to aling the variable name and the structure to the names in the column tip.label used for the phylogeny?
+# Make sure variables are in the right format, random effects should be factors
+#We need to align the variable name and the structure to the names in the column tip.label used for the phylogeny?
 
 ectos_df <-ectos_df  %>% mutate_at("species_jetz", str_replace, " ", "_")
 ectos_df$elevation_cat<-as.factor(ectos_df$elevation_cat)
@@ -160,6 +163,9 @@ ectos_df$species_jetz<-as.factor(ectos_df$species_jetz)
 ectos_df$elevation<-as.numeric(ectos_df$elevation)
 ectos_df$elevation_midpoint<-as.numeric(ectos_df$elevation_midpoint)
 ectos_df$sociality<-as.factor(ectos_df$sociality)
+ectos_df$Powder.lvl<-as.factor(ectos_df$Powder.lvl)
+
+names(ectos_df)
 
 is.ultrametric(phylogeny_prevalence)
 
@@ -173,6 +179,13 @@ is.ultrametric(phylogeny_prevalence)
 ###_###_###_ ###_###_###_ ###_###_###_ 
 
 
+
+
+install.packages("DHARMa")
+a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
+
+
+
 ###_###_###_ 
 # Using PGLMM [ Lets correct for phylogeny ]
 ###_###_###_ 
@@ -183,7 +196,7 @@ is.ultrametric(phylogeny_prevalence)
 #lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression INTERESTING
 
 names( ectos_df)
-ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__), #+elevation_midpoint+Powder.lvl
+ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
                                       data = ectos_df, 
                                       family = "binomial",
                                       cov_ranef = list(species_jetz= phylo), #class phylo
@@ -191,6 +204,14 @@ ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+elevation+(1|spec
                                       REML = TRUE, 
                                       verbose = TRUE,
                                       s2.init = .25) # what is this last parameter for
+
+
+ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
+                         data = ectos_df, 
+                         cov_ranef = list(species_jetz= phylo), #class phylo
+                         family = "binomial",
+                         bayes = TRUE,
+                         prior = "pc.prior.auto")
 
 names(ectos_df)
 summary(ecto_prevalence_pglmm)
@@ -237,7 +258,8 @@ dev.off()
 
 plot(a)
 
-# Underestanding the summary of the random effects
+# Underestanding the summary of the model 
+#random effects 
 #The random effect with the largest variance and standard variation is the one with the strongest effect, in our case the phylogenetic effect,
 # this implies that the parasites  prevalence is more similar in closely related species 
 

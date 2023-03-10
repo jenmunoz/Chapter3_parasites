@@ -198,7 +198,7 @@ network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_sample
   rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
 #network_metrics<-data.frame(sample_full_label,species ,degree_centrality_species$degree, deg_weighted_species$w_degree, elevation)
 
-write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE.csv")
+#write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE.csv")
 
 plot(network_metrics_ectoparasite_samples$elevation,data$degree)
 plot(network_metrics_ectoparasite_samples$elevation,data$w_degree)
@@ -246,7 +246,8 @@ df_ectos<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_indi
 
 df_ectos_network_metrics<-inner_join( df_ectos,network_metrics_ectoparasite_samples, by=c("Full_Label"="sample"))
 
-write.csv(df_ectos_network_metrics,"data/data_analyses/7.dff_ectos_network_metrics_individuals_FILE.csv")
+str(df_ectos_network_metrics)
+#write.csv(df_ectos_network_metrics,"data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv")
 df_ectos_netowrk_metrics_n_z <-df_ectos_netowrk_metrics %>% filter(total_mites!=0) 
 
 df_ectos_netowrk_metrics <-df_ectos_netowrk_metrics %>% 
