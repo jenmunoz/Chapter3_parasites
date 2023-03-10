@@ -33,6 +33,9 @@ install.packages("visreg")  #extract confidence intervals and trend lines from G
 install.packages("lsmeans") #least squared means
 install.packages("MuMIn") #pseudo R squared for GLMMs
 install.packages("emmeans")
+#model assumptions
+install.packages("DHARMa")
+
 
 # Phylogenetic component
 install.packages("ape")
@@ -78,6 +81,9 @@ library(lme4) #for glmer (generalized linear mixed models)
 library(visreg) #extract confidence intervals and trend lines from GLMMs
 library(MuMIn) #pseudo R squared for GLMMs
 library(emmeans)
+
+#mode assumption check
+library (DHARMa)
 #library(dplyr) 
 #Phylogenetic component
 library(ape)
@@ -179,8 +185,6 @@ is.ultrametric(phylogeny_prevalence)
 ###_###_###_ ###_###_###_ ###_###_###_ 
 
 
-
-
 install.packages("DHARMa")
 a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
 
@@ -192,6 +196,9 @@ a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
 
 #I am not sue about including foraging cat since that some how is included in teh variation per species  ( Removed) 
 # we revomed (1|foraging_cat) because it was not significant in individual models 
+#notes 
+#As with the linear mixed model, it is a very good idea to standardize the predictor (independent) variables to have mean 0 and variance 1. 
+#This will make the function more robust and improve the interpretation of the regression coefficients.
 
 #lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression INTERESTING
 
@@ -205,14 +212,6 @@ ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+elevation+(1|spec
                                       verbose = TRUE,
                                       s2.init = .25) # what is this last parameter for
 
-
-ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
-                         data = ectos_df, 
-                         cov_ranef = list(species_jetz= phylo), #class phylo
-                         family = "binomial",
-                         bayes = TRUE,
-                         prior = "pc.prior.auto")
-
 names(ectos_df)
 summary(ecto_prevalence_pglmm)
 print(ecto_prevalence_pglmm)
@@ -221,10 +220,48 @@ predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm ) 
 
+plot(ecto_prevalence_pglmm)
+
+ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
+                         data = ectos_df, 
+                         cov_ranef = list(species_jetz= phylo), #class phylo
+                         family = "zeroinflated.binomial",
+                         bayes = TRUE,
+                         prior = "pc.prior.auto")
+
+names(ectos_df)
+summary(ecto_prevalence_pglmm_bayes)
+print(ecto_prevalence_pglmm)
+rr2::R2(ecto_prevalence_pglmm_bayes)
+class(ecto_prevalence_pglmm ) 
+
 str(ecto_prevalence_pglmm)
 
+plot_bayes(ecto_prevalence_pglmm_bayes )
 
-ecto_abundance_pglmm <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jetz__), #+elevation_midpoint +Powder.lvl
+pdf(file="outputs_models/model_prevalence_bayes.pdf")
+plot_bayes(ecto_prevalence_pglmm_bayes )
+
+dev.off()
+
+#What we are looking for is that the posterior distribution mode is well away from zero, and that it looks relatively symmetrical. 
+#If it were skewed and crammed up against the left side of the plot, near zero, we would conclude that the effect is weak (remembering that variance components cannot be less than or equal zero,
+#so there will always be some positive probability mass). The most obvious effects (well away from zero) are again the phylogenetic species random effect. 
+
+# Model assumption checks 
+
+resids <- DHARMa::simulateResiduals(ecto_prevalence_pglmm, plot = TRUE)
+#> Warning in checkModel(fittedModel): DHARMa: fittedModel not in class of
+#> supported models. Absolutely no guarantee that this will work!
+plot(resids)
+
+plotResiduals(resids , ecto_prevalence_pglmm$sociality)
+
+
+# Abundance models 
+
+
+ecto_abundance_pglmm <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
                                     data = ectos_df, 
                                     family = "poisson",
                                     cov_ranef = list(species_jetz= phylo), #class phylo
@@ -234,6 +271,21 @@ ecto_abundance_pglmm <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jet
                                     s2.init = .25) # what is this last parameter for
 
 summary(ecto_abundance_pglmm)
+
+ecto_abundance_pglmm_bayes <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
+                                   data = ectos_df, 
+                                   family ="zeroinflated.poisson",
+                                   cov_ranef = list(species_jetz= phylo), #class phylo
+                                   bayes = TRUE,
+                                   prior = "pc.prior.auto")
+
+
+
+summary(ecto_abundance_pglmm_bayes)
+rr2::R2(ecto_abundance_pglmm_bayes)
+
+
+
 
 View(ectos_df)
 
