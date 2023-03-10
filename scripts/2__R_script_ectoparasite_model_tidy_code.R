@@ -185,10 +185,6 @@ is.ultrametric(phylogeny_prevalence)
 ###_###_###_ ###_###_###_ ###_###_###_ 
 
 
-install.packages("DHARMa")
-a<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
-
-
 
 ###_###_###_ 
 # Using PGLMM [ Lets correct for phylogeny ]
@@ -220,26 +216,38 @@ predict(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm)
 class(ecto_prevalence_pglmm ) 
 
-plot(ecto_prevalence_pglmm)
+install.packages('ggridges')
+library(ggridges)
 
+plot_data(
+  ecto_prevalence_pglmm_bayes,
+  sp.var = "species_jetz",
+  site.var = "sociality",
+  show.sp.names = FALSE,
+  show.site.names = FALSE,
+  digits = max(3, getOption("digits") - 3),
+  predicted = FALSE,
+)
+
+ 
 ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
                          data = ectos_df, 
                          cov_ranef = list(species_jetz= phylo), #class phylo
-                         family = "zeroinflated.binomial",
+                         family = "binomial",
                          bayes = TRUE,
                          prior = "pc.prior.auto")
 
 names(ectos_df)
 summary(ecto_prevalence_pglmm_bayes)
 print(ecto_prevalence_pglmm)
-rr2::R2(ecto_prevalence_pglmm_bayes)
+rr2::R2(ecto_prevalence_pglmm_bayes) 
 class(ecto_prevalence_pglmm ) 
 
 str(ecto_prevalence_pglmm)
 
 plot_bayes(ecto_prevalence_pglmm_bayes )
 
-pdf(file="outputs_models/model_prevalence_bayes.pdf")
+#pdf(file="outputs_models/model_prevalence_bayes.pdf")
 plot_bayes(ecto_prevalence_pglmm_bayes )
 
 dev.off()
@@ -274,7 +282,7 @@ summary(ecto_abundance_pglmm)
 
 ecto_abundance_pglmm_bayes <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
                                    data = ectos_df, 
-                                   family ="zeroinflated.poisson",
+                                   family ="poisson",
                                    cov_ranef = list(species_jetz= phylo), #class phylo
                                    bayes = TRUE,
                                    prior = "pc.prior.auto")
@@ -284,6 +292,10 @@ ecto_abundance_pglmm_bayes <-phyr::pglmm(total_lice~sociality+elevation+(1|speci
 summary(ecto_abundance_pglmm_bayes)
 rr2::R2(ecto_abundance_pglmm_bayes)
 
+pglmm_plot_re(ecto_abundance_pglmm_bayes)
+#pdf(file="outputs_models/model_abundance_bayes.pdf")
+plot_bayes(ecto_abundance_pglmm_bayes )
+#dev.off()
 
 
 
