@@ -33,6 +33,7 @@ install.packages("visreg")  #extract confidence intervals and trend lines from G
 install.packages("lsmeans") #least squared means
 install.packages("MuMIn") #pseudo R squared for GLMMs
 install.packages("emmeans")
+install.packages('brms') # bayesian approach to model phylogenetic data with repides observations
 #model assumptions
 install.packages("DHARMa")
 
@@ -81,9 +82,11 @@ library(lme4) #for glmer (generalized linear mixed models)
 library(visreg) #extract confidence intervals and trend lines from GLMMs
 library(MuMIn) #pseudo R squared for GLMMs
 library(emmeans)
-
 #mode assumption check
 library (DHARMa)
+
+library(brms) # bayesian approach to model phylogenetic data with repides observations
+
 #library(dplyr) 
 #Phylogenetic component
 library(ape)
@@ -185,6 +188,9 @@ is.ultrametric(phylogeny_prevalence)
 ###_###_###_ ###_###_###_ ###_###_###_ 
 
 
+###
+#PREVALENCE MODELS 
+###
 
 ###_###_###_ 
 # Using PGLMM [ Lets correct for phylogeny ]
@@ -198,9 +204,21 @@ is.ultrametric(phylogeny_prevalence)
 
 #lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression INTERESTING
 
+# remove ind with NAs for any of the variables of interest 
+#   ectos_df_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+#   rename(elevation=elevation_extrapolated_date) %>% select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, sociality ) %>% 
+#   na.omit()
+
 names( ectos_df)
-ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
-                                      data = ectos_df, 
+ecto_prevalence_glmm <-glmer(ectoparasites_PA~sociality+elevation+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
+                             data = ectos_df, 
+                             family = "binomial")
+ecto_prevalence_glmm <-glmer(ectoparasites_PA~sociality+scale(elevation)+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
+                             data = ectos_df, 
+                             family = "binomial")
+
+ecto_prevalence_pglmm <-phyr::pglmm(ectoparasites_PA~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
+                                      data = ectos_df_wo_na, # exlude raws with nas this is usefull to check the model assumptions 
                                       family = "binomial",
                                       cov_ranef = list(species_jetz= phylo), #class phylo
                                       #bayes = TRUE,
@@ -212,28 +230,18 @@ names(ectos_df)
 summary(ecto_prevalence_pglmm)
 print(ecto_prevalence_pglmm)
 fixef(ecto_prevalence_pglmm)
-predict(ecto_prevalence_pglmm)
-rr2::R2(ecto_prevalence_pglmm)
+a<-predict(ecto_prevalence_pglmm)
+rr2::R2(ecto_prevalence_pglmm) # goodness of fit
 class(ecto_prevalence_pglmm ) 
 
-install.packages('ggridges')
-library(ggridges)
+# i am still not sure how to extract and plot confidence intervals for pGLMM that are not bayes
 
-plot_data(
-  ecto_prevalence_pglmm_bayes,
-  sp.var = "species_jetz",
-  site.var = "sociality",
-  show.sp.names = FALSE,
-  show.site.names = FALSE,
-  digits = max(3, getOption("digits") - 3),
-  predicted = FALSE,
-)
 
  
-ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
-                         data = ectos_df, 
+ecto_prevalence_pglmm_bayes <- pglmm(ectoparasites_PA~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+                         data = ectos_df_wo_na, 
                          cov_ranef = list(species_jetz= phylo), #class phylo
-                         family = "binomial",
+                         family = "binomial", # zeroinflated.binomial in reality I want to use a zeroinflated.binomial but for some reason i can not plot those
                          bayes = TRUE,
                          prior = "pc.prior.auto")
 
@@ -243,27 +251,126 @@ print(ecto_prevalence_pglmm)
 rr2::R2(ecto_prevalence_pglmm_bayes) 
 class(ecto_prevalence_pglmm ) 
 
-str(ecto_prevalence_pglmm)
-
+# plot 
 plot_bayes(ecto_prevalence_pglmm_bayes )
 
 #pdf(file="outputs_models/model_prevalence_bayes.pdf")
-plot_bayes(ecto_prevalence_pglmm_bayes )
-
-dev.off()
+#plot_bayes(ecto_prevalence_pglmm_bayes )
+#dev.off()
 
 #What we are looking for is that the posterior distribution mode is well away from zero, and that it looks relatively symmetrical. 
 #If it were skewed and crammed up against the left side of the plot, near zero, we would conclude that the effect is weak (remembering that variance components cannot be less than or equal zero,
 #so there will always be some positive probability mass). The most obvious effects (well away from zero) are again the phylogenetic species random effect. 
 
-# Model assumption checks 
 
-resids <- DHARMa::simulateResiduals(ecto_prevalence_pglmm, plot = TRUE)
+# Model assumption checks 
+#   Read this carefully https://cran.r-project.org/web/packages/DHARMa/vignettes/DHARMa.html#motivation
+#   check is whether assumptions of the model are met by the data. 
+#   The typical way to do this is by plotting and/or analyzing the model residuals. 
+#   In non-Gaussian models such as this one, this can be less straightforward
+#   However, phyr output supports the DHARMa package, which can generated a generalized type of residual known as randomized quantile residuals (or sometimes Dunn-Smyth residuals).
+#   These can be calculated and inspected for nearly any error distribution.We can produce standard diagnostic plots for our pglmm model.
+
+install.packages("DHARMa")
+library(DHARMa)
+citation("DHARMa")
+###
+# for PREVALENCE PGLMM ( no bayes)
+###
+# RESIDUAL PLOTS to test for independence and normal distribution of eroors
+#
+# 1. The most important assumption of a linear regression model is that the ERRORS are independent and normally distributed.
+#(residuals) should be completely random & unpredictable i.e stochastic. Hence, we want our residuals to follow a normal distribution. 
+#And that is exactly what we look for in a residual plot.
+#A residual is a measure of how far away a point is vertically from the regression line
+#A typical residual plot has the residual values on the Y-axis and the independent variable on the x-axis
+###_###_###
+# The 'DHARMa' package uses a simulation-based approach to create readily interpretable scaled (quantile) residuals for fitted (generalized) linear mixed models
+
+res<-DHARMa::simulateResiduals(ecto_prevalence_pglmm)
+residuals(res)
+plot(res)
+simulationOutput <- simulateResiduals(fittedModel =ecto_prevalence_pglmm, plot = F)
+
+
+#a qq-plot to detect overall deviations from the expected distribution, by default with added tests for correct distribution (KS test), dispersion and outliers.
+#Note that outliers in DHARMa are values that are by default defined as values outside the simulation envelope, not in terms of a particular quantile. Thus, which values will appear as outliers will depend on the number of simulations.
+#If you want outliers in terms of a particuar quantile, you can use the outliers() function.
+
+plotQQunif(res) # left plot in plot
+
+#plotResiduals (right panel) produces a plot of the residuals against the predicted value (or alternatively, other variable). Simulation outliers (data points that are outside the range of simulated values) are highlighted as red stars. 
+#These points should be carefully interpreted, because we actually don’t know “how much” these values deviate from the model expectation. 
+plotResiduals(res) # right plot in plot
+
+#By default, plotResiduals plots against predicted values. 
+#However, you can also use it to plot residuals against a specific other predictors (highly recommend).
+
+#plotResiduals(resids , ecto_prevalence_pglmm)
+plotResiduals(res , ecto_prevalence_pglmm$data$sociality)
+plotResiduals(res , form =ecto_prevalence_pglmm$sociality)
+
+plotResiduals(res , ecto_prevalence_pglmm$data$elevation) 
+plotResiduals(res , form =ecto_prevalence_pglmm$elevation)
+
+#
+# 2.HOMOGENITY OF VARIANCE to test for independence and normal distribution of eroors
+#
+# If the predictor is a factor, or if there is just a small number of observations on the x axis, 
+# plotResiduals will plot a box plot with additional tests instead of a scatter plot.
+#  under H0 (perfect model), we would expect those boxes to range homogenously from 0.25-0.75. 
+# To see whether there are deviations from this expecation, the plot calculates a test for uniformity per box, and a test for homgeneity of variances between boxes. 
+#A positive test will be highlighted in red
+ # See ?plotResiduas for details, .
+
+plotResiduals(res , ecto_prevalence_pglmm$data$sociality)
+
+#See ?plotResiduas for details under H0 (perfect model), we would expect those boxes to range homogenously from 0.25-0.75. To see whether there are deviations from this expecation, the plot calculates a test for uniformity per box, and a test for homgeneity of variances between boxes. A positive test will be highlighted in red.
+
+
+# explore teh variables to see that they are same dimensions
+length(res$observedResponse)
+length(res$fittedPredictedResponse)
+length(res$scaledResiduals)
+res$simulatedResponse
+
+# OTHER TEST 
+testUniformity(simulationOutput) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput)#  tests if there are more simulation outliers than expected
+testDispersion(ecto_prevalence_pglmm) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput, catPred = ectos_df_wo_na$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput) ## tests if there are more zeros in the data than expected from the simulations
+testGeneric(simulationOutput) # test if a generic summary statistics (user-defined) deviates from model expectations
+testTemporalAutocorrelation(simulationOutput) # tests for temporal autocorrelation in the residuals
+testSpatialAutocorrelation(simulationOutput) # tests for spatial autocorrelation in the residuals. Can also be used with a generic distance function, for example to test for phylogenetic signal in the residuals
+
+
+
+testDispersion(ecto_prevalence_pglmm)
+simulationOutput <- simulateResiduals(fittedModel = ecto_prevalence_pglmm, plot = T)
+
+residuals(simulationOutput)
+
+residuals(simulationOutput, quantileFunction = qnorm, outlierValues = c(-7,7))
+
 #> Warning in checkModel(fittedModel): DHARMa: fittedModel not in class of
 #> supported models. Absolutely no guarantee that this will work!
 plot(resids)
+plotResiduals(resids , ecto_prevalence_pglmm)
+plotResiduals(resids , ecto_prevalence_pglmm$data$sociality)
+plotResiduals(resids , ecto_prevalence_pglmm$data$elevation) 
 
-plotResiduals(resids , ecto_prevalence_pglmm$sociality)
+
+
+###
+# for PREVALENCE PGLMM ( bayes)
+###
+res_bayes<-DHARMa::simulateResiduals(ecto_prevalence_pglmm_bayes)
+
+class(ecto_prevalence_pglmm_bayes)
+ecto_prevalence_pglmm_bayes
+
 
 
 # Abundance models 
@@ -279,14 +386,14 @@ ecto_abundance_pglmm <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jet
                                     s2.init = .25) # what is this last parameter for
 
 summary(ecto_abundance_pglmm)
+rr2::R2(ecto_abundance_pglmm )
 
 ecto_abundance_pglmm_bayes <-phyr::pglmm(total_lice~sociality+elevation+(1|species_jetz__)+(1|Powder.lvl),
                                    data = ectos_df, 
-                                   family ="poisson",
+                                   family ="zeroinflated.poisson",
                                    cov_ranef = list(species_jetz= phylo), #class phylo
                                    bayes = TRUE,
                                    prior = "pc.prior.auto")
-
 
 
 summary(ecto_abundance_pglmm_bayes)
@@ -294,7 +401,7 @@ rr2::R2(ecto_abundance_pglmm_bayes)
 
 pglmm_plot_re(ecto_abundance_pglmm_bayes)
 #pdf(file="outputs_models/model_abundance_bayes.pdf")
-plot_bayes(ecto_abundance_pglmm_bayes )
+plot_bayes(ecto_abundance_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
 #dev.off()
 
 
@@ -336,3 +443,101 @@ phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = 1) ## here we need to
 LRTest <- sapply(1:3, FUN = function(x) phyr::pglmm_profile_LRT(ecto_prevalence_pglmm, re.number = x))
 colnames(LRTest) <- names(ecto_prevalence_pglmm$ss)
 t(LRTest)
+
+### other code
+
+plot_data(
+  ecto_prevalence_pglmm_bayes,
+  sp.var = "species_jetz",
+  site.var = "sociality",
+  show.sp.names = FALSE,
+  show.site.names = FALSE,
+  digits = max(3, getOption("digits") - 3),
+  predicted = FALSE,
+)
+
+###_###_###_###_###_###_###_###_####_####_###_###_###_###_###_###_###_###_###_####_####_###_###_###_###_###_###_###_###_###_####_####_###
+###### Using BRMS package   
+# see example and documentation here  http://paul-buerkner.github.io/brms/articles/brms_phylogenetics.html
+###_###_###_###_###_###_###_###_####_####_######_###_###_###_###_###_###_###_####_####_######_###_###_###_###_###_###_###_####_####_###
+
+## Model 3: Individual mass with phylognetic + non-phylo effects
+
+mean_lice<-ectos_df %>% group_by(species_jetz) %>% 
+  summarize(mean_lice=mean(total_lice))
+
+df_ectos_include_mean<-full_join( ectos_df, mean_lice, by="species_jetz")
+
+A <- ape::vcv.phylo(phylo)
+
+  m<- brm ( 
+    mean_lice ~ sociality+elevation+ 
+      (1 | gr(phylo, cov=A)) + (1|Powder.lvl) + (1|species_jetz), 
+       data=df_ectos_include_mean, 
+       data2=list(A=A),
+       family=zero_inflated_poisson(), 
+    prior = c(
+      prior(normal(0,10), "b"),
+      prior(normal(0,50), "Intercept"),
+      prior(student_t(3,0,20), "sd"),
+      prior(student_t(3,0,20), "sigma")
+    ),
+    sample_prior = TRUE, chains = 2, cores = 2, 
+    iter = 4000, warmup = 1000
+  )
+  
+  saveRDS(m3, "../results/model_full_physpec.rds")
+  # 17 minutes sampling on Dell XPS 13 9343
+  
+
+# model5 Removing Phylogenetic covariance structure
+
+
+# Full Model - no phylo structure
+
+  m5 <- brm(total_lice ~ sociality+ elevation + 
+              (1 | species_jetz) + (1|Powder.lvl), 
+            data=ectos_df, family=zero_inflated_poisson(), 
+            iter=6000, thin=2,
+            control=list(adapt_delta=0.90))
+  
+  mcmc_plot(m5, prob=0.80, prob_outer=0.95, point_est="mean")
+  # 2.25 minutes sampling on Dell XPS 13 9343...
+
+
+#### Checking model assumptions
+  ### 
+  #OTHER OPTION FOR MODELS NOT SUPPORTED IN DRAMa
+  #PGLMM models are currently not supported we need to Using DHARMa for residual checks of unsupported models
+  # See details here https://aosmith.rbind.io/2017/12/21/using-dharma-for-residual-checks-of-unsupported-models/#disqus_thread
+  
+  # i)U se the function simulate if available for your model to create new data
+  # ii) Use createDHARMa () 
+  #  iii) Need to include three type pf data simulated data, observed data, adn model predictiosn 
+  # note if useing count data use integerResponse= TRUE
+  
+  # need to remove na from dataset s that the dimensions of responde simulated and observed match
+  ectos_df_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+    rename(elevation=elevation_extrapolated_date) %>% select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, sociality) %>% 
+    na.omit()
+  
+  newData <- simulate(ecto_prevalence_pglmm, nsim=1000)
+  
+  class(newData)
+  
+  
+  sim_resp_ecto_prevalence_pglmm=createDHARMa(simulatedResponse=newData,
+                                              observedResponse = ectos_df_wo_na$ectoparasites_PA,
+                                              fittedPredictedResponse = predict(ecto_prevalence_pglmm),
+                                              integerResponse = FALSE)
+  
+  
+  dim(simulatedResponse)
+  as.matrix( ectos_df_wo_na$ectoparasites_PA)
+  dim(observedResponse)
+  
+  plot(sim_resp_ecto_prevalence_pglmm)
+  
+  res<-
+    
+    
