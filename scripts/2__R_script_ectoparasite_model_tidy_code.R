@@ -49,6 +49,10 @@ install.packages("rr2")
 install.packages ( "MCMCglmm")
 install.packages("phyr")
 remotes::install_github("daijiang/phyr")
+options(repos = c(
+  phyr = 'https://daijiang.r-universe.dev',
+  CRAN = 'https://cloud.r-project.org'))
+install.packages('phyr')
 
 install.packages("TreeTools")
 
