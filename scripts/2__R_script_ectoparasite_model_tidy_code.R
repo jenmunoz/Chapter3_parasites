@@ -311,7 +311,6 @@ citation("DHARMa")
 ###_###_###
 # The 'DHARMa' package uses a simulation-based approach to create readily interpretable scaled (quantile) residuals for fitted (generalized) linear mixed models
 
-plot(res)
 simulationOutput <- DHARMa::simulateResiduals(fittedModel =ecto_prevalence_pglmm, plot = F)
 plot(simulationOutput)
 
@@ -488,7 +487,7 @@ testSpatialAutocorrelation(simulationOutput_abundance) # tests for spatial autoc
 
 
 # comunityPGLMM or pglmm seems to work well 
-ecto_abundance_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+ecto_abundance_pglmm_bayes2 <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                    data = ectos_df_abundance_wo_na, 
                                    family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
                                    cov_ranef = list(species_jetz= phylo), #class phylo
@@ -658,7 +657,7 @@ print(tip)
 
  
   
-## Model 3: Individual mass with phylognetic + non-phylo effects 
+## Model 3: Individual  with phylognetic + non-phylo effects 
 ##Note that I ma usingthe default priors
   
 ectos_df_abundance_wo_na$species <- ectos_df_abundance_wo_na$species_jetz # create a column fr the species effect different to the phylogenetic one
@@ -773,6 +772,7 @@ m7<-brm(total_lice~sociality+scale(elevation)+
 
 # Testing the models  ( see below for more detais on teh differetent test )
 
+ 
 
 bayes_R2(m5) 
 pairs(m_2)

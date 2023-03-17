@@ -150,7 +150,7 @@ str(phylo)
 
 # #### 4.Descriptive statistiscs plots -------------------------------------
 
-# ##### 5.Data processing prevalence ----------------------------------------------------
+# ##### 5.Data processing prevalence ectos ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality ) %>% 
@@ -186,7 +186,7 @@ print(tip)
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylo, tip$name) 
 
-# ##### 5.1.Analyses models prevalence --------------------------------------------------------
+# ##### 5.1.Analyses models prevalence ectos --------------------------------------------------------
 ###_###_###
   #a) model glmm
 ecto_p_glmm <-glmer(ectoparasites_PA~sociality+scale(elevation)+(1|Powder.lvl), #+elevation_midpoint+Powder.lvl
@@ -259,19 +259,20 @@ ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~0+sociality+scale(elevation)+
             (1|Powder.lvl)+
             (1|species),
         data=ectos_birds_dff,
-        family= bernoulli(), # bernoulli() #zero_inflated_negbinomial()
+        family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
         data2 = list(phy_cov=phy_cov),
         iter=1000, warmup=500, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
         thin=2,
         control=list(adapt_delta=0.99, max_treedepth=12)) 
-saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/model_prevalence_brms_phylo_multiple_obs.RDS")
+
+saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
 
 # Summarize the model
 summary (ecto_p_brms_bayes)
 levels(ectos_birds_dff$sociality)
 
 fixef() # to get more detailed values for estimates
-coef(ecto_p_brms_bayes2) # if you have group-level effects (hierarchical data)
+coef(ecto_p_brms_bayes) # if you have group-level effects (hierarchical data)
 
 # interpret the model 
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
@@ -308,15 +309,20 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
 color_scheme_set("red")
 brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 
-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
+parameters_plot<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
   ggtitle("Posterior intervals")+
-  theme_minimal(15)+
+  theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
+png("data/data_analyses/models/model_plots/1.parameters_plot_model_prevalence_brms_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+parameters_plot
+dev.off()
+
+
+
 posterior <- as.array(ecto_p_brms_bayes)
 mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
-
 names(ecto_p_brms_bayes$formula$resp)
 
 # ####### 6.Data processing abundance lice----------------------------------------------------
@@ -348,13 +354,181 @@ is.binary(phylo)
 
 # Make sure this two are the same numbers 
 a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
-b<-(as.data.frame(ectos_dff$species_jetz)) %>% mutate(name=ectos_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+b<-(as.data.frame(ectos_birds_dff$species_jetz)) %>% mutate(name=ectos_birds_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
 
 tip<-as.list(setdiff(a,b))
 print(tip)
 
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
-phylo<-drop.tip (phylogeny_prevalence, tip$name) 
+phylo<-drop.tip (phylo, tip$name) 
+
+# ####### 6.1.Analyses models abundance lice--------------------------------------------------------
+# Lice
+
+###_###_###
+#a) model glmm
+###_###_###
+ 
+ectos_a_glmm <-glmer(total_lice~sociality+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
+                    data = ectos_birds_dff, 
+                    family = "poisson")
+# Summary
+summary(ectos_a_glmm )
+rr2::R2(ectos_a_glmm)
+fixef(ecto_abundance_pglmm)
+predict(ecto_abundance_pglmm)
+class(ecto_prevalence_pglmm ) 
+
+# Assumptions check
+simulationOutput_a_lice<- DHARMa::simulateResiduals(fittedModel =ectos_a_glmm, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice)
+testUniformity(simulationOutput_a_lice) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput_a_lice, catPred = ectos_birds_dff$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice) ## tests if there are more zeros in the data than expected from the simulations
+
+# zero inflated, overdispersed, with outliers
+#b) model pglmm
+###_###_###
+
+ectos_a_pglmm <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+                                   data = ectos_birds_dff, 
+                                   family = "poisson",
+                                   cov_ranef = list(species_jetz= phylo), #class phylo
+                                   #bayes = TRUE,
+                                   add.obs.re = TRUE,
+                                   REML = TRUE, 
+                                   verbose = TRUE,
+                                   s2.init = .25) # what is this last parameter for
+
+histogram(ectos_df_abundance_wo_na$total_lice) # id some outliers 
+
+summary(ectos_a_pglmm)
+rr2::R2(ectos_a_pglmm)
+fixef(ectos_a_pglmm)
+predict(ecto_a_pglmm)
+
+# Assumptions check
+simulationOutput_a_lice_2<- DHARMa::simulateResiduals(fittedModel=ectos_a_pglmm, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice_2)
+testUniformity(simulationOutput_a_lice_2) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice_2)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice_2) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice_2) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput_a_lice_2, catPred = ectos_birds_dff$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice_2) ## tests if there are more zeros in the data than expected from the simulations
+
+# no outliers, but no homogenity of varianse KS and withig groups significant, and zero inflated
+
+#c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
+###_###_###
+
+
+ectos_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+                                         data =ectos_birds_dff, 
+                                         family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
+                                         cov_ranef = list(species_jetz= phylo), #class phylo
+                                         bayes = TRUE,
+                                         verbose=FALSE,
+                                         prior = "inla.default") # consider using    add.obs.re = T
+
+
+#1) Summary of the model 
+communityPGLMM.plot.re(x=ecto_abundance_pglmm_bayes) 
+summary(ecto_abundance_pglmm_bayes)   
+rr2::R2(ecto_abundance_pglmm_bayes)
+class(ecto_abundance_pglmm_bayes)
+
+launch_shinystan(ecto_abundance_pglmm_bayes)
+
+# Plots
+
+parameters_plot<-plot_bayes(ecto_abundance_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
+
+#png("data/data_analyses/models/model_plots/2.parameters_plot_model_lice_abundance_pglmm_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+#parameters_plot
+#dev.off()
+
+# Assumptions check DHARMa does not work with pglm bayes=TRUE so I can not evaluate model fit.
+simulationOutput_a_lice_3<- DHARMa::simulateResiduals(fittedModel=ecto_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice_3)
+testUniformity(simulationOutput_a_lice_3) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice_3)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice_3) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice_3) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput_a_lice_3, catPred = ectos_birds_dff$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice_3) ## tests if there are more zeros in the data than expected from the simulations
+
+
+#d) model pglmm bayes : zero_inflated_negbinomial, ind scaled elevation
+###_###_###
+
+ectos_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
+                     (1|gr(species_jetz, cov = phy_cov))+  
+                    (1|Powder.lvl) + 
+                    (1|species),
+                    data=df_ectos_w_mean_elevation,
+                    family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                     data2 = list(phy_cov=phy_cov),
+                    iter=4000, warmup=2000,
+                    thin=2,
+                    control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+saveRDS(ectos_a_brms_bayes, "data/data_analyses/models/model_abundance_lice_brms_phylo_multiple_obs.RDS")
+
+
+# Summarize the model
+summary ()
+fixef() # to get more detailed values for estimates
+coef() # if you have group-level effects (hierarchical data)
+
+# interpret the model 
+#To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
+#If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
+#INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
+bayes_R2(ecto_p_brms_bayes) 
+plot(ecto_p_brms_bayes)
+mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+launch_shinystan()
+pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
+log1 <- scale_x_continuous(trans="log1p")
+ppc_dens_overlay(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
+  coord_cartesian(xlim = c(0, 5))
+
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+
+ppc_stat(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m, stat = "prop_zero")
+
+
+#Assumptions check model pglmm_ bayes
+#remotes::install_github("Pakillo/DHARMa.helpers")
+
+simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
+plot( simulate_residuals, form = ectos_birds_dff$sociality)
+DHARMa::testDispersion(simulate_residuals)
+DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
+testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
+
+# Plots BRMS 
+
+color_scheme_set("red")
+brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+
+mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
+  ggtitle("Posterior intervals")+
+  theme_minimal(15)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+posterior <- as.array(ecto_p_brms_bayes)
+mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
+ 
 
 # ####### 6.Data processing abundance mites----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
@@ -401,53 +575,19 @@ print(tip)
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylogeny_prevalence, tip$name) 
 
-
-# ####### 6.1.Analyses models abundance--------------------------------------------------------
-# Lice
-
-
-
-###_###_###
-#d) model pglmm bayes
-###_###_###
-
-
-
-
-# Summarize the model
-summary ()
-fixef() # to get more detailed values for estimates
-coef() # if you have group-level effects (hierarchical data)
-
-bayes_R2() 
-plot()
-mcmc_plot()
-launch_shinystan()
-pp_check(, ndraws = 100)+ xlim(0, 40)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(, type="bars", ndraws = 100)+ xlim(0, 20) 
-
-pp_m<- brms::posterior_predict()
-log1 <- scale_x_continuous(trans="log1p")
-ppc_dens_overlay(y=m$data$total_lice, pp_m[1:200, ]) + log1 + 
-  coord_cartesian(xlim = c(0, 50))
-
-ppc_rootogram(y=m$data$total_lice, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 50), ylim = c(0,30))
-
-ppc_stat(y=m4$data$lice_total, pp_m1, stat = "prop_zero")
-
-#Assumptions check model pglmm_ bayes
-#remotes::install_github("Pakillo/DHARMa.helpers")
-
-simulate_residuals <- dh_check_brms(m, integer = TRUE)
-plot( simulate_residuals, form = ectos_birds_dff$sociality)
-DHARMa::testDispersion(simulate_residuals)
-DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
-testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
-
+# ####### 6.1.Analyses models abundance mites--------------------------------------------------------
 
 # Mites
 
+###_###_###
+#a) model glmm
+###_###_###
+#b) model pglmm
+###_###_###
+#c) model pglmm summary
+###_###_###
+#d) model pglmm bayes : hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
+###_###_###
 
 ###_###_###
 #d) model pglmm bayes
@@ -458,31 +598,50 @@ summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 
-bayes_R2() 
-plot()
-mcmc_plot()
+# interpret the model 
+#To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
+#If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
+#INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
+bayes_R2(ecto_p_brms_bayes) 
+plot(ecto_p_brms_bayes)
+mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
-pp_check(, ndraws = 100)+ xlim(0, 40)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(, type="bars", ndraws = 100)+ xlim(0, 20) 
+pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict()
+pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
-ppc_dens_overlay(y=m$data$total_lice, pp_m[1:200, ]) + log1 + 
-  coord_cartesian(xlim = c(0, 50))
+ppc_dens_overlay(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
+  coord_cartesian(xlim = c(0, 5))
 
-ppc_rootogram(y=m$data$total_lice, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 50), ylim = c(0,30))
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
-ppc_stat(y=m4$data$lice_total, pp_m1, stat = "prop_zero")
+ppc_stat(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m, stat = "prop_zero")
+
 
 #Assumptions check model pglmm_ bayes
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(m, integer = TRUE)
+simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
+
+# Plots BRMS 
+
+color_scheme_set("red")
+brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+
+mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
+  ggtitle("Posterior intervals")+
+  theme_minimal(15)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+posterior <- as.array(ecto_p_brms_bayes)
+mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
 
 
 
@@ -538,35 +697,56 @@ phylo<-drop.tip (phylogeny_prevalence, tip$name)
 ###_###_###
 
 # Summarize the model
+# Summarize the model
 summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 
-bayes_R2() 
-plot()
-mcmc_plot()
+# interpret the model 
+#To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
+#If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
+#INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
+bayes_R2(ecto_p_brms_bayes) 
+plot(ecto_p_brms_bayes)
+mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
-pp_check(, ndraws = 100)+ xlim(0, 40)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(, type="bars", ndraws = 100)+ xlim(0, 20) 
+pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict()
+pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
-ppc_dens_overlay(y=m$data$total_lice, pp_m[1:200, ]) + log1 + 
-  coord_cartesian(xlim = c(0, 50))
+ppc_dens_overlay(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
+  coord_cartesian(xlim = c(0, 5))
 
-ppc_rootogram(y=m$data$total_lice, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 50), ylim = c(0,30))
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
-ppc_stat(y=m4$data$lice_total, pp_m1, stat = "prop_zero")
+ppc_stat(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m, stat = "prop_zero")
+
 
 #Assumptions check model pglmm_ bayes
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(m, integer = TRUE)
+simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
+
+# Plots BRMS 
+
+color_scheme_set("red")
+brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+
+mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
+  ggtitle("Posterior intervals")+
+  theme_minimal(15)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+posterior <- as.array(ecto_p_brms_bayes)
+mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
+
 
 
 # 0.N Libraries networks --------------------------------------------------------------
@@ -593,30 +773,49 @@ summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 
-bayes_R2() 
-plot()
-mcmc_plot()
+# interpret the model 
+#To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
+#If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
+#INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
+bayes_R2(ecto_p_brms_bayes) 
+plot(ecto_p_brms_bayes)
+mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
-pp_check(, ndraws = 100)+ xlim(0, 40)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(, type="bars", ndraws = 100)+ xlim(0, 20) 
+pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict()
+pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
-ppc_dens_overlay(y=m$data$total_lice, pp_m[1:200, ]) + log1 + 
-  coord_cartesian(xlim = c(0, 50))
+ppc_dens_overlay(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
+  coord_cartesian(xlim = c(0, 5))
 
-ppc_rootogram(y=m$data$total_lice, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 50), ylim = c(0,30))
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
-ppc_stat(y=m4$data$lice_total, pp_m1, stat = "prop_zero")
+ppc_stat(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m, stat = "prop_zero")
+
 
 #Assumptions check model pglmm_ bayes
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(m, integer = TRUE)
+simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
+
+# Plots BRMS 
+
+color_scheme_set("red")
+brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+
+mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95) +
+  ggtitle("Posterior intervals")+
+  theme_minimal(15)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+posterior <- as.array(ecto_p_brms_bayes)
+mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
 
 
