@@ -331,9 +331,12 @@ estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.9
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_prevalence_brms_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_PREVALENCE_brms_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
+
+
+
 
 posterior <- as.array(ecto_p_brms_bayes)
 mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
@@ -425,7 +428,7 @@ lice_a_pglmm <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz
                                    s2.init = .25) # what is this last parameter for
 
 histogram(ectos_birds_dff$total_lice) # id some outliers 
-
+plot_data(lice_a_pglmm)
 summary(lice_a_pglmm)
 rr2::R2(lice_a_pglmm)
 fixef(lice_a_pglmm)
@@ -468,7 +471,7 @@ launch_shinystan(lice_a_pglmm_bayes)
 
 estimates_plot<-plot_bayes(lice_a_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
 
-png("data/data_analyses/models/model_plots/2.parameters_plot_model_lice_abundance_pglmm_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
@@ -497,7 +500,7 @@ lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                     thin=2,
                     control=list(adapt_delta=0.99, max_treedepth=12)) 
 
-saveRDS(lice_a_brms_bayes, "data/data_analyses/models/model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs.RDS")
+saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs.17032023RDS")
 
 
 # Summarize the model
@@ -557,8 +560,8 @@ estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_plot_model_ABUNDANCE_MITES_brms_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot
+png("data/data_analyses/models/model_plots/2.parameters_intervals_plot_model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
 dev.off()
  
 
@@ -776,8 +779,8 @@ estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_ABUNDANCE_MITES_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot_intervals
+png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
 dev.off()
 
 
