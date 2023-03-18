@@ -51,8 +51,6 @@ devtools::install_github("mvuorre/brmstools")
 
 # install.packages("remotes") # DHARMA FOR BRMS 
 
-
-
 # Phylogenetic component
 install.packages("ape")
 #install.packages("here")
@@ -71,7 +69,6 @@ remotes::install_github("daijiang/phyr")
 install.packages("TreeTools")
 
 # Libraries 
-
 library(TreeTools)
 #install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) # to be able to run bayesian inference on the PGLMM models more info here https://www.r-inla.org
 library("devtools")
@@ -270,8 +267,8 @@ ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+
         thin=2,
         control=list(adapt_delta=0.99, max_treedepth=12)) 
 
-saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
-
+#saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
+ecto_p_brms_bayes<-readRDS("data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
 # Summarize the model
 summary (ecto_p_brms_bayes)
 levels(ectos_birds_dff$sociality)
@@ -349,8 +346,9 @@ ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_pr
   na.omit() 
   #filter(total_lice<60)  # removing outliers 
 
+str(ectos_birds_dff)
+mean(as.numeric(ectos_birds_dff$total_lice), na.rm=T)
 # Finding putliers
-
 #ectos_birds_dff <-ectos_birds_dff  %>% mutate_at("species_jetz", str_replace, " ", "_")
 #ectos_birds_dff$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
 ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
@@ -361,8 +359,6 @@ ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$total_lice<-as.numeric(ectos_birds_dff$total_lice)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
-
-
 names(ectos_birds_dff)
 is.ultrametric(phylo)
 
@@ -383,7 +379,6 @@ phylo<-drop.tip (phylo, tip$name)
 
 #Phylogenetic covariance matrix
 phy_cov<-ape::vcv(phylo, corr=TRUE)
-
 
 # ####### 6.1.Analyses models abundance lice--------------------------------------------------------
 # Lice
@@ -449,7 +444,6 @@ testZeroInflation(simulationOutput_a_lice_2) ## tests if there are more zeros in
 #c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
 ###_###_###
 
-
 lice_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                          data =ectos_birds_dff, 
                                          family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
@@ -457,7 +451,7 @@ lice_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|specie
                                          bayes = TRUE,
                                          verbose=FALSE,
                                          prior = "inla.default") # consider using    add.obs.re = T
-
+saveRDS(lice_a_pglmm_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
 
 #1) Summary of the model 
 communityPGLMM.plot.re(x=lice_a_pglmm_bayes ) 
@@ -471,9 +465,9 @@ launch_shinystan(lice_a_pglmm_bayes)
 
 estimates_plot<-plot_bayes(lice_a_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
 
-png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot
-dev.off()
+#png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+#estimates_plot
+#dev.off()
 
 # Assumptions check DHARMa does not work with pglm bayes=TRUE so I can not evaluate model fit.
 simulationOutput_a_lice_3<- DHARMa::simulateResiduals(fittedModel=lice_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
@@ -499,8 +493,23 @@ lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                     iter=4000, warmup=2000,
                     thin=2,
                     control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
 
-saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs.17032023RDS")
+#lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
+
+
+#lice_a_brms_bayes_zip<-brm(total_lice~sociality+scale(elevation)+
+    #                     (1|gr(species_jetz, cov = phy_cov))+  
+    #                     (1|Powder.lvl) + 
+    #                     (1|species),
+    #                   data=ectos_birds_dff,
+    #                   family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
+    #                   data2 = list(phy_cov=phy_cov),
+    #                   iter=4000, warmup=2000,
+    #                   thin=2,
+    #                   control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_17032023.RDS")
+# some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
 
 
 # Summarize the model
@@ -512,9 +521,9 @@ coef(lice_a_brms_bayes) # if you have group-level effects (hierarchical data)
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(lice_a_brms_bayes) #0.32
+bayes_R2(lice_a_brms_bayes_zip) #0.32  zip #0.22
 plot(lice_a_brms_bayes)
-mcmc_plot(lice_a_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+mcmc_plot(lice_a_brms_bayes_zip) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(lice_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(lice_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
@@ -564,6 +573,7 @@ png("data/data_analyses/models/model_plots/2.parameters_intervals_plot_model_ABU
 estimates_plot_intervals
 dev.off()
  
+loo(lice_a_brms_bayes,lice_a_brms_bayes_zip,compare = TRUE)
 
 # ####### 6.Data processing abundance MITES----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
@@ -939,7 +949,7 @@ brmstools::forest(nf_mites_a_brms_bayes, level = 0.95, show_data = TRUE)
 estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distributios", subtitle ="with medians and 95% intervals")+
+  labs(title="Posterior distributinos", subtitle ="with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -1230,4 +1240,27 @@ plot_bayes.communityPGLMM <- function(x, n_samp = 1000, sort = TRUE, ...) {
   
   p
 }
+
+##### Note on interpreting the plots of the posterior distributions with credible intervals
+#Remember that the posterior distribution represents our uncertainty (or certainty) in "q"
+#after combining the information in the data (the likelihood) with what we knew before collecting data (the prior).
+#Bayesian inference we quantify statements like this – that a particular event is “highly likely” – by computing the “posterior probability” of the event,
+#which is the probability of the event under the posterior distribution.
+
+#This plots do not tell you the significance of the factors, instead they tell you the effect size of the factors.
+# The most common summaries of a posterior distribution are interval estimates and point estimates.
+# Point estimates are typically obtained by computing the mean or median (or mode) of the posterior distribution. These are called the “posterior mean” or the “posterior median” (or “posterior mode”).
+# Point estimates Essentially this boils down to summarizing the posterior distribution by a single number.
+# Interval estimates can be obtained by computing quantiles of the posterior distribution. Bayesian Confidence intervals are often called “Credible Intervals”.
+# We can extend this idea to assess the certainty (or confidence) that "q" lies in any interval. For example, from the plot it looks like q
+# will very likely lie in the interval [0.2,0.4] because most of the posterior distribution mass lies between these two numbers.
+#it is more common to compute Bayesian Confidence Intervals the other way around: specify the level of confidence we want to achieve and find an interval that achieves that level of confidence. 
+#This can be done by computing the quantiles of the posterior distribution. For example, the 0.05 and 0.95 quantiles of the posterior would define a 90% Bayesian Confidence Interval.
+# Positive estimates are positive effects and  negative values  negative effects, when they overlap with zero you can conclude the effect size does not differ from zero.
+
+# In our models the predictor sociality has two levels 0 sociality and 1 sociality, and so
+  #!. The intercept estimate  CORRRESPOND TO  the first  level of sociality ( sociality zero)
+  # sociality estimate is the difference between the sociality zero and the sociality one, so if it overlaps with zero means teh difference is close to zero between being social and non social  
+
+
 
