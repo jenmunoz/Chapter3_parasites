@@ -503,6 +503,19 @@ zinb_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                     control=list(adapt_delta=0.99, max_treedepth=12)) 
 zinb_lice_a_brms_bayes<-lice_a_brms_bayes
 
+zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
+                              (1|gr(species_jetz, cov = phy_cov))+  
+                              (1|Powder.lvl) + 
+                              (1|species),
+                            data=ectos_birds_dff,
+                            family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
+                            data2 = list(phy_cov=phy_cov),
+                            iter=4000, warmup=2000,
+                            thin=2,
+                            control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+zip_lice_a_brms_bayes<-lice_a_brms_bayes
+
 #saveRDS(lzinb_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
 zinb_lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
 
@@ -533,7 +546,7 @@ coef(zinb_lice_a_brms_bayes) # if you have group-level effects (hierarchical dat
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
 bayes_R2(zinb_lice_a_brms_bayes) #0.32  zip #0.22
-plot(lice_a_brms_bayes)
+plot(zip_lice_a_brms_bayes)
 mcmc_plot(lice_a_brms_bayes_zip) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(lice_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
@@ -734,7 +747,7 @@ mites_a_brms_bayes<-brm(total_mites~sociality+scale(elevation)+
                         data=df_ectos_w_mean_elevation,
                         family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
                         data2 = list(phy_cov=phy_cov),
-                        iter=4000, warmup=2000,
+                        iter=6000, warmup=3000,
                         thin=2,
                         control=list(adapt_delta=0.99, max_treedepth=12)) 
 
