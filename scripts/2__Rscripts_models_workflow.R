@@ -132,7 +132,9 @@ library(brmstools)
 ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date)
 
-phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
+unique(ectos_df$species_jetz) # this is teh total species that we have samples for 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
 
 unique(ectos_df$species_jetz )
 
@@ -167,7 +169,6 @@ ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$ectoparasites_PA<-as.numeric(ectos_birds_dff$ectoparasites_PA)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
 
-
 names(ectos_birds_dff)
 is.ultrametric(phylo)
 
@@ -185,6 +186,8 @@ print(tip)
 
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylo, tip$name) 
+
+phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # ##### 5.1.Analyses models prevalence ectos --------------------------------------------------------
 ###_###_###
@@ -216,8 +219,8 @@ rr2::R2(ectos_p_pglmm ) # goodness of fit
     #Overdisperssion
 simulationOutput <-DHARMa::simulateResiduals(fittedModel =ectos_p_pglmm, plot = F)
 plot(simulationOutput)
-plotResiduals(simulationOutput , ecto_p_pglmm$data$sociality)
-plotResiduals(simulationOutput , form =ecto_p_pglmm$sociality)
+plotResiduals(simulationOutput , ectos_p_pglmm$data$sociality)
+plotResiduals(simulationOutput , form =ectos_p_pglmm$sociality)
 
     #Homogenity of variance within groups (Heteroscedasticity) 
 testCategorical(simulationOutput, catPred = ectos_birds_dff$sociality)
@@ -263,7 +266,7 @@ ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+
         data=ectos_birds_dff,
         family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
         data2 = list(phy_cov=phy_cov),
-        iter=4000, warmup=2000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+        iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
         thin=2,
         control=list(adapt_delta=0.99, max_treedepth=12)) 
 
@@ -281,7 +284,8 @@ coef(ecto_p_brms_bayes) # if you have group-level effects (hierarchical data)
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
 bayes_R2(ecto_p_brms_bayes) # R2 0.1529
-plot(ecto_p_brms_bayes)
+plot(ecto_p_brms_bayes) # paarameter distributio and convergence
+
 mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
@@ -308,8 +312,12 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   
 # assumptiosn look good!   
 # Plots BRMS 
+  png("data/data_analyses/models/model_plots/1.parameters_distribution_convergence_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+  plot(ecto_p_brms_bayes)
+  dev.off()
   
-color_scheme_set("red")
+  
+color_scheme_set("teal")
 brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 
 estimates_plot<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95,
@@ -328,9 +336,9 @@ estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.9
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_PREVALENCE_brms_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot_intervals
-dev.off()
+#png("data/data_analyses/models/model_plots/1.parameters_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+#estimates_plot
+#dev.off()
 
 
 
@@ -444,33 +452,33 @@ testZeroInflation(simulationOutput_a_lice_2) ## tests if there are more zeros in
 #c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
 ###_###_###
 
-lice_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+zip_lice_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                          data =ectos_birds_dff, 
                                          family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
                                          cov_ranef = list(species_jetz= phylo), #class phylo
                                          bayes = TRUE,
                                          verbose=FALSE,
                                          prior = "inla.default") # consider using    add.obs.re = T
-saveRDS(lice_a_pglmm_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
+#saveRDS(zip_lice_a_pglmm_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
 
 #1) Summary of the model 
-communityPGLMM.plot.re(x=lice_a_pglmm_bayes ) 
-summary(lice_a_pglmm_bayes)   
-rr2::R2(lice_a_pglmm_bayes)
-class(lice_a_pglmm_bayes)
+communityPGLMM.plot.re(x=zip_lice_a_pglmm_bayes ) 
+summary(zip_lice_a_pglmm_bayes)   
+rr2::R2(zip_lice_a_pglmm_bayes)
+class(zip_lice_a_pglmm_bayes)
 
-launch_shinystan(lice_a_pglmm_bayes)
+launch_shinystan(zip_lice_a_pglmm_bayes)
 
 # Plots
 
-estimates_plot<-plot_bayes(lice_a_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
+estimates_plot<-plot_bayes(zip_lice_a_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
 
-#png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+#png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
 #estimates_plot
 #dev.off()
 
 # Assumptions check DHARMa does not work with pglm bayes=TRUE so I can not evaluate model fit.
-simulationOutput_a_lice_3<- DHARMa::simulateResiduals(fittedModel=lice_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+simulationOutput_a_lice_3<- DHARMa::simulateResiduals(fittedModel=zip_lice_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
 plot(simulationOutput_a_lice_3)
 testUniformity(simulationOutput_a_lice_3) #tests if the overall distribution conforms to expectations
 testOutliers(simulationOutput_a_lice_3)#  tests if there are more simulation outliers than expected
@@ -483,7 +491,7 @@ testZeroInflation(simulationOutput_a_lice_3) ## tests if there are more zeros in
 #d) model pglmm bayes : zero_inflated_negbinomial, ind scaled elevation
 ###_###_###
 
-lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
+zinb_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                      (1|gr(species_jetz, cov = phy_cov))+  
                     (1|Powder.lvl) + 
                     (1|species),
@@ -493,12 +501,13 @@ lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                     iter=4000, warmup=2000,
                     thin=2,
                     control=list(adapt_delta=0.99, max_treedepth=12)) 
-#saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
+zinb_lice_a_brms_bayes<-lice_a_brms_bayes
 
-#lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
+#saveRDS(lzinb_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
+zinb_lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
 
 
-#lice_a_brms_bayes_zip<-brm(total_lice~sociality+scale(elevation)+
+#zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
     #                     (1|gr(species_jetz, cov = phy_cov))+  
     #                     (1|Powder.lvl) + 
     #                     (1|species),
@@ -513,36 +522,38 @@ lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
 
 
 # Summarize the model
-summary (lice_a_brms_bayes)
-fixef(lice_a_brms_bayes) # to get more detailed values for estimates
-coef(lice_a_brms_bayes) # if you have group-level effects (hierarchical data)
+summary(zinb_lice_a_brms_bayes)
+
+
+fixef(zinb_lice_a_brms_bayes) # to get more detailed values for estimates
+coef(zinb_lice_a_brms_bayes) # if you have group-level effects (hierarchical data)
 
 # interpret the model 
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(lice_a_brms_bayes_zip) #0.32  zip #0.22
+bayes_R2(zinb_lice_a_brms_bayes) #0.32  zip #0.22
 plot(lice_a_brms_bayes)
 mcmc_plot(lice_a_brms_bayes_zip) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(lice_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(lice_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict(lice_a_brms_bayes)
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
 ppc_dens_overlay(y=lice_a_brms_bayes$data$total, pp_m[1:200, ])  + 
   coord_cartesian(xlim = c(0, 5))
 
-ppc_rootogram(y=lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
+ppc_rootogram(y=zinb_lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
-ppc_stat(y=lice_a_brms_bayes$data$total_lice, pp_m, stat = "prop_zero")
+ppc_stat(y=lice_a_brms_bayes$data$total_lice, pp_m, stat ="prop_zero")
 
 
 #Assumptions check model pglmm_ bayes
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(lice_a_brms_bayes, integer = TRUE)
+simulate_residuals <- dh_check_brms(zinb_lice_a_brms_bayes, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
@@ -550,10 +561,10 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 # Plots BRMS 
 
-#color_scheme_set("red")
+color_scheme_set("teal")
 brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 
-estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
   labs(title="Posterior distributions ", subtitle ="Lice abundance with medians and 95% intervals")+
@@ -561,7 +572,7 @@ estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
   labs(title="Posterior distributios", subtitle ="Lice abundance with medians and 95% intervals")+
@@ -569,9 +580,9 @@ estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/2.parameters_intervals_plot_model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot_intervals
-dev.off()
+#png("data/data_analyses/models/model_plots/2.parameters_plot_model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+#estimates_plot
+#dev.off()
  
 loo(lice_a_brms_bayes,lice_a_brms_bayes_zip,compare = TRUE)
 
