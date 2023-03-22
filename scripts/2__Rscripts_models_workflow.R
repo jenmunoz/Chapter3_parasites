@@ -294,7 +294,7 @@ pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20)
 pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
 ppc_dens_overlay(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
-  coord_cartesian(xlim = c(0, 5))
+  coord_cartesian(xlim = c(0, 10))
 
 ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
@@ -311,9 +311,22 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
   
 # assumptiosn look good!   
+  
+  
+  
 # Plots BRMS 
+   color_scheme_set("teal")
+
+  # convergence 
   png("data/data_analyses/models/model_plots/1.parameters_distribution_convergence_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
   plot(ecto_p_brms_bayes)
+  dev.off()
+  
+  # model fit
+  png("data/data_analyses/models/model_plots/1.model_fit_PREVALENCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
+  pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
+  ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+    coord_cartesian(xlim = c(0, 5), ylim = c(0,40))
   dev.off()
   
   
@@ -339,7 +352,6 @@ estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.9
 #png("data/data_analyses/models/model_plots/1.parameters_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
 #estimates_plot
 #dev.off()
-
 
 
 
@@ -546,8 +558,8 @@ coef(zinb_lice_a_brms_bayes) # if you have group-level effects (hierarchical dat
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
 bayes_R2(zinb_lice_a_brms_bayes) #0.32  zip #0.22
-plot(zip_lice_a_brms_bayes)
-mcmc_plot(lice_a_brms_bayes_zip) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+plot(zinb_lice_a_brms_bayes)
+mcmc_plot(zinb_lice_a_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(lice_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(lice_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
@@ -557,6 +569,7 @@ log1 <- scale_x_continuous(trans="log1p")
 ppc_dens_overlay(y=lice_a_brms_bayes$data$total, pp_m[1:200, ])  + 
   coord_cartesian(xlim = c(0, 5))
 
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
 ppc_rootogram(y=zinb_lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
@@ -573,7 +586,21 @@ DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros 
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
 
 # Plots BRMS 
+color_scheme_set("teal") 
+# model fit
+png("data/data_analyses/models/model_plots/2.model_fit_ABUNDANCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
+ppc_rootogram(y=zinb_lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+dev.off()
 
+
+# PLOT convergence and parameters distributions
+png("data/data_analyses/models/model_plots/2.parameters_distribution_convergence_plot_model_ABUNDANCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(zinb_lice_a_brms_bayes)
+dev.off()
+
+# plot posterior distributions 
 color_scheme_set("teal")
 brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 
