@@ -406,13 +406,13 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   
   # Posterior distributions
   
-color_scheme_set("teal")
-brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+color_scheme_set("green")
+#brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 
 estimates_plot<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distributios", subtitle ="with medians and 95% intervals")+
+  labs(title="Posterior distributions ectoparasite prevalence", subtitle ="with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -420,14 +420,14 @@ estimates_plot<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95,
 estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.95,point_est = "mean",
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="intervals") +
-  labs(title="Posterior distributios", subtitle ="with means and 95% intervals")+
+  labs(title="Posterior distribution ectoparasite prevalence", subtitle ="with means and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-#png("data/data_analyses/models/model_plots/1.parameters_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
-#estimates_plot
-#dev.off()
+png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
 
 
 
@@ -660,7 +660,7 @@ color_scheme_set("teal")
 png("data/data_analyses/models/model_plots/2.model_fit_ABUNDANCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
 ppc_rootogram(y=zinb_lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 dev.off()
 
 
@@ -676,7 +676,7 @@ brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distributions ", subtitle ="Lice abundance with medians and 95% intervals")+
+  labs(title="Posterior distributions Lice abundance", subtitle ="Lice abundance with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -684,7 +684,7 @@ estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
 estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
-  labs(title="Posterior distributios", subtitle ="Lice abundance with medians and 95% intervals")+
+  labs(title="Posterior distributions Lice abundance", subtitle ="Lice abundance with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -741,6 +741,9 @@ print(tip)
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylogeny_prevalence, tip$name) 
 
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+
 # ####### 6.1.Analyses models abundance MITES--------------------------------------------------------
 
 # Mites
@@ -771,7 +774,7 @@ testZeroInflation(simulationOutput_a_mites) ## tests if there are more zeros in 
 #b) model pglmm
 ###_###_###
 
-mites_a_pglmm <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+mites_a_pglmm <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                             data = ectos_birds_dff, 
                             family = "poisson",
                             cov_ranef = list(species_jetz= phylo), #class phylo
@@ -804,7 +807,7 @@ testZeroInflation(simulationOutput_a_mites_2) ## tests if there are more zeros i
 ###_###_###
 
 
-zip_mites_a_pglmm_bayes <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+zip_mites_a_pglmm_bayes <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                   data =ectos_birds_dff, 
                                   family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
                                   cov_ranef = list(species_jetz= phylo), #class phylo
@@ -837,18 +840,19 @@ plot(simulationOutput_a_mites_3)
 ###_###_###
 
 zinb_mites_a_brms_bayes<-brm(total_mites~sociality+scale(elevation)+
-                          (1|gr(species_jetz, cov = phy_cov))+  
-                          (1|Powder.lvl) + 
-                          (1|species),
-                        data=df_ectos_w_mean_elevation,
-                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
-                        data2 = list(phy_cov=phy_cov),
-                        iter=6000, warmup=3000,
-                        thin=2,
-                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+                              (1|gr(species_jetz, cov = phy_cov))+  
+                              (1|Powder.lvl) + 
+                              (1|species),
+                            data=ectos_birds_dff,
+                            family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                            data2 = list(phy_cov=phy_cov),
+                            iter=6000, warmup=3000,
+                            thin=2,
+                            control=list(adapt_delta=0.99, max_treedepth=12)) 
 
-saveRDS(mites_a_brms_bayes, "data/data_analyses/models/model_ABUNDANCE_MITES_brms_zinb_phylo_multiple_obs.RDS")
+#saveRDS(zinb_mites_a_brms_bayes, "data/data_analyses/models/2m.model_ABUNDANCE_MITES_brms_zinb_phylo_multiple_obs.RDS")
 
+zinb_mites_a_brms_bayes<-readRDS("data/data_analyses/models/2m.model_ABUNDANCE_MITES_brms_zinb_phylo_multiple_obs.RDS")
 
 # Summarize the model
 summary ()
@@ -859,7 +863,7 @@ coef() # if you have group-level effects (hierarchical data)
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(ecto_p_brms_bayes) 
+bayes_R2(zinb_mites_a_brms_bayes) 
 plot(ecto_p_brms_bayes)
 mcmc_plot(ecto_p_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
@@ -896,7 +900,7 @@ brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
 estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distributios", subtitle ="with medians and 95% intervals")+
+  labs(title="Posterior distributions", subtitle ="with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -904,7 +908,7 @@ estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
 estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
-  labs(title="Posterior distributios", subtitle ="with means and 95% intervals")+
+  labs(title="Posterior distributions", subtitle ="with means and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -945,7 +949,7 @@ testZeroInflation(simulationOutput_nf_mites_a) ## tests if there are more zeros 
 #b) model pglmm
 ###_###_###
 
-nf_mites_a_pglmm <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+nf_mites_a_pglmm <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                             data = ectos_birds_dff, 
                             family = "poisson",
                             cov_ranef = list(species_jetz= phylo), #class phylo
@@ -977,10 +981,11 @@ testZeroInflation(simulationOutput_nf_mites_2) ## tests if there are more zeros 
 #c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
 ###_###_###
 
+# zero.inflated poisson did not converge
 
-nf_mites_a_pglmm_bayes <-phyr::pglmm(total_nf_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+nf_mites_a_pglmm_bayes <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                   data =ectos_birds_dff, 
-                                  family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
+                                  family ="poisson", #POISSON  ="zeroinflated.poisson", #
                                   cov_ranef = list(species_jetz= phylo), #class phylo
                                   bayes = TRUE,
                                   verbose=FALSE,
@@ -990,14 +995,14 @@ nf_mites_a_pglmm_bayes <-phyr::pglmm(total_nf_mites~sociality+scale(elevation)+(
 #1) Summary of the model 
 communityPGLMM.plot.re(x=ecto_abundance_pglmm_bayes) 
 summary(ecto_abundance_pglmm_bayes)   
-rr2::R2(ecto_abundance_pglmm_bayes)
+rr2::R2(nf_mites_a_pglmm_bayes)
 class(ecto_abundance_pglmm_bayes)
 
 launch_shinystan(ecto_abundance_pglmm_bayes)
 
 # Plots
 
-estimates_plot<-plot_bayes(ecto_abundance_pglmm_bayes ) #  
+estimates_plot<-plot_bayes(nf_mites_a_pglmm_bayes) #  
 
 #png("data/data_analyses/models/model_plots/2.parameters_plot_model_nf_mites_abundance_pglmm_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
 #parameters_plot
@@ -1010,22 +1015,36 @@ plot(simulationOutput_a_nf_mites_3)
 #d) model pglmm bayes : zero_inflated_negbinomial, ind scaled elevation
 ###_###_###
 
-nf_mites_a_brms_bayes<-brm(total_nf_mites~sociality+scale(elevation)+
-                          (1|gr(species_jetz, cov = phy_cov))+  
-                          (1|Powder.lvl) + 
-                          (1|species),
-                        data=df_ectos_w_mean_elevation,
-                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
-                        data2 = list(phy_cov=phy_cov),
-                        iter=4000, warmup=2000,
-                        thin=2,
-                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+#zip_nf_mites_a_brms_bayes<-brm(total_no_feathers_mites~sociality+scale(elevation)+
+                                  (1|gr(species_jetz, cov = phy_cov))+  
+                                  (1|Powder.lvl) + 
+                                  (1|species),
+                                data=ectos_birds_dff,
+                                family=zero_inflated_poisson,  #zero_inflated_negbinomial()
+                                data2 = list(phy_cov=phy_cov),
+                                iter=6000, warmup=3000,
+                                thin=2,
+                                control=list(adapt_delta=0.99, max_treedepth=12)) 
 
-saveRDS(nf_mites_a_brms_bayes, "data/data_analyses/models/model_abundance_NF_MITES_brms_zinb_phylo_multiple_obs.RDS")
+
+
+zinb_nf_mites_a_brms_bayes<-brm(total_no_feathers_mites~sociality+scale(elevation)+
+                               (1|gr(species_jetz, cov = phy_cov))+  
+                               (1|Powder.lvl) + 
+                               (1|species),
+                             data=ectos_birds_dff,
+                             family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                             data2 = list(phy_cov=phy_cov),
+                             iter=6000, warmup=3000,
+                             thin=2,
+                             control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+#saveRDS(zinb_nf_mites_a_brms_bayes, "data/data_analyses/models/2m.model_ABUNDANCE_n_f_MITES_brms_zinb_phylo_multiple_obs.RDS")
+zinb_nf_mites_a_brms_bayes<-readRDS("data/data_analyses/models/2m.model_ABUNDANCE_n_f_MITES_brms_zinb_phylo_multiple_obs.RDS")
 
 
 # Summarize the model
-summary ()
+summary (zinb_nf_mites_a_brms_bayes)
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 
@@ -1033,28 +1052,28 @@ coef() # if you have group-level effects (hierarchical data)
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(nf_mites_a_brms_bayes) 
-plot(nf_mites_a_brms_bayes)
+bayes_R2(zinb_nf_mites_a_brms_bayes) 
+plot(zinb_nf_mites_a_brms_bayes)
 mcmc_plot(nf_mites_a_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
-pp_check(nf_mites_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(nf_mites_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+pp_check(zinb_nf_mites_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(zinb_nf_mites_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict(nf_mites_a_brms_bayes)
+pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
 log1 <- scale_x_continuous(trans="log1p")
-ppc_dens_overlay(y=nf_mites_a_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  + 
+ppc_dens_overlay(y=zinb_nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m[1:200, ])  + 
   coord_cartesian(xlim = c(0, 5))
 
-ppc_rootogram(y=nf_mites_a_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+ppc_rootogram(y=nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 
-ppc_stat(y=nf_mites_a_brms_bayes$data$ectoparasites_PA, pp_m, stat = "prop_zero")
+ppc_stat(y=nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m, stat = "prop_zero")
 
 
 #Assumptions check model pglmm_ bayes
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(nf_mites_a_brms_bayes, integer = TRUE)
+simulate_residuals <- dh_check_brms(zinb_nf_mites_a_brms_bayes, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
@@ -1062,27 +1081,42 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 
 # Plots BRMS 
+color_scheme_set("red")
 
-#color_scheme_set("red")
-brmstools::forest(nf_mites_a_brms_bayes, level = 0.95, show_data = TRUE)
+# model convergence 
+png("data/data_analyses/models/model_plots/2m.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(zinb_nf_mites_a_brms_bayes)
+dev.off()
 
-estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
+
+# model fit
+png("data/data_analyses/models/model_plots/2m.model_fit_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
+ppc_rootogram(y=nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
+dev.off()
+
+pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
+
+brmstools::forest(zinb_nf_mites_a_brms_bayes, level = 0.95, show_data = TRUE)
+
+estimates_plot<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_outer=0.95,
                           variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distributinos", subtitle ="with medians and 95% intervals")+
+  labs(title="Posterior distribution mites (n_f)", subtitle ="with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
-  labs(title="Posterior distributios", subtitle ="with means and 95% intervals")+
+  labs(title="Posterior distribution mites(n_f)", subtitle ="with means and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/2m.parameters_intervals_plot_model_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
