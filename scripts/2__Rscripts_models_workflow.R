@@ -28,6 +28,9 @@ install.packages("devtools")
 install.packages("knitr")
 install.packages("ts")
 install.packages("RColorBrewer")
+install.packages("ggridges")
+install.packages("ggtree")
+install.packages("aplot")
 
 #for models
 install.packages("car") #Anova command
@@ -92,6 +95,10 @@ library(devtools)
 library(knitr)
 library(ts)
 library(RColorBrewer)
+library(ggridges)
+library(ggtree)
+library(aplot)
+
 #libraries for models and visualizations
 library(lattice) #preliminary plots
 library(car) #Anova command
@@ -151,6 +158,74 @@ str(phylo)
 
 
 # #### 4.Descriptive statistiscs plots -------------------------------------
+
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae ) %>% 
+  filter(total_no_feathers_mites<100) 
+
+ectos_birds_dff_mean <- ectos_birds_dff %>% select(species_jetz,total_lice,total_no_feathers_mites,total_mesostigmatidae) %>% filter(complete.cases(.)) %>% group_by(species_jetz) %>% mutate(mean_lice = mean(total_lice), mean_nf_mites=mean(total_no_feathers_mites)) %>% droplevels()
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
+
+### double check that the phylo and data match 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(ectos_birds_dff$species_jetz)) %>% mutate(name=ectos_birds_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+tip<-as.list(setdiff(a,b))
+print(tip)
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name)
+
+# Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits 
+
+rownames(ectos_birds_dff) <- ectos_birds_dff$species_jetz # first make it the row names 
+ectos_birds_dff<- ectos_birds_dff[match(phylo$tip.label,rownames(ectos_birds_dff)),]
+
+
+# releveling
+#plot_data <- data %>% select(genus_species, mite_load, ode_mass_g) %>% filter(complete.cases(.)) %>% group_by(genus_species) %>% mutate(avg_mass = mean(ode_mass_g)) %>% droplevels()
+#plot_dat$genus_species <- as.factor(plot_dat$genus_species)
+#plot_dat <- as.data.frame(plot_dat) %>% mutate(genus_species = fct_relevel(genus_species, plot_tree$tip.label[ordered_tips]))
+
+lice_load_plot <- ggplot(ectos_birds_dff, aes(x = total_lice, y =species_jetz)) +
+  coord_cartesian(clip = "off") +
+  scale_x_continuous(breaks=c(0, 1, 5, 10,15, 20, 30,40, 50)) +
+  #scale_x_continuous(trans="log1p",breaks=c(0, 1, 2,5, 10, 25, 50, 100, 200, 300)) +
+  scale_y_discrete(breaks=phylo$tip.label) +
+  ylab("") + xlab("Lice per individual") +
+  theme_ridges(center_axis_labels = TRUE) +
+  theme(axis.text.y=element_blank(),
+        axis.title.y=element_blank()) + geom_jitter(alpha=0.5, col="darkolivegreen4")
+lice_load_plot[["data"]][["species_jetz"]]
+
+
+tree_plot <- ggtree(phylo, ladderize=FALSE) + geom_tiplab() + ggplot2::xlim(0, 450)
+
+tree_plot<-plot(phylo)
+
+mites_load_plot <- ggplot(data = ectos_birds_dff, aes(y=species_jetz, x=total_no_feathers_mites)) + 
+  geom_jitter(alpha=0.5, col="coral3") + #geom_boxplot(outlier.alpha=0) +
+  scale_x_continuous(breaks=c(0, 1, 5, 10, 20, 30,40, 50, 100, 200, 300)) +
+  #scale_x_continuous(trans="log10") + 
+  theme_ridges(center_axis_labels = TRUE) + 
+  ylab("") + xlab("Mites (non-feather) per individual") +
+  theme(axis.text.y=element_blank(),
+        axis.title.y=element_blank())
+View(mites_load_plot)
+
+mites_plot[["data"]][["species_jetz"]]
+
+phylo_mite_lice_plot <- lice_load_plot %>% insert_left(tree_plot) %>% insert_right(mites_plot) 
+
+phylo_mite_lice_plot <- lice_load_plot %>% insert_left(mites_plot) 
+
+
+phylo_mite_lice_plot
+class( phylo_mite_lice_plot)
+
+ggsave("figures/figures_manuscript/f_Fig0_phylo_mite_lice_plot_descriptive.pdf", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
+
+
 
 # ##### 5.Data processing prevalence ectos ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
@@ -324,11 +399,12 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   
   # model fit
   png("data/data_analyses/models/model_plots/1.model_fit_PREVALENCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
-  pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
-  ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
-    coord_cartesian(xlim = c(0, 5), ylim = c(0,40))
+  pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
   dev.off()
   
+  
+  
+  # Posterior distributions
   
 color_scheme_set("teal")
 brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
@@ -514,7 +590,12 @@ zinb_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                     thin=2,
                     control=list(adapt_delta=0.99, max_treedepth=12)) 
 zinb_lice_a_brms_bayes<-lice_a_brms_bayes
+#saveRDS(lzinb_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
+zinb_lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
 
+
+#  exploring zero inflated poisson 
+ 
 zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                               (1|gr(species_jetz, cov = phy_cov))+  
                               (1|Powder.lvl) + 
@@ -522,27 +603,13 @@ zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                             data=ectos_birds_dff,
                             family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
                             data2 = list(phy_cov=phy_cov),
-                            iter=4000, warmup=2000,
+                            iter=6000, warmup=3000,
                             thin=2,
                             control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 zip_lice_a_brms_bayes<-lice_a_brms_bayes
+saveRDS(zip_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023.RDS")
 
-#saveRDS(lzinb_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
-zinb_lice_a_brms_bayes<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_17032023.RDS")
-
-
-#zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
-    #                     (1|gr(species_jetz, cov = phy_cov))+  
-    #                     (1|Powder.lvl) + 
-    #                     (1|species),
-    #                   data=ectos_birds_dff,
-    #                   family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
-    #                   data2 = list(phy_cov=phy_cov),
-    #                   iter=4000, warmup=2000,
-    #                   thin=2,
-    #                   control=list(adapt_delta=0.99, max_treedepth=12)) 
-#saveRDS(lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_17032023.RDS")
 # some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
 
 
@@ -557,7 +624,9 @@ coef(zinb_lice_a_brms_bayes) # if you have group-level effects (hierarchical dat
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(zinb_lice_a_brms_bayes) #0.32  zip #0.22
+bayes_R2(zinb_lice_a_brms_bayes) #0.32  
+bayes_R2(zip_lice_a_brms_bayes) # zip 0.22
+plot(zip_lice_a_brms_bayes)
 plot(zinb_lice_a_brms_bayes)
 mcmc_plot(zinb_lice_a_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
@@ -624,7 +693,7 @@ estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer
 #estimates_plot
 #dev.off()
  
-loo(lice_a_brms_bayes,lice_a_brms_bayes_zip,compare = TRUE)
+loo(zinb_lice_a_brms_bayes,zip_lice_a_brms_bayes,compare = TRUE)
 
 # ####### 6.Data processing abundance MITES----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
@@ -649,9 +718,9 @@ ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 #ectos_birds_dff$total_lice<-as.factor(ectos_birds_dff$total_lice)
-ectos_birds_dff$total_mites<-as.factor(ectos_birds_dff$total_mites)
-ectos_birds_dff$total_mesostigmatidae<-as.factor(ectos_birds_dff$total_mesostigmatidae)
-ectos_birds_dff$total_no_feathers_mites<-as.factor(ectos_birds_dff$total_no_feathers_mites)
+ectos_birds_dff$total_mites<-as.numeric(ectos_birds_dff$total_mites)
+ectos_birds_dff$total_mesostigmatidae<-as.numeric(ectos_birds_dff$total_mesostigmatidae)
+ectos_birds_dff$total_no_feathers_mites<-as.numeric(ectos_birds_dff$total_no_feathers_mites)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
 
 names(ectos_birds_dff)
@@ -678,9 +747,9 @@ phylo<-drop.tip (phylogeny_prevalence, tip$name)
 ###_###_###
 #a) model glmm
 ###_###_###
-mites_a_glmm <-glmer(total_mites~sociality+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
+mites_a_glmm <-glmer(total_no_feathers_mites~sociality+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
                      data = ectos_birds_dff, 
-                     family = "poisson")
+                     family ="poisson")
 # Summary
 summary(mites_a_glmm )
 rr2::R2(mites_a_glmm)
@@ -702,7 +771,7 @@ testZeroInflation(simulationOutput_a_mites) ## tests if there are more zeros in 
 #b) model pglmm
 ###_###_###
 
-mites_a_pglmm <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+mites_a_pglmm <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                             data = ectos_birds_dff, 
                             family = "poisson",
                             cov_ranef = list(species_jetz= phylo), #class phylo
@@ -735,7 +804,7 @@ testZeroInflation(simulationOutput_a_mites_2) ## tests if there are more zeros i
 ###_###_###
 
 
-mites_a_pglmm_bayes <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+zip_mites_a_pglmm_bayes <-phyr::pglmm(total_no_feathers_mites~sociality+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                   data =ectos_birds_dff, 
                                   family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
                                   cov_ranef = list(species_jetz= phylo), #class phylo
@@ -745,29 +814,29 @@ mites_a_pglmm_bayes <-phyr::pglmm(total_mites~sociality+scale(elevation)+(1|spec
 
 
 #1) Summary of the model 
-communityPGLMM.plot.re(x=ecto_abundance_pglmm_bayes) 
-summary(ecto_abundance_pglmm_bayes)   
-rr2::R2(ecto_abundance_pglmm_bayes)
+communityPGLMM.plot.re(x=zip_mites_a_pglmm_bayes) 
+summary(zip_mites_a_pglmm_bayes)   
+rr2::R2(zip_mites_a_pglmm_bayes)
 class(ecto_abundance_pglmm_bayes)
 
 launch_shinystan(ecto_abundance_pglmm_bayes)
 
 # Plots
 
-estimates_plot<-plot_bayes(ecto_abundance_pglmm_bayes ) #  
+estimates_plot<-plot_bayes(zip_mites_a_pglmm_bayes ) #  
 
-#png("data/data_analyses/models/model_plots/2.parameters_plot_model_mites_abundance_pglmm_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
-#parameters_plot
+#png("data/data_analyses/models/model_plots/2m.parameters_plot_model_nf_MITES_ABUNDANCE_pglmm_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+#estimates_plot
 #dev.off()
 
 # Assumptions check DHARMa does not work with pglm bayes=TRUE so I can not evaluate model fit.
-simulationOutput_a_mites_3<- DHARMa::simulateResiduals(fittedModel=ecto_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+simulationOutput_a_mites_3<- DHARMa::simulateResiduals(fittedModel=zip_mites_a_pglmm_bayes, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
 plot(simulationOutput_a_mites_3)
 
 #d) model pglmm bayes : zero_inflated_negbinomial, ind scaled elevation
 ###_###_###
 
-mites_a_brms_bayes<-brm(total_mites~sociality+scale(elevation)+
+zinb_mites_a_brms_bayes<-brm(total_mites~sociality+scale(elevation)+
                           (1|gr(species_jetz, cov = phy_cov))+  
                           (1|Powder.lvl) + 
                           (1|species),

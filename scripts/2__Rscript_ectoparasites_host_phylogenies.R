@@ -113,7 +113,7 @@ library(phangorn)
 maxCladeCred_bird_tree_manu_prevalence<-phangorn::maxCladeCred(host_species_tree_manu, tree = TRUE, rooted = TRUE)
 
 # Write the tree
-write.nexus(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")
+write.nexus(maxCladeCred_bird_tree_manu_prevalence, file="data/phylo_data/consensus/2_consensus_birdtreeManu_ectos_prevalence.nex")
 
 #  [Abundance Lice] ------------------------------------------------------------
 ####_####_
