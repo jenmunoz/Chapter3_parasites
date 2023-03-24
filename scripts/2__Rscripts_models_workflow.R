@@ -807,9 +807,42 @@ ectos_birds_dff %>%
   scale_size_continuous(guide = "none") +
   scale_color_manual(values = brewer.pal(6, "Blues")[-c(1,2)])
 
-names(ectos_birds_dff)
-grid = ectos_birds_dff %>%
+plot<-ectos_birds_dff %>%
+  add_epred_draws(zinb_lice_a_brms_bayes, dpar = TRUE) %>%
+  ggplot(aes(y = sociality, x = .epred)) +
+  stat_pointinterval(position = position_dodge(width = .4)) +
+  xlim(-20,20)+
+  scale_size_continuous(guide = "none") +
+  scale_color_manual(values = brewer.pal(6, "Blues")[-c(1,2)])
+
+names(plot)
+
+grid = ectos_birds_dff%>%
   data_grid(sociality)
+
+fits = grid%>%
+  add_epred_draws(zinb_lice_a_brms_bayes)
+names(fits)
+
+preds =grid  %>%
+  add_predicted_draws(zinb_lice_a_brms_bayes)
+names(preds)
+
+ectos_birds_dff %>%
+  ggplot(aes(y = sociality, x = total_lice)) +
+  stat_intervalh(aes(x = .prediction), data = preds) +
+  stat_pointintervalh(aes(x = .value), data = fits, .width = c(.66, .95), position = position_nudge(y = -0.2)) +
+  geom_point() +
+  
+
+
+ABC %>%
+  data_grid(condition) %>%
+  add_predicted_draws(m) %>%
+  ggplot(aes(y = condition, x = .prediction)) +
+  stat_intervalh() +
+  geom_point(aes(x = response), data = ABC) +
+  
 
 means = grid %>%
   add_epred_draws(zinb_lice_a_brms_bayes)
@@ -1109,10 +1142,16 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 
 # Plots BRMS 
+# PLOTS EXCLUDING PREMNOPLEX  USE THIS MODEL
+zinb_nf_mites_a_brms_bayes<-readRDS("data/data_analyses/models/2m.model_ABUNDANCE_n_f_MITES_brms_zinb_phylo_multiple_obs_wo_premnoplex.RDS.RDS")
 color_scheme_set("green")
 
+# PLots including premnoplex
+zinb_nf_mites_a_brms_bayes<-readRDS("data/data_analyses/models/2m.model_ABUNDANCE_n_f_MITES_brms_zinb_phylo_multiple_obs.RDS")
+color_scheme_set("orange")
+
 # model convergence 
-png("data/data_analyses/models/model_plots/2m.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123_wo_premnoplex.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/2m.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(zinb_nf_mites_a_brms_bayes)
 dev.off()
 
@@ -1144,15 +1183,18 @@ estimates_plot_intervals<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_o
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/2m.parameters_intervals_plot_model_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/2m.parameters_plot_model_intervals_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
-
+class(estimates_plot_intervals)
 # Model comparisons 
 loo(zip_nf_mites_a_brms_bayes,zinb_nf_mites_a_brms_bayes,compare = TRUE)
 
 zip_nf_mites_a_brms_bayes
+
+
+
 
 
 # ## ALL MITES ( excluded for now) ------------------------------------------------------------
@@ -1327,6 +1369,33 @@ estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95
 png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
+
+
+
+#color_scheme_set("red")
+brmstools::forest(ecto_p_brms_bayes, level = 0.95, show_data = TRUE)
+
+estimates_plot<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
+                          variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
+                          type="areas") +
+  labs(title="Posterior distributions", subtitle ="with medians and 95% intervals")+
+  theme_minimal(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+estimates_plot_intervals<-mcmc_plot(lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
+                                    type="intervals") +
+  labs(title="Posterior distributions", subtitle ="with means and 95% intervals")+
+  theme_minimal(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_brms_zinb_phylo_multiple_obs_031623.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+
 
 
 # ###### 6.2 Model predictions plots abundance MITES----------------------------------
