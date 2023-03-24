@@ -183,7 +183,9 @@ ectos_birds_dff_PA$species_jetz<-as.factor(ectos_birds_dff_PA$species_jetz)
 # creating summaries per species
 ectos_birds_dff_PA_species<-ectos_birds_dff_PA %>% group_by(species_jetz) %>% 
   summarise(total_presences=sum(ectoparasites_PA), sample_size=n(), sociality=max(sociality)) %>% 
-  mutate(ectos_prevalence=total_presences/sample_size)
+  mutate(ectos_prevalence=total_presences/sample_size) %>% 
+  filter(species_jetz!="Premnoplex_brunnescens")
+
 
 ectos_birds_dff_mean <- ectos_birds_dff %>% select(species_jetz,total_lice,total_no_feathers_mites,total_mesostigmatidae) %>% filter(complete.cases(.)) %>% group_by(species_jetz) %>% mutate(mean_lice = mean(total_lice), mean_nf_mites=mean(total_no_feathers_mites)) 
 
@@ -210,29 +212,27 @@ order<-(as.data.frame(phylo$tip.label)) # list of specie sin phylogenetic order
 # it will be nice to include the mean in this figures 
 lice_load_plot <- ggplot(ectos_birds_dff, aes(x = total_lice, y =species_jetz)) +
   coord_cartesian(clip = "off") +
-  geom_jitter(alpha=0.4, col="cyan4")+
+  geom_jitter(alpha=0.4, col="darkcyan")+
   scale_x_continuous(breaks=c(0, 1, 5, 10,15, 20, 30,40, 50)) +
-  geom_point(data=ectos_birds_dff_mean, shape=124, size=0.9,aes(y=species_jetz, x=mean_nf_mites))+
+  geom_point(data=ectos_birds_dff_mean, shape=124, size=1.5,aes(y=species_jetz, x=mean_nf_mites))+
   #scale_x_continuous(trans="log1p",breaks=c(0, 1, 2,5, 10, 25, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
   ylab("") + xlab("Lice per individual") +
   theme_ridges(center_axis_labels = TRUE) +
-theme_classic(20)+
-  theme( axis.text.y=element_blank(),
-         axis.title.y=element_blank(),
-         panel.grid.major.y = element_line( size=.05, color="grey"))
+theme_classic(10)+
+  theme(panel.grid.major.y = element_line( size=.05, color="grey"))
 
 lice_load_plot[["data"]][["species_jetz"]]
 
 mites_load_plot <- ggplot(data = ectos_birds_dff, aes(y=species_jetz, x=total_no_feathers_mites)) + 
-  geom_jitter(alpha=0.4, col="coral3") + #geom_boxplot(outlier.alpha=0) +
-  geom_point(data=ectos_birds_dff_mean, shape=124, size=0.9,aes(y=species_jetz, x=mean_nf_mites))+
+  geom_jitter(alpha=0.4, col="olivedrab") + #geom_boxplot(outlier.alpha=0) +
+  geom_point(data=ectos_birds_dff_mean, shape=124, size=1.5,aes(y=species_jetz, x=mean_nf_mites))+
   scale_x_continuous(breaks=c(0, 1, 5, 10, 20, 30,40, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
   theme_ridges(center_axis_labels = TRUE) + 
   ylab("") +
   xlab(" Mites per individual (Non_feather mites)") +
-  theme_classic(20)+
+  theme_classic(10)+
   theme( axis.text.y=element_blank(),
                 axis.title.y=element_blank(),
          panel.grid.major.y = element_line( size=.05, color="grey"))
@@ -248,28 +248,29 @@ theme(
 
 #tree_plot <- ggtree(phylo, ladderize=FALSE) + geom_tiplab() + ggplot2::xlim(0, 450)
 
-ColorPalette <- brewer.pal(n = 9, name = "GnBu")
+ColorPalette <- brewer.pal(n = 9, name = "YlGnBu")
 list.names=setNames(ectos_birds_dff_PA_species$ectos_prevalence, ectos_birds_dff_PA_species$species_jetz)
 fmode<-as.factor(setNames(ectos_birds_dff_PA_species$sociality,ectos_birds_dff_PA_species$species_jetz))
 tree_plot_ectos<- contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
 #object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
 object_color<-setMap(tree_plot_ectos, ColorPalette)
-tree_plot_sociality<-dotTree(phylo,fmode,colors=setNames(c("red","black"), c("1","0")),ftype="i",fsize=0.5, lwd=4) 
-plot(tree_plot_ectos)
+tree_plot_sociality<-dotTree(phylo,fmode,colors=setNames(c("yellow","black"), c("1","0")),ftype="i",fsize=0.5, lwd=4) 
+plot(tree_plot_sociality)
 # 
 png("figures/figures_manuscript/Fig1.PhyloTree_prevalence.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylo,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+plot(dotTree(phylo,fmode,colors=setNames(c("coral3","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
 plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
      xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
      ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
 add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
 dev.off()
 
+unique( ectos_birds_dff_PA_species$species_jetz)
 
-mite_lice_plot <- lice_load_plot %>% insert_left(mites_load_plot) 
+phylo_mite_lice_plot <- lice_load_plot %>% insert_right(mites_load_plot) 
 
 
-ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=mite_lice_plot, height=10, width=12, units="in")
+ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
 
 
 
@@ -298,7 +299,6 @@ ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectopa
 ectos_pres_abs_df<- ectos_pres_abs_df %>% rename(family=BLFamilyLatin)
 
 
-
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality) 
@@ -319,90 +319,6 @@ print(tip)
 
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylo, tip$name) 
-
-
-
-###_###_###_###_###_###_###_
-# Combining both plots
-###_###_###_###_###_###_###_
-
-list.names=setNames(ectos_birds_dff_PA$proportion_ectoparasites, ectos_birds_dff_PA$species_jetz)
-
-ColorPalette <- brewer.pal(n = 9, name = "GnBu")
-
-fmode<-as.factor(setNames(ectos_birds_dff_PA$sociality,ectos_birds_dff_PA$species_jetz))
-object = contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
-#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
-object_color<-setMap(object, ColorPalette)
-
-png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylo,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
-
-plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
-     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
-     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
-
-add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
-dev.off()
-
-### fig 1 
-list.names=setNames(ectos_birds_dff_PA$proportion_ectoparasites, ectos_birds_dff_PA$species_jetz)
-
-# Make sure the names  are in the same order in the phylogeny and in the traits
-rownames(ectos_birds_dff_PAf) <- ectos_birds_dff_PA$species_jetz # first make it the row names 
-ectos_birds_dff_PA<- ectos_birds_dff_PA[match(phylo$tip.label,rownames(ectos_birds_dff_PA)),]
-
-object = contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
-
-png("figures/figures_manuscript/Fig2.Prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
-object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
-plot(object_color, mar=c(5.1,1,1,1), ylim=c(1-0.09*(Ntip(object$tree)-1), Ntip(object$tree)), legend=FALSE,lwd=4,fsize=0.5)
-#add.color.bar(5, object2, title = "Infection Prevalence", lims = object$lims, digits = 3, prompt=FALSE,x=0,y=1-0.08*(Ntip(object$tree)-1), lwd=4,fsize=1,subtitle="")
-add.color.bar(5, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=10,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence")
-dev.off()
-title(xlab = "Time from root (Ma)")
-
-
-####  Plot flcoking as a binomial trait on the phylogeny
-
-phylogeny_rooted<- read.nexus("data/phylo_data/1_host_tree_Manuspecies_onetree_rooted_ectos_pres_abs.nex")
-ectos_df<-read.csv("data/data_analyses/7.dff_ectos_pres_abs.csv")# data on prevalence # should have same number of rows than teh phylogeny 
-fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
-
-unique(ectos_df$species_jetz)
-
-# Make sure the names  are in the same order in the phylogeny and in the traits
-rownames(ectos_df) <- ectos_df$species_jetz # first make it the row names 
-ectos_df<- ectos_df[match(phylogeny_rooted$tip.label,rownames(ectos_df)),]
-
-View(fmode)
-
-png("figures/figures_manuscript/Fig1.sociality_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
-dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),                                              c("1","0")),ftype="i",fsize=0.5, lwd=4)
-dev.off()
-
-###_###_###_###_###_###_###_
-# Combining both plots
-###_###_###_###_###_###_###_
-
-list.names=setNames(ectos_df$proportion_ectoparasites, ectos_df$species_jetz)
-
-ColorPalette <- brewer.pal(n = 9, name = "GnBu")
-
-fmode<-as.factor(setNames(ectos_df$sociality,ectos_df$species_jetz))
-object = contMap(phylogeny_rooted, list.names, direction = "leftwards", plot=FALSE)
-#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
-object_color<-setMap(object, ColorPalette)
-
-png("figures/figures_manuscript/Fig1a.Sociality_and_prevalence_phylotree.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylogeny_rooted,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
-
-plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
-     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
-     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
-
-add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
-dev.off()
 
 
 # ##### 5.Data processing prevalence ectos ----------------------------------------------------
@@ -568,7 +484,7 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   
   
 # Plots BRMS 
-   color_scheme_set("teal")
+   color_scheme_set("blue")
 
   # convergence 
   png("data/data_analyses/models/model_plots/1.parameters_distribution_convergence_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
@@ -581,7 +497,7 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   dev.off()
   
   
-  
+
   # Posterior distributions
   
 color_scheme_set("green")
@@ -603,8 +519,8 @@ estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes ,prob=0.90, prob_outer=0.9
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/1.parameters_intervals_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot_intervals
+png("data/data_analyses/models/model_plots/1.parameters_plot_model_PREVALENCE_brms_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
 dev.off()
 
 
@@ -730,7 +646,7 @@ zip_lice_a_pglmm_bayes <-phyr::pglmm(total_lice~sociality+scale(elevation)+(1|sp
                                          verbose=FALSE,
                                          prior = "inla.default") # consider using    add.obs.re = T
 #saveRDS(zip_lice_a_pglmm_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
-
+zip_lice_a_pglmm_bayes<-readRDS ("data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
 #1) Summary of the model 
 communityPGLMM.plot.re(x=zip_lice_a_pglmm_bayes ) 
 summary(zip_lice_a_pglmm_bayes)   
@@ -1193,7 +1109,7 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 
 # Plots BRMS 
-color_scheme_set("orange")
+color_scheme_set("green")
 
 # model convergence 
 png("data/data_analyses/models/model_plots/2m.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123_wo_premnoplex.png",width = 3000, height = 3000, res = 300, units = "px")
@@ -1228,8 +1144,8 @@ estimates_plot_intervals<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_o
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/2m.parameters_plot_model_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
-estimates_plot
+png("data/data_analyses/models/model_plots/2m.parameters_intervals_plot_model_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
 dev.off()
 
 
