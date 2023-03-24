@@ -159,13 +159,34 @@ str(phylo)
 
 # #### 4.Descriptive statistiscs plots -------------------------------------
 
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
+
+
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae ) 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae ) %>% 
+  filter(species_jetz!="Premnoplex_brunnescens")
 
-ectos_birds_dff_mean <- ectos_birds_dff %>% select(species_jetz,total_lice,total_no_feathers_mites,total_mesostigmatidae) %>% filter(complete.cases(.)) %>% group_by(species_jetz) %>% mutate(mean_lice = mean(total_lice), mean_nf_mites=mean(total_no_feathers_mites)) %>% droplevels()
 
-phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
+# just keeping the prevalences 
+ectos_birds_dff_PA<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  select( species_jetz, ectoparasites_PA, sociality ) %>% 
+  filter(species_jetz!="Premnoplex_brunnescens")
+
+unique (ectos_birds_dff_PA$species_jetz)
+
+str(ectos_birds_dff_PA)
+ectos_birds_dff_PA$ectoparasites_PA<-as.numeric(ectos_birds_dff_PA$ectoparasites_PA)
+ectos_birds_dff_PA$species_jetz<-as.factor(ectos_birds_dff_PA$species_jetz)
+
+# creating summaries per species
+ectos_birds_dff_PA_species<-ectos_birds_dff_PA %>% group_by(species_jetz) %>% 
+  summarise(total_presences=sum(ectoparasites_PA), sample_size=n(), sociality=max(sociality)) %>% 
+  mutate(ectos_prevalence=total_presences/sample_size)
+
+ectos_birds_dff_mean <- ectos_birds_dff %>% select(species_jetz,total_lice,total_no_feathers_mites,total_mesostigmatidae) %>% filter(complete.cases(.)) %>% group_by(species_jetz) %>% mutate(mean_lice = mean(total_lice), mean_nf_mites=mean(total_no_feathers_mites)) 
+
 
 ### double check that the phylo and data match 
 a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
@@ -175,11 +196,10 @@ print(tip)
 # Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
 phylo<-drop.tip (phylo, tip$name)
 
-order<-(as.data.frame(phylo$tip.label))
+order<-(as.data.frame(phylo$tip.label)) # list of specie sin phylogenetic order
 # Important!!!!!Make sure the names  are in the same order in the phylogeny and in the traits 
-
-rownames(ectos_birds_dff) <- ectos_birds_dff$species_jetz # first make it the row names 
-ectos_birds_dff<- ectos_birds_dff[match(phylo$tip.label,rownames(ectos_birds_dff)),]
+#rownames(ectos_birds_dff) <- ectos_birds_dff$species_jetz # first make it the row names 
+#ectos_birds_dff<- ectos_birds_dff[match(phylo$tip.label,rownames(ectos_birds_dff)),]
 
 
 # releveling
@@ -190,59 +210,66 @@ ectos_birds_dff<- ectos_birds_dff[match(phylo$tip.label,rownames(ectos_birds_dff
 # it will be nice to include the mean in this figures 
 lice_load_plot <- ggplot(ectos_birds_dff, aes(x = total_lice, y =species_jetz)) +
   coord_cartesian(clip = "off") +
+  geom_jitter(alpha=0.4, col="cyan4")+
   scale_x_continuous(breaks=c(0, 1, 5, 10,15, 20, 30,40, 50)) +
+  geom_point(data=ectos_birds_dff_mean, shape=124, size=0.9,aes(y=species_jetz, x=mean_nf_mites))+
   #scale_x_continuous(trans="log1p",breaks=c(0, 1, 2,5, 10, 25, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
   ylab("") + xlab("Lice per individual") +
   theme_ridges(center_axis_labels = TRUE) +
-  theme() +
-geom_jitter(alpha=0.5, col="darkolivegreen4")
-
+theme_classic(20)+
+  theme( axis.text.y=element_blank(),
+         axis.title.y=element_blank(),
+         panel.grid.major.y = element_line( size=.05, color="grey"))
 
 lice_load_plot[["data"]][["species_jetz"]]
 
-# The phylogenetic plot with prevalence
-
-#tree_plot <- ggtree(phylo, ladderize=FALSE) + geom_tiplab() + ggplot2::xlim(0, 450)
-
-ColorPalette <- brewer.pal(n = 9, name = "GnBu")
-list.names=setNames(ectos_birds_dff$proportion_ectoparasites, ectos_birds_dff$species_jetz)
-fmode<-as.factor(setNames(ectos_birds_dff$sociality,ectos_birds_dff$species_jetz))
-object = contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
-#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
-object_color<-setMap(object, ColorPalette)
-
-
-tree_plot<-dotTree(phylo,fmode,colors=setNames(c("red","black"), c("1","0")),ftype="i",fsize=0.5, lwd=4) 
-object = contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
-
-object_color<-setMap(object, ColorPalette)
-
-list.names=c(unique(ectos_birds_dff$species_jetz))
-scale_y_discrete(limits=list.names)+
-  
-
 mites_load_plot <- ggplot(data = ectos_birds_dff, aes(y=species_jetz, x=total_no_feathers_mites)) + 
-  geom_jitter(alpha=0.5, col="coral3") + #geom_boxplot(outlier.alpha=0) +
+  geom_jitter(alpha=0.4, col="coral3") + #geom_boxplot(outlier.alpha=0) +
+  geom_point(data=ectos_birds_dff_mean, shape=124, size=0.9,aes(y=species_jetz, x=mean_nf_mites))+
   scale_x_continuous(breaks=c(0, 1, 5, 10, 20, 30,40, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
   theme_ridges(center_axis_labels = TRUE) + 
   ylab("") +
-  xlab("Mites (non-feather) per individual") +
-  theme()
-# to eliminate the species names in the axes once we know the order is correct use
+  xlab(" Mites per individual (Non_feather mites)") +
+  theme_classic(20)+
+  theme( axis.text.y=element_blank(),
+                axis.title.y=element_blank(),
+         panel.grid.major.y = element_line( size=.05, color="grey"))
+
+
+#  remove this part to make sure teh species are in the same orderto eliminate the species names in the axes once we know the order is correct use
 theme(
-axis.text.y=element_blank(),
-axis.title.y=element_blank())
-
-mites_plot[["data"]][["species_jetz"]]
-
-phylo_mite_lice_plot <- lice_load_plot %>% insert_left(tree_plot) %>% insert_right(mites_load_plot) 
-
-phylo_mite_lice_plot <- lice_load_plot %>% insert_left(mites_load_plot) 
+  axis.text.y=element_blank(),
+  axis.title.y=element_blank())
 
 
-ggsave("figures/figures_manuscript/f_Fig0_phylo_mite_lice_plot_descriptive.pdf", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
+# The phylogenetic plot with prevalence 
+
+#tree_plot <- ggtree(phylo, ladderize=FALSE) + geom_tiplab() + ggplot2::xlim(0, 450)
+
+ColorPalette <- brewer.pal(n = 9, name = "GnBu")
+list.names=setNames(ectos_birds_dff_PA_species$ectos_prevalence, ectos_birds_dff_PA_species$species_jetz)
+fmode<-as.factor(setNames(ectos_birds_dff_PA_species$sociality,ectos_birds_dff_PA_species$species_jetz))
+tree_plot_ectos<- contMap(phylo, list.names, direction = "leftwards", plot=FALSE)
+#object_color<-setMap(object, c("snow3","darkslategray3","dodgerblue","darkolivegreen3","goldenrod1"))
+object_color<-setMap(tree_plot_ectos, ColorPalette)
+tree_plot_sociality<-dotTree(phylo,fmode,colors=setNames(c("red","black"), c("1","0")),ftype="i",fsize=0.5, lwd=4) 
+plot(tree_plot_ectos)
+# 
+png("figures/figures_manuscript/Fig1.PhyloTree_prevalence.png", width = 2500, height = 3100, res = 300, units = "px")
+plot(dotTree(phylo,fmode,colors=setNames(c("red","black"),c("1","0")),ftype="i",fsize=0.5, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
+     xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
+     ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
+add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+dev.off()
+
+
+mite_lice_plot <- lice_load_plot %>% insert_left(mites_load_plot) 
+
+
+ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=mite_lice_plot, height=10, width=12, units="in")
 
 
 
