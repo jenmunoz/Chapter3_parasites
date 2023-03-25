@@ -793,7 +793,7 @@ estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer
  
 loo(zinb_lice_a_brms_bayes,zip_lice_a_brms_bayes,compare = TRUE)
 
-# ###### 6.2 Model predictions plots abundance lice----------------------------------
+# ###### 6.2 Model predictions PLOTS abundance lice----------------------------------
 #some ideas here: https://cran.r-project.org/web/packages/tidybayes/vignettes/tidy-brms.html
 # this is not workingunsure why
 install.packages("modelr")
@@ -813,14 +813,15 @@ library(cowplot)
 library(rstan)
 library(brms)
 
+# I am not sure how to do this 
 # https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html
 
 ectos_birds_dff %>%
   group_by(sociality) %>%
   #data_grid(hp = seq_range(hp, n = 51)) %>%
   linpred_draws(object=zinb_lice_a_brms_bayes) %>% # plotting intervals it is always best to use all draws (omit ndraws)
-  ggplot(aes(x = sociality, y = total_lice, color = sociality)) +
   geom_line(aes(y =.linpred, group = paste(sociality, .draw)), alpha = 0.25, color="blue") +
+  ggplot(aes(x = sociality, y = total_lice, color = sociality)) +
   #stat_lineribbon(aes(y =.prediction)) +
   geom_point(data =ectos_birds_dff) +
   scale_fill_brewer(palette = "Greys") +
@@ -860,6 +861,64 @@ add_predicted_draws(
 )
 
 names(epred_draws)
+
+# The oterh way of plotting this 
+
+###_###_###
+# PLOTS PREVALENCE [Presence Absence]
+###_###_###
+
+# PLotting the model predictions 
+#### How well does PGLMM it predict the data
+newdata <- data.frame(elevation = ectos_birds_dff$elevation,
+                      species = ectos_birds_dff$species,
+                      species_jetz = ectos_birds_dff$species_jetz,
+                      sociality = ectos_birds_dff$sociality,
+                      Powder.lvl=ectos_birds_dff$Powder.lvl)
+
+predictions<- predict(zinb_lice_a_brms_bayes,newdata = newdata, type = "response" ) ##newdata = newdata
+# or use fitedd instead
+#predictions<- fitted(ecto_prevalence_pglmm,newdata = newdata) ##newdata = newdata
+
+ectos_df_predicted <- cbind(ectos_birds_dff, predictions)
+
+str(ectos_df_predicted)
+
+# lets calculae the mean of the predited values on the untransformed scale
+predictions_summary<- ectos_df_predicted %>% 
+  group_by(sociality) %>%      
+  dplyr::summarise(mean_prevalence= mean(Estimate), se=(Est.Error), n = n()) 
+
+colnames(predictions_summary) <- c("sociality", "mean_prevalence", "se","n")
+
+head(predictions_summary)
+names(ectos_birds_dff)
+
+# make a plot of model predictions (that also shows data)
+png("figures/figures_manuscript/Fig1_Ectoparasite_prevalence_pglmm.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff, aes(x = sociality, y = total_lice))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = total_lice),color="grey",size=3,width = 0.07)+
+  geom_segment(data = predictions_summary, aes(x = sociality, y = mean_prevalence, xend = sociality, yend =mean_prevalence+se, color="red"),show_guide = FALSE)+
+  geom_segment(data = predictions_summary, aes(x = sociality, y = mean_prevalence, xend = sociality, yend =mean_prevalence-se, color="red"),show_guide = FALSE)+
+  #geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = Y_hat), color="red", size=4,shape=19,width = 0.07)+
+  geom_point(data = predictions_summary, aes(x=sociality, y = mean_prevalence), color="red", size=4,shape=19)+
+  scale_y_continuous("Lice abundance", limits = c(0,1)) +
+  scale_x_discrete("Sociality")+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+
+
+ggplot(data = ectos_df_predicted, aes(x = sociality, y = proportion_ectoparasites))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_df_predicted, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=3,width = 0.07)+
+  geom_point(data = ectos_df_predicted, aes(x=sociality, y = proportion_ectoparasites), color="red", size=4,shape=19)+
+  scale_y_continuous("Ectoparasites prevalence", limits = c(0,1)) +
+  scale_x_discrete("Sociality")+
+  geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
 
 
 # ####### 6.Data processing abundance MITES----------------------------------------------------
