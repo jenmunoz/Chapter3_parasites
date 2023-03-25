@@ -798,68 +798,68 @@ loo(zinb_lice_a_brms_bayes,zip_lice_a_brms_bayes,compare = TRUE)
 # this is not workingunsure why
 install.packages("modelr")
 library(modelr)
+epred_draws()
+
+library(magrittr)
+library(dplyr)
+library(forcats)
+library(tidyr)
+library(modelr)
+library(tidybayes)
+library(ggplot2)
+library(ggstance)
+library(ggridges)
+library(cowplot)
+library(rstan)
+library(brms)
+
+# https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html
 
 ectos_birds_dff %>%
-  data_grid(sociality) %>%
-  add_epred_draws(zinb_lice_a_brms_bayes, dpar = TRUE) %>%
-  ggplot(ectos_birds_dff,aes(x = sociality, y = total_lice, color = sociality)) +
-  stat_pointinterval(position = position_dodge(width = .4)) +
-  scale_size_continuous(guide = "none") +
-  scale_color_manual(values = brewer.pal(6, "Blues")[-c(1,2)])
+  group_by(sociality) %>%
+  #data_grid(hp = seq_range(hp, n = 51)) %>%
+  linpred_draws(object=zinb_lice_a_brms_bayes) %>% # plotting intervals it is always best to use all draws (omit ndraws)
+  ggplot(aes(x = sociality, y = total_lice, color = sociality)) +
+  geom_line(aes(y =.linpred, group = paste(sociality, .draw)), alpha = 0.25, color="blue") +
+  #stat_lineribbon(aes(y =.prediction)) +
+  geom_point(data =ectos_birds_dff) +
+  scale_fill_brewer(palette = "Greys") +
+  scale_color_brewer(palette = "Set2")
 
-plot<-ectos_birds_dff %>%
-  add_epred_draws(zinb_lice_a_brms_bayes, dpar = TRUE) %>%
-  ggplot(aes(y = sociality, x = .epred)) +
-  stat_pointinterval(position = position_dodge(width = .4)) +
-  xlim(-20,20)+
-  scale_size_continuous(guide = "none") +
-  scale_color_manual(values = brewer.pal(6, "Blues")[-c(1,2)])
-
-names(plot)
-
-grid = ectos_birds_dff%>%
-  data_grid(sociality)
-
-fits = grid%>%
-  add_epred_draws(zinb_lice_a_brms_bayes)
-names(fits)
-
-preds =grid  %>%
-  add_predicted_draws(zinb_lice_a_brms_bayes)
-names(preds)
 
 ectos_birds_dff %>%
-  ggplot(aes(y = sociality, x = total_lice)) +
-  stat_intervalh(aes(x = .prediction), data = preds) +
-  stat_pointintervalh(aes(x = .value), data = fits, .width = c(.66, .95), position = position_nudge(y = -0.2)) +
-  geom_point() +
-  
+  group_by(sociality) %>%
+  #data_grid(hp = seq_range(hp, n = 51)) %>%
+  predicted_draws(object=zinb_lice_a_brms_bayes) %>% # plotting intervals it is always best to use all draws (omit ndraws)
+  ggplot(aes(x = sociality, y = total_lice, color = sociality)) +
+  geom_line(aes(y =.prediction, group = paste(sociality, .draw)), alpha = 0.25, color="blue") +
+  #stat_lineribbon(aes(y =.prediction)) +
+  geom_point(data =ectos_birds_dff) +
+  scale_fill_brewer(palette = "Greys") +
+  scale_color_brewer(palette = "Set2")
 
 
-ABC %>%
-  data_grid(condition) %>%
-  add_predicted_draws(m) %>%
-  ggplot(aes(y = condition, x = .prediction)) +
-  stat_intervalh() +
-  geom_point(aes(x = response), data = ABC) +
-  
+#for [add_]epred_draws(), defaults to ".epred"
 
-means = grid %>%
-  add_epred_draws(zinb_lice_a_brms_bayes)
+#for [add_]predicted_draws(), defaults to ".prediction".
 
-preds = grid %>%
-  add_predicted_draws(zinb_lice_a_brms_bayes)
+#linpred_draws() ncludes a column with its name specified by the linpred argument (default ".linpred")
 
-AB %>%
-  ggplot(aes(x = response, y = group)) +
-  stat_halfeye(aes(x = .epred), scale = 0.6, position = position_nudge(y = 0.175), data = means) +
-  stat_interval(aes(x = .prediction), data = preds) +
-  geom_point(data = AB) +
-  
+#add_linpred_draws() adds draws from the posterior linear predictors to the data. It corresponds to rstanarm::posterior_linpred() or brms::posterior_linpred(). Depending on the model type and additional parameters passed, this may be
 
+add_predicted_draws(
+  newdata,
+  object,
+  ...,
+  value = ".prediction",
+  ndraws = NULL,
+  seed = NULL,
+  re_formula = NULL,
+  category = ".category",
+  n
+)
 
-
-
+names(epred_draws)
 
 
 # ####### 6.Data processing abundance MITES----------------------------------------------------
