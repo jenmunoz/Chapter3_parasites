@@ -530,6 +530,43 @@ mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
 names(ecto_p_brms_bayes$formula$resp)
 
 # ##### 5.2 Model predictions plots prevalence ectos----------------------------------
+# Descriptive plot 
+
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, ectoparasites_PA) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+str(ectos_birds_dff)
+ectos_birds_dff$ectoparasites_PA<-as.numeric(ectos_birds_dff$ectoparasites_PA)
+
+
+# creating summaries per species
+ectos_birds_dff_PA_species<-ectos_birds_dff_PA %>% group_by(species_jetz) %>% 
+  summarise(total_presences=sum(ectoparasites_PA), sample_size=n(), sociality=max(sociality)) %>% 
+  mutate(ectos_prevalence=total_presences/sample_size) %>% 
+  filter(species_jetz!="Premnoplex_brunnescens")
+
+ectos_birds_dff_PA_summary<-ectos_birds_dff_PA_species %>% group_by(sociality) %>% 
+  summarize( mean=mean(ectos_prevalence))
+
+ectos_birds_dff_mean <- ectos_birds_dff %>% select(species_jetz,total_lice,total_no_feathers_mites,total_mesostigmatidae) %>% filter(complete.cases(.)) %>% group_by(species_jetz) %>% mutate(mean_lice = mean(total_lice), mean_nf_mites=mean(total_no_feathers_mites)) 
+
+
+#filter(total_lice<60)  # removing outliers 
+
+
+png("figures/figures_manuscript/Fig1_Ectoparasite_prevalence_data_plot.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff_PA_species, aes(x = sociality, y=ectos_prevalence))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_birds_dff_PA_species, aes(x=sociality, y = ectos_prevalence),color="grey",size=3,width = 0.07)+
+  geom_point(data =ectos_birds_dff_PA_summary, aes(x=sociality, y = mean),color="cyan4",size=5)+
+  scale_y_continuous("Ectoparasite prevalence", limits = c(0,1)) +
+  scale_x_discrete("Sociality", limits =c(0,1))+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
 
 
 
@@ -794,6 +831,93 @@ estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer
 loo(zinb_lice_a_brms_bayes,zip_lice_a_brms_bayes,compare = TRUE)
 
 # ###### 6.2 Model predictions PLOTS abundance lice----------------------------------
+
+
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_lice) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+str(ectos_birds_dff)
+
+#ectos_birds_dff <-ectos_birds_dff  %>% mutate_at("species_jetz", str_replace, " ", "_")
+#ectos_birds_dff$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
+ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
+ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
+ectos_birds_dff$total_lice<-as.numeric(ectos_birds_dff$total_lice)
+ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+names(ectos_birds_dff)
+is.ultrametric(phylo)
+
+
+# creating summaries per species
+
+ectos_birds_dff_summary<-ectos_birds_dff %>% group_by(sociality) %>% 
+  summarize( mean=mean(total_lice))
+
+png("figures/figures_manuscript/Fig2_Lice_abundance_data_plot_sociality.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff, aes(x = sociality, y=total_lice, color=species_jetz))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_birds_dff, aes(x=sociality, y =total_lice),color="darkgrey",size=3,width = 0.07, alpha=0.6)+
+  geom_point(data = ectos_birds_dff_summary, aes(x=sociality, y =mean),color="cyan3",size=4)+
+  scale_y_continuous("Lice abundance", limits = c(0,45)) +
+  scale_x_discrete("Sociality", limits =c(0,1))+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+
+png("figures/figures_manuscript/Fig2_Lice_abundance_data_plot_elevation.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff, aes(x =elevation, y=total_lice))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_birds_dff, aes(x=elevation, y =total_lice),color="darkgrey",size=3,width = 0.5, alpha=0.8)+
+  scale_y_continuous("Lice abundance", limits = c(0,45)) +
+  scale_x_continuous("Elevation", limits =c(0,4000))+
+  #geom_smooth(method = "glm")+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+#Plotting posterior inference against the data I am not sure how to plot thi is the traformed scale
+#https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html
+
+# Extracting posterior inference ( this is not working) 
+posterior_summary(zinb_lice_a_brms_bayes)[1:8,]!!!!!
+
+ectos_birds_dff %>%
+  ggplot(aes(x=sociality, y = total_lice)) +
+  geom_abline(intercept = fixef(zinb_lice_a_brms_bayes)[1], 
+              slope     = fixef(zinb_lice_a_brms_bayes)[2]) +
+  geom_point(shape = 1, size = 2, color = "royalblue") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+fixef(zinb_lice_a_brms_bayes)
+
+ectos_birds_dff %>%
+  add_linpred_draws(zinb_lice_a_brms_bayes) %>%
+  ggplot(aes(x = elevation, y =total_lice)) +
+  stat_lineribbon(aes(y = .linpred), .width = c(.99, .95, .8, .5), color = "#08519C") +
+  geom_point(data = ectos_birds_dff, size = 2) +
+  scale_fill_brewer()
+
+ectos_birds_dff  %>%
+  # NOTE: this shows the use of ndraws to subsample within add_epred_draws()
+  # ONLY do this IF you are planning to make spaghetti plots, etc.
+  # NEVER subsample to a small sample to plot intervals, densities, etc.
+  add_epred_draws(zinb_lice_a_brms_bayes, ndraws = 100) %>%   # sample 100 means from the posterior
+  ggplot(aes(x = sociality, y = total_lice)) +
+  geom_line(aes(y = .epred, group = .draw), alpha = 1/20, color = "#08519C") +
+  geom_point(data = ectos_birds_dff) 
+
+
+
+
+
 #some ideas here: https://cran.r-project.org/web/packages/tidybayes/vignettes/tidy-brms.html
 # this is not workingunsure why
 install.packages("modelr")
@@ -1458,7 +1582,57 @@ dev.off()
 
 
 # ###### 6.2 Model predictions plots abundance MITES----------------------------------
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_no_feathers_mites) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
+str(ectos_birds_dff)
+
+#ectos_birds_dff <-ectos_birds_dff  %>% mutate_at("species_jetz", str_replace, " ", "_")
+#ectos_birds_dff$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
+ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
+ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
+ectos_birds_dff$total_no_feathers_mites<-as.numeric(ectos_birds_dff$total_no_feathers_mites)
+ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+names(ectos_birds_dff)
+is.ultrametric(phylo)
+
+
+# creating summaries per species
+
+ectos_birds_dff_summary<-ectos_birds_dff %>% group_by(sociality) %>% 
+  summarize( mean=mean(total_no_feathers_mites))
+
+png("figures/figures_manuscript/Fig2_Mites_abundance_data_plot_sociality.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff, aes(x = sociality, y=total_no_feathers_mites))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_birds_dff, aes(x=sociality, y =total_no_feathers_mites),color="darkgrey",size=3,width =  0.5, alpha=0.8)+
+  geom_point(data = ectos_birds_dff_summary, aes(x=sociality, y =mean),color="darkgreen",size=4)+
+  scale_y_continuous("Mites abundance", limits = c(0,85)) +
+  scale_x_discrete("Sociality", limits=c(0,1))+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+
+png("figures/figures_manuscript/Fig2_Mites_abundance_data_plot_elevation.png", width = 3000, height = 3000, res = 300, units = "px")
+ggplot(data = ectos_birds_dff, aes(x =elevation, y=total_no_feathers_mites))+
+  # geom_point(data = ectos_df, aes(x=sociality, y = proportion_ectoparasites),color="grey",size=2)+
+  geom_jitter(data = ectos_birds_dff, aes(x=elevation, y =total_no_feathers_mites),color="darkgrey",size=3,width = 0.5, alpha=0.8)+
+  scale_y_continuous("Mites abundance", limits = c(0,85)) +
+  scale_x_continuous("Elevation", limits =c(0,4000))+
+  #geom_smooth(method = "glm")+
+  #geom_hline(yintercept = 0.775, linetype = "dashed")+
+  theme_classic(40)
+dev.off()
+
+#Plotting posterior inference against the data I am not sure how to plot thi is the traformed scale
+#https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html
 # ########7.Data processing diversity [In progress]--------------------------------------------------------
 ectos_birds_dff_d<-read.csv("data/data_analyses/data_manuscript/", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
