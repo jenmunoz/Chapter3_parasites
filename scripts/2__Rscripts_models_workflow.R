@@ -1638,7 +1638,7 @@ ectos_birds_dff_d<-read.csv("data/data_analyses/data_manuscript/", na.strings =c
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_mites, total_mesostigmatidae, total_no_feathers_mites) %>% 
   na.omit() %>% 
-  filter(total_mites<300) =
+  filter(total_mites<300) 
   
 assertr::insist(ectos_birds_dff, within_n_mads(50), total_mites)
 assertr::insist(ectos_birds_dff, within_n_mads(2), total_no_feathers_mites)
@@ -1739,14 +1739,253 @@ mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
 
 # 0.N Libraries networks --------------------------------------------------------------
 
+
 # # 1.N Data import-----------------------------------------------------------------
 
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality, ectoparasites_PA,total_lice,total_mites, total_no_feathers_mites,total_mesostigmatidae,degree, w_degree) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+names(df_ectos_network_individual_metrics)
+
+unique(df_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+
 # ####### 8.Data processing networks--------------------------------------------------------
+
+# Occurrence 
+
 # Lice
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_individual_metrics$total_lice)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
 
 # Mites
 
 # ####### 8.1. Data analyses networks--------------------------------------------------------
+
+# Lice
+
+###_###_###
+#a) model glmm
+###_###_###
+str(dff_ectos_network_individual_metrics)
+lice_a_glmm_degree <-glmer(total_lice~degree+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
+                    data = dff_ectos_network_individual_metrics, 
+                    family = "poisson")
+
+# Summary
+summary(lice_a_glmm_degree )
+rr2::R2(lice_a_glmm_degree)# R2 Predicted 0.38
+fixef(lice_a_glmm_degree)
+predict(lice_a_glmm_degree)
+class(lice_a_glmm_degree) 
+
+# Assumptions check
+simulationOutput_a_lice<- DHARMa::simulateResiduals(fittedModel =lice_a_glmm_degree, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice)
+testUniformity(simulationOutput_a_lice) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput_a_lice, catPred = dff_ectos_network_individual_metrics$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice) ## tests if there are more zeros in the data than expected from the simulations
+
+# zero inflated, overdispersed, with outliers
+#b) model pglmm
+###_###_###
+
+lice_a_pglmm_degree<-phyr::pglmm(total_lice~degree+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+                           data = dff_ectos_network_individual_metrics, 
+                           family = "poisson",
+                           cov_ranef = list(species_jetz= phylo), #class phylo
+                           #bayes = TRUE,
+                           add.obs.re = TRUE,
+                           REML = TRUE, 
+                           verbose = TRUE,
+                           s2.init = .25) # what is this last parameter for
+
+histogram(dff_ectos_network_individual_metrics$total_lice) # id some outliers 
+plot_data(lice_a_pglmm_degree)
+summary(lice_a_pglmm_degree)
+rr2::R2(lice_a_pglmm_degree)
+fixef(lice_a_pglmm_degree)
+predict(lice_a_pglmm_degree)
+
+# Assumptions check
+simulationOutput_a_lice_2<- DHARMa::simulateResiduals(fittedModel=lice_a_pglmm_degree, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice_2)
+testUniformity(simulationOutput_a_lice_2) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice_2)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice_2) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice_2) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+#testCategorical(simulationOutput_a_lice_2, catPred = dff_ectos_network_individual_metrics$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice_2) ## tests if there are more zeros in the data than expected from the simulations
+
+# no outliers, but no homogenity of varianse KS and withig groups significant, and zero inflated
+
+#c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
+###_###_###
+
+zip_lice_a_pglmm_bayes_degree <-phyr::pglmm(total_lice~degree+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+                                     data =dff_ectos_network_individual_metrics, 
+                                     family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
+                                     cov_ranef = list(species_jetz= phylo), #class phylo
+                                     bayes = TRUE,
+                                     verbose=FALSE,
+                                     prior = "inla.default") # consider using    add.obs.re = T
+# control = list(adapt_delta = 0.99) 
+#saveRDS(zip_lice_a_pglmm_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
+zip_lice_a_pglmm_bayes<-readRDS ("data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023.RDS")
+#1) Summary of the model 
+communityPGLMM.plot.re(x=zip_lice_a_pglmm_bayes ) 
+summary(zip_lice_a_pglmm_bayes)   
+rr2::R2(zip_lice_a_pglmm_bayes)
+class(zip_lice_a_pglmm_bayes)
+
+launch_shinystan(zip_lice_a_pglmm_bayes)
+
+# Plots
+
+estimates_plot<-plot_bayes(zip_lice_a_pglmm_bayes ) # for some reason does not allow me to plot zero inflated poisson 
+
+#png("data/data_analyses/models/model_plots/2.parameters_plot_model_LICE_ABUNDANCE_pglmm_zip_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+#estimates_plot
+#dev.off()
+
+# Assumptions check DHARMa does not work with pglm bayes=TRUE so I can not evaluate model fit.
+simulationOutput_a_lice_3<- DHARMa::simulateResiduals(fittedModel=zip_lice_a_pglmm_bayes_degree, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
+plot(simulationOutput_a_lice_3)
+testUniformity(simulationOutput_a_lice_3) #tests if the overall distribution conforms to expectations
+testOutliers(simulationOutput_a_lice_3)#  tests if there are more simulation outliers than expected
+testDispersion(simulationOutput_a_lice_3) # tests if the simulated dispersion is equal to the observed dispersion
+testQuantiles(simulationOutput_a_lice_3) #fits a quantile regression or residuals against a predictor (default predicted value), and tests of this conforms to the expected quantile
+testCategorical(simulationOutput_a_lice_3, catPred = dff_ectos_network_individual_metrics$sociality)# tests residuals against a categorical predictor
+testZeroInflation(simulationOutput_a_lice_3) ## tests if there are more zeros in the data than expected from the simulations
+
+
+#d) model brms bayes : zero_inflated_negbinomial, ind scaled elevation
+###_###_###
+
+zinb_lice_a_brms_bayes_degree<-brm(total_lice~degree+scale(elevation)+
+                              (1|gr(species_jetz, cov = phy_cov))+  
+                              (1|Powder.lvl) + 
+                              (1|species),
+                            data=dff_ectos_network_individual_metrics,
+                            family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                            data2 = list(phy_cov=phy_cov),
+                            iter=6000, warmup=3000,
+                            thin=2,
+                            control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+saveRDS(zinb_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+zinb_lice_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+
+hypothesis(zinb_lice_a_brms_bayes_degree,"degree>0", alpha=0.05 ) # increase of degree increases lice abundance
+hypothesis(zinb_lice_a_brms_bayes_degree,"total_lice=degree+species", alpha=0.05 ) # increase of degree increases lice abundance
+
+#  exploring zero inflated poisson 
+
+zip_lice_a_brms_bayes_degree<-brm(total_lice~degree+scale(elevation)+
+                             (1|gr(species_jetz, cov = phy_cov))+  
+                             (1|species),
+                           data=dff_ectos_network_individual_metrics,
+                           family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
+                           data2 = list(phy_cov=phy_cov),
+                           iter=6000, warmup=3000,
+                           thin=2,
+                           control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+zip_lice_a_brms_bayes_degree
+saveRDS(zip_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023_degree.RDS")
+
+# some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
+
+
+# Summarize the model
+summary(zinb_lice_a_brms_bayes_degree)
+
+
+fixef(zinb_lice_a_brms_bayes) # to get more detailed values for estimates
+coef(zinb_lice_a_brms_bayes) # if you have group-level effects (hierarchical data)
+
+# interpret the model 
+#To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
+#If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
+#INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
+bayes_R2(zinb_lice_a_brms_bayes_degree) # zing 0.31
+plot(zinb_lice_a_brms_bayes_degree)
+mcmc_plot(zinb_lice_a_brms_bayes_degree) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+launch_shinystan()
+pp_check(lice_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(lice_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
+log1 <- scale_x_continuous(trans="log1p")
+ppc_dens_overlay(y=lice_a_brms_bayes$data$total, pp_m[1:200, ])  + 
+  coord_cartesian(xlim = c(0, 5))
+
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes)
+ppc_rootogram(y=zinb_lice_a_brms_bayes$data$total_lice, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+
+ppc_stat(y=lice_a_brms_bayes$data$total_lice, pp_m, stat ="prop_zero")
+
+
+#Assumptions check model pglmm_ bayes
+#remotes::install_github("Pakillo/DHARMa.helpers")
+
+simulate_residuals <- dh_check_brms(zinb_lice_a_brms_bayes_degree, integer = TRUE)
+plot( simulate_residuals, form = dff_ectos_network_individual_metrics$sociality)
+DHARMa::testDispersion(simulate_residuals)
+DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
+testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
 
 
 # ####### 8.1 Analyses models NETWORKS [In progress]--------------------------------------------------------
@@ -1927,5 +2166,15 @@ plot_bayes.communityPGLMM <- function(x, n_samp = 1000, sort = TRUE, ...) {
   #!. The intercept estimate  CORRRESPOND TO  the first  level of sociality ( sociality zero)
   # sociality estimate is the difference between the sociality zero and the sociality one, so if it overlaps with zero means teh difference is close to zero between being social and non social  
 
+# notes with BRSM fitting 
+
+#The brm() version of the GAM is fitted using the code below. Note that I have changed a few things from their default values as
+
+#the model required more than the default number of MCMC samples — iter = 4000,
+#the samples needed thinning to deal with some strong autocorrelation in the Markov chains — thin = 10,
+#the adapt.delta parameter, a tuning parameter in the NUTS sampler for Hamiltonian Monte Carlo, potentially needed raising — there was a warning about a potential divergent transition but I should have looked to see if it was one or not; instead I just increased the tuning parameter to 0.99,
+#four chains fitted by default but I wanted these to be fitted using 4 CPU cores,
+#seed sets the internal random number generator seed, which allows reproducibility of models, and
+#for this post I didn’t want to print out the progress of the sampler — refresh = 0 — typically you won’t want to do this so you can see how sampling is progressing.
 
 
