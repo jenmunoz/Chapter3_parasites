@@ -1803,7 +1803,7 @@ unique(df_ectos_network_individual_metrics$species_jetz) # this is teh total spe
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
 
 
-# ####### 8.Data processing networks--------------------------------------------------------
+# ####### 8.Data processing networks lice--------------------------------------------------------
 
 # Occurrence 
 
@@ -1854,10 +1854,7 @@ dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_in
 dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
 names(dff_ectos_network_individual_metrics)
 is.ultrametric(phylo)
-
-# Mites
-
-
+ LICE 
 
 
 # ####### 8.1. Analyses models networks Lice --------------------------------------------------------
@@ -2061,9 +2058,9 @@ coef(zinb_lice_a_brms_bayes_degree) # if you have group-level effects (hierarchi
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(zinb_lice_a_brms_bayes_degree) # zing 0.31
+bayes_R2(zip_lice_a_brms_bayes_w_degree) # zing 0.31
 plot(zinb_lice_a_brms_bayes_degree)
-mcmc_plot(zinb_lice_a_brms_bayes_degree) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+mcmc_plot(zip_lice_a_brms_bayes_w_degree) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(zinb_lice_a_brms_bayes_degree, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(zinb_lice_a_brms_bayes_degree, type="bars", ndraws = 100)+ xlim(0, 20) 
@@ -2131,12 +2128,11 @@ class(estimates_plot_intervals)
 # Model comparisons 
 loo(zip_nf_mites_a_brms_bayes,zinb_nf_mites_a_brms_bayes,compare = TRUE)
 
-# ##### 8.1 Data networks mites -------------------------------------------
+# ##### 8.1 Data processing networks mites -------------------------------------------
 
-# Lice
-
+# Mites
 dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
-  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, no_feathers_mites, degree, w_degree) %>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_no_feathers_mites, degree, w_degree) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
@@ -2172,26 +2168,23 @@ dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_i
 dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
 dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
 dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
-
 #ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
 dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
 dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
 #dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_individual_metrics$total_lice)
 dff_ectos_network_individual_metrics$total_mites<-as.numeric(dff_ectos_network_individual_metrics$total_mites)
-dff_ectos_network_individual_metrics$no_feathers_mites<-as.numeric(dff_ectos_network_individual_metrics$no_feathers_mites)
+dff_ectos_network_individual_metrics$total_no_feathers_mites<-as.numeric(dff_ectos_network_individual_metrics$total_no_feathers_mites)
 dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
 names(dff_ectos_network_individual_metrics)
 is.ultrametric(phylo)
 # ####### 8.1 Analyses models NETWORKS Mites[In progress]--------------------------------------------------------
-
-
-# mites
+# Mites
 #Degree!!!
 ###_###_###
 #a) model glmm
 ###_###_###
 str(dff_ectos_network_individual_metrics)
-mites_a_glmm_degree <-glmer(total_mites~degree+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
+mites_a_glmm_degree <-glmer(total_no_feathers_mites~degree+scale(elevation)+(1|Powder.lvl)+(1|species_jetz), #+elevation_midpoint+Powder.lvl
                            data = dff_ectos_network_individual_metrics, 
                            family = "poisson")
 
@@ -2216,7 +2209,7 @@ testZeroInflation(simulationOutput_a_mites) ## tests if there are more zeros in 
 #b) model pglmm
 ###_###_###
 
-mites_a_pglmm_degree<-phyr::pglmm(total_mites~degree+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+mites_a_pglmm_degree<-phyr::pglmm(total_no_feathers_mites~degree+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                  data = dff_ectos_network_individual_metrics, 
                                  family = "poisson",
                                  cov_ranef = list(species_jetz= phylo), #class phylo
@@ -2248,7 +2241,7 @@ testZeroInflation(simulationOutput_a_mites_2) ## tests if there are more zeros i
 #c) model pglmm bayes: hierarchical Bayesian models fitted using integrated nested laplace approximation (INLA)
 ###_###_###
 
-zip_mites_a_pglmm_bayes_degree<-phyr::pglmm(total_mites~scale(degree, center=TRUE)+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
+zip_mites_a_pglmm_bayes_degree<-phyr::pglmm(total_no_feathers_mites~scale(degree, center=TRUE)+scale(elevation)+(1|species_jetz__)+(1|Powder.lvl),
                                            data =dff_ectos_network_individual_metrics, 
                                            family ="zeroinflated.poisson", #POISSON  ="zeroinflated.poisson", #
                                            cov_ranef = list(species_jetz= phylo), #class phylo
@@ -2284,25 +2277,17 @@ testZeroInflation(simulationOutput_a_mites_3) ## tests if there are more zeros i
 
 #d) model brms bayes : zero_inflated_negbinomial, ind scaled elevation
 ###_###_###
+ 
 
 improved_prior <- prior(normal(0, 10), class = "b") + 
   prior(student_t(3, 0, 10), class = "Intercept") + 
   prior(normal(0, 10), class = "sd") 
 
-improved_prior <- prior(normal(0, 10), class = "b") + 
-  prior(student_t(3, 0, 10), class = "Intercept") + 
-  prior(normal(0, 10), class = "sd") 
 
-non_informative_prior<- c(
-  prior(normal(0, 10), class = "Intercept"),
-  prior(normal(0, 10), class = "b", coef = c("scale(w_degree, center=TRUE)", "scale(elevation)")),
-  prior(cauchy(0, 2.5), class = "sd", group = c("species_jetz", "species", "Powder.lvl"), nlpar = "b"),
-  prior(uniform(0, Inf), class = "b", nlpar = "zi")
-)
 
 # degree zinb
 
-zinb_mites_a_brms_bayes_degree<-brm(total_mites~scale(degree, center=TRUE) +scale(elevation)+
+zinb_nf_mites_a_brms_bayes_degree<-brm(total_no_feathers_mites~scale(degree, center=TRUE) +scale(elevation)+
                                      (1|gr(species_jetz, cov = phy_cov))+  
                                      (1|Powder.lvl) + 
                                      (1|species),
@@ -2314,8 +2299,8 @@ zinb_mites_a_brms_bayes_degree<-brm(total_mites~scale(degree, center=TRUE) +scal
 #                            prior = improved_prior,
 
 
-saveRDS(zinb_mites_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
-zinb_mites_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+saveRDS(zinb_nf_mites_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+zinb_nf_mites_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
 
 hypothesis(zinb_mites_a_brms_bayes_degree,"scale(degree)>0", alpha=0.05 ) # increase of degree increases mites abundance
 hypothesis(zinb_mites_a_brms_bayes_degree,"total_mites=degree+species", alpha=0.05 ) # increase of degree increases mites abundance
@@ -2323,7 +2308,7 @@ hypothesis(zinb_mites_a_brms_bayes_degree,"total_mites=degree+species", alpha=0.
 #  exploring zero inflated poisson 
 # degree zip
 
-zip_mites_a_brms_bayes_degree<-brm(total_mites~scale(degree, center=TRUE) +scale(elevation)+
+zip_mites_a_brms_bayes_degree<-brm(total_no_feathers_mites~scale(degree, center=TRUE) +scale(elevation)+
                                     (1|gr(species_jetz, cov = phy_cov))+  
                                     (1|species),
                                   data=dff_ectos_network_individual_metrics,
@@ -2341,7 +2326,7 @@ saveRDS(zip_mites_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDA
 # mites
 #w_Degree!!!
 
-zinb_mites_a_brms_bayes_w_degree<-brm(total_mites~scale(w_degree, center=TRUE) +scale(elevation)+
+zinb_nf_mites_a_brms_bayes_w_degree<-brm(total_no_feathers_mites~scale(w_degree, center=TRUE) +scale(elevation)+
                                        (1|gr(species_jetz, cov = phy_cov))+  
                                        (1|Powder.lvl) + 
                                        (1|species),
@@ -2353,15 +2338,15 @@ zinb_mites_a_brms_bayes_w_degree<-brm(total_mites~scale(w_degree, center=TRUE) +
                                      control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 
-saveRDS(zinb_mites_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
-zinb_mites_a_brms_bayes_w_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+saveRDS(zinb_nf_mites_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_nf_mites_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
+zinb_nf_mites_a_brms_bayes_w_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_nf_mites_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
 
 hypothesis(zinb_mites_a_brms_bayes_degree,"degree>0", alpha=0.05 ) # increase of degree increases mites abundance
 hypothesis(zinb_mites_a_brms_bayes_degree,"total_mites=degree+species", alpha=0.05 ) # increase of degree increases mites abundance
 
 #  exploring zero inflated poisson 
 
-zip_mites_a_brms_bayes_w_degree<-brm (total_mites~scale(w_degree,center=TRUE)+scale(elevation)+
+zip_mites_a_brms_bayes_w_degree<-brm (total_no_feathers_mites~scale(w_degree,center=TRUE)+scale(elevation)+
                                        (1|gr(species_jetz, cov = phy_cov))+  
                                        (1|species),
                                      data=dff_ectos_network_individual_metrics,
@@ -2384,9 +2369,9 @@ coef(zinb_mites_a_brms_bayes_degree) # if you have group-level effects (hierarch
 #To test whether all regression coefficients are different from zero, we can look at the Credible Intervals that are listed in the summary output or we can visually represent them in density plots.
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
-bayes_R2(zinb_mites_a_brms_bayes_degree) # zing 0.31
+bayes_R2(zinb_nf_mites_a_brms_bayes_degree) # zing 0.31
 plot(zinb_mites_a_brms_bayes_degree)
-mcmc_plot(zinb_mites_a_brms_bayes_degree) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+mcmc_plot(zinb_nf_mites_a_brms_bayes_w_degree) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 launch_shinystan()
 pp_check(zinb_mites_a_brms_bayes_degree, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(zinb_mites_a_brms_bayes_degree, type="bars", ndraws = 100)+ xlim(0, 20) 
