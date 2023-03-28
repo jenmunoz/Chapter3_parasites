@@ -2088,40 +2088,46 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 # plots BRMS
 
+# Plots BRMS 
+color_scheme_set("viridisD") 
+
 # model convergence 
-png("data/data_analyses/models/model_plots/2m.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(zinb_nf_mites_a_brms_bayes)
+png("data/data_analyses/models/model_plots/4m.model_convergence_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(zinb_lice_a_brms_bayes_degree)
 dev.off()
 
 # model fit
-png("data/data_analyses/models/model_plots/2m.model_fit_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
-ppc_rootogram(y=zinb_nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m[1:200, ])  +   
+png("data/data_analyses/models/model_plots/4m.model_fit_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes_degree)
+ppc_rootogram(y=zinb_lice_a_brms_bayes_degree$data$total_lice, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 dev.off()
 
-pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
-
+zinb_lice_a_brms_bayes_degree
 # FOREST PLOTS OF POSTEIOR INTERVALS
 
-estimates_plot<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_outer=0.95,
-                          variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
+estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes_degree,prob=0.90, prob_outer=0.95,
+                          variable = c("b_Intercept", "b_scaledegreecenterEQTRUE", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                           type="areas") +
-  labs(title="Posterior distribution mites (n_f)", subtitle ="with medians and 95% intervals")+
+  labs(title="Posterior distribution Lice [NETWORK]", subtitle ="with medians and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-estimates_plot_intervals<-mcmc_plot(zinb_nf_mites_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    variable = c("b_Intercept", "b_sociality1", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
+estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes_degree,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    variable = c("b_Intercept", "b_scaledegreecenterEQTRUE", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
-  labs(title="Posterior distribution mites(n_f)", subtitle ="with means and 95% intervals")+
+  labs(title=""Posterior distribution Lice [NETWORK]", subtitle ="with means and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("data/data_analyses/models/model_plots/2m.parameters_plot_model_intervals_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/4m.parameters_plot_model_intervals_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
+dev.off()
+
+png("data/data_analyses/models/model_plots/4m.parameters_plot_model_intervals_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
 dev.off()
 
 class(estimates_plot_intervals)
@@ -2346,6 +2352,7 @@ hypothesis(zinb_mites_a_brms_bayes_degree,"total_mites=degree+species", alpha=0.
 
 #  exploring zero inflated poisson 
 
+zip_nf_mites_a_brms_bayes_w_degree=zip_mites_a_brms_bayes_w_degree
 zip_mites_a_brms_bayes_w_degree<-brm (total_no_feathers_mites~scale(w_degree,center=TRUE)+scale(elevation)+
                                        (1|gr(species_jetz, cov = phy_cov))+  
                                        (1|species),
@@ -2354,10 +2361,10 @@ zip_mites_a_brms_bayes_w_degree<-brm (total_no_feathers_mites~scale(w_degree,cen
                                      data2 = list(phy_cov=phy_cov),
                                      iter=8000, warmup=4000,
                                      thin=2,
-                                     control=list(adapt_delta=0.99, max_treedepth=12)) 
+                                     control=list(adapt_delta=0.999, max_treedepth=12)) 
 
 zip_mites_a_brms_bayes_degree
-saveRDS(zip_mites_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_mites_brms_zip_phylo_multiple_obs_21032023_w_degree.RDS")
+saveRDS(zip_nf_mites_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_nf_mites_brms_zip_phylo_multiple_obs_21032023_w_degree.RDS")
 
 
 # Summarize the models
@@ -2437,7 +2444,7 @@ dev.off()
 
 class(estimates_plot_intervals)
 # Model comparisons 
-loo(zip_nf_mites_a_brms_bayes,zinb_nf_mites_a_brms_bayes,compare = TRUE)
+loo(zinb_nf_mites_a_brms_bayes_w_degree,zip_mites_a_brms_bayes_w_degree,compare = TRUE)
 
 # #PLOTS FOR BAYESIAN MODELS [FUNCTIONS] ----------------------------------
 
