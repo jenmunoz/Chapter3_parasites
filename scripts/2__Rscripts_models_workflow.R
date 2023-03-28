@@ -133,6 +133,8 @@ library(brms) # bayesian approach to model phylogenetic data with repides observ
 library(DHARMa.helpers)
 library(brmstools)
 
+
+
 # # 1.Data import-----------------------------------------------------------------
 #DATA
 # This dataset contains all parasites samples (887) after removing exact duplicated rows, for which we have an assigned elevation, for 783 in total out of 998 that we had originally  (this included some duplicates)
@@ -155,7 +157,6 @@ str(phylo)
 
 
 # #### 3.Descriptive statistics --------------------------------------------------
-
 
 # #### 4.Descriptive statistiscs plots -------------------------------------
 
@@ -268,7 +269,7 @@ unique( ectos_birds_dff_PA_species$species_jetz)
 phylo_mite_lice_plot <- lice_load_plot %>% insert_right(mites_load_plot) 
 
 
-ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
+#ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
 
 
 
@@ -744,7 +745,7 @@ zip_lice_a_brms_bayes<-brm(total_lice~sociality+scale(elevation)+
                             control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 zip_lice_a_brms_bayes<-lice_a_brms_bayes
-saveRDS(zip_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023.RDS")
+#saveRDS(zip_lice_a_brms_bayes, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023.RDS")
 
 # some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
 
@@ -1145,7 +1146,6 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # ####### 6.1.Analyses models abundance MITES--------------------------------------------------------
 
-
 ####
 #NON_FEATHER MITES
 ####
@@ -1429,9 +1429,7 @@ zip_nf_mites_a_brms_bayes
 
 
 
-# ## ALL MITES ( excluded for now) ------------------------------------------------------------
-
-
+# ## ALL MITES ( excluded for now) -----------------------------------------------------------
 # Mites
 ###_###_###
 #a) model glmm
@@ -1814,11 +1812,9 @@ dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscri
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
-
 unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
-
 
 # Make sure the tips and the names on the file coincide and formating of name is consitent
 phylo$edge.length  
@@ -1928,9 +1924,10 @@ zip_lice_a_pglmm_bayes_degree<-phyr::pglmm(total_lice~scale(degree, center=TRUE)
                                      cov_ranef = list(species_jetz= phylo), #class phylo
                                      bayes = TRUE,
                                      verbose=FALSE,
-                                     prior = "inla.default") # consider using    add.obs.re = T
+                                     prior = "inla.default",
+                                     control.inla=list(control.vb=list(emergency=30))) # consider using    add.obs.re = T
 # control = list(adapt_delta = 0.99) 
-saveRDS(zip_lice_a_pglmm_bayes_degree , "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023_degree.RDS")
+#saveRDS(zip_lice_a_pglmm_bayes_degree , "data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023_degree.RDS")
 zip_lice_a_pglmm_bayes<-readRDS ("data/data_analyses/models/2.model_ABUNDANCE_LICE_pglmm_zip_phylo_multiple_obs_17032023_degree.RDS")
 #1) Summary of the model 
 summary(zip_lice_a_pglmm_bayes_degree)   
@@ -1988,7 +1985,7 @@ zinb_lice_a_brms_bayes_degree<-brm(total_lice~scale(degree, center=TRUE) +scale(
 #                            prior = improved_prior,
 
 
-saveRDS(zinb_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+#saveRDS(zinb_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
 zinb_lice_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
 
 hypothesis(zinb_lice_a_brms_bayes_degree,"scale(degree)>0", alpha=0.05 ) # increase of degree increases lice abundance
@@ -2008,7 +2005,7 @@ zip_lice_a_brms_bayes_degree<-brm(total_lice~scale(degree, center=TRUE) +scale(e
                            control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 zip_lice_a_brms_bayes_degree
-saveRDS(zip_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023_degree.RDS")
+#saveRDS(zip_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023_degree.RDS")
 
 # some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
 
@@ -2027,7 +2024,7 @@ zinb_lice_a_brms_bayes_w_degree<-brm(total_lice~scale(w_degree, center=TRUE) +sc
                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 
-saveRDS(zinb_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
+#saveRDS(zinb_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
 zinb_lice_a_brms_bayes_w_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
 
 hypothesis(zinb_lice_a_brms_bayes_degree,"degree>0", alpha=0.05 ) # increase of degree increases lice abundance
@@ -2046,7 +2043,7 @@ zip_lice_a_brms_bayes_w_degree<-brm (total_lice~scale(w_degree,center=TRUE)+scal
                                   control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 zip_lice_a_brms_bayes_degree
-saveRDS(zip_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023_w_degree.RDS")
+#saveRDS(zip_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zip_phylo_multiple_obs_21032023_w_degree.RDS")
 
 
 # Summarize the models
@@ -2089,15 +2086,15 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 # plots BRMS
 
 # Plots BRMS 
-color_scheme_set("viridisD") 
+color_scheme_set("yellow") 
 
 # model convergence 
-png("data/data_analyses/models/model_plots/4m.model_convergence_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/4l.model_convergence_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(zinb_lice_a_brms_bayes_degree)
 dev.off()
 
 # model fit
-png("data/data_analyses/models/model_plots/4m.model_fit_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/4l.model_fit_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_m<- brms::posterior_predict(zinb_lice_a_brms_bayes_degree)
 ppc_rootogram(y=zinb_lice_a_brms_bayes_degree$data$total_lice, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
@@ -2117,7 +2114,7 @@ estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes_degree,prob=0.90, prob_outer=0.
 estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes_degree,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     variable = c("b_Intercept", "b_scaledegreecenterEQTRUE", "b_scaleelevation","sd_Powder.lvl__Intercept","sd_species__Intercept","sd_species_jetz__Intercept"),
                                     type="intervals") +
-  labs(title=""Posterior distribution Lice [NETWORK]", subtitle ="with means and 95% intervals")+
+  labs(title="Posterior distribution Lice [NETWORK]", subtitle ="with means and 95% intervals")+
   theme_minimal(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
