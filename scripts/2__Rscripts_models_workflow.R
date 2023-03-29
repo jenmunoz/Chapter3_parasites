@@ -438,7 +438,14 @@ class(ecto_p_pglmm_bayes)
 #d) model BRMS bayes
 
 
-ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+scale(year_seasonality)+
+ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~
+                               sociality+
+                               scale(elevation)+
+                               scale(year_seasonality)+
+                               socality:scale(elevation)+
+                               sociality:scale(year_seasonality)+
+                               scale(elevation):scale(year_seasonality)+
+                               sociality:scale(year_seasonality):scale(elevation)+
           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
             (1|Powder.lvl)+
             (1|species),
@@ -449,8 +456,17 @@ ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+scale(y
         thin=2,
         control=list(adapt_delta=0.99, max_treedepth=12)) 
 
+loo_compare(b_ecto_p_brms_bayes,ecto_p_brms_bayes)
+
+m_no_interactions<-loo(b_ecto_p_brms_bayes)
+m_interactions<-loo(m_no_interactions,m_interactions)
+loo_compare(m_no_interactions,m_interactions)
+saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/seasonality/1.model_prevalence_brms_phylo_multiple_obs_031623_seasonality_inter_elev_season.RDS")
+saveRDS(b_ecto_p_brms_bayes, "data/data_analyses/models/seasonality/1.model_prevalence_brms_phylo_multiple_obs_031623_seasonality.RDS")
+b_ecto_p_brms_bayes<-readRDS("data/data_analyses/models/seasonality/1.model_prevalence_brms_phylo_multiple_obs_031623_seasonality.RDS")
+
 #saveRDS(ecto_p_brms_bayes, "data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
-ecto_p_brms_bayes<-readRDS("data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
+#ecto_p_brms_bayes<-readRDS("data/data_analyses/models/1.model_prevalence_brms_phylo_multiple_obs_031623.RDS")
 # Summarize the model
 summary (ecto_p_brms_bayes)
 levels(ectos_birds_dff$sociality)
@@ -532,11 +548,6 @@ png("data/data_analyses/models/model_plots/1.parameters_plot_model_PREVALENCE_br
 estimates_plot
 dev.off()
 
-
-
-posterior <- as.array(ecto_p_brms_bayes)
-mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
-names(ecto_p_brms_bayes$formula$resp)
 
 # ##### 5.2 Model predictions plots prevalence ectos----------------------------------
 # Descriptive plot 
@@ -2567,7 +2578,7 @@ png("data/data_analyses/models/model_plots/4mwd.parameters_plot_model_ABUNDANCE_
 estimates_plot
 dev.off()
 
-# #PLOTS FOR BAYESIAN MODELS [FUNCTIONS] ----------------------------------
+# #MODIFYING SOME PLOTS FOR BAYESIAN MODELS [FUNCTIONS] ----------------------------------
 
 
 #### playing with teh functions to create plots for bayesian
