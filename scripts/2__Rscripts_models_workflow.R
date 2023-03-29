@@ -138,13 +138,22 @@ library(brmstools)
 # # 1.Data import-----------------------------------------------------------------
 #DATA
 # This dataset contains all parasites samples (887) after removing exact duplicated rows, for which we have an assigned elevation, for 783 in total out of 998 that we had originally  (this included some duplicates)
-ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
-  rename(elevation=elevation_extrapolated_date)
+# date preparation including date
+#ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+# rename(elevation=elevation_extrapolated_date) %>%
+#  mutate(date=as.Date(full_date, format = "%Y-%m-%d")) %>% 
+#  mutate(year_seasonality = format(date, "%j")) # # create new column for julian day yearly
 
-unique(ectos_df$species_jetz) # this is teh total species that we have samples for 
+#write.csv(ectos_df,"data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv" )
 
-phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae,year_seasonality ) %>% 
+  filter(species_jetz!="Premnoplex_brunnescens")
 
+
+unique(ectos_df$species_jetz) # this is the total species that we have samples for 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 unique(ectos_df$species_jetz )
 
 # phylogenetic correlation structure, create a covariance matrix of species
@@ -163,8 +172,7 @@ str(phylo)
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
 
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
-  rename(elevation=elevation_extrapolated_date) %>%
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae ) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae,date ) %>% 
   filter(species_jetz!="Premnoplex_brunnescens")
 
 # just keeping the prevalences 
@@ -322,15 +330,16 @@ phylo<-drop.tip (phylo, tip$name)
 
 # ##### 5.Data processing prevalence ectos ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
-  rename(elevation=elevation_extrapolated_date) %>%
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality ) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality ) %>% 
   na.omit() 
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 
 #ectos_birds_dff <-ectos_birds_dff  %>% mutate_at("species_jetz", str_replace, " ", "_")
 #ectos_birds_dff$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
 ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
 ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+ectos_birds_dff$year_seasonality<-as.numeric(ectos_birds_dff$year_seasonality)
 #ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
@@ -427,7 +436,9 @@ class(ecto_p_pglmm_bayes)
 
 ## Model Individual  sample with phylognetic + non-phylo effects 
 #d) model BRMS bayes
-ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+
+
+
+ecto_p_brms_bayes<-brms::brm(ectoparasites_PA~sociality+scale(elevation)+scale(year_seasonality)+
           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
             (1|Powder.lvl)+
             (1|species),
@@ -480,7 +491,7 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   
 # assumptiosn look good!   
   
-  
+
   
 # Plots BRMS 
    color_scheme_set("blue")
@@ -494,7 +505,6 @@ simulate_residuals <- dh_check_brms(ecto_p_brms_bayes, integer = TRUE)
   png("data/data_analyses/models/model_plots/1.model_fit_PREVALENCE_LICE_brms_phylo_multiple_obs_032123.png.png",width = 3000, height = 3000, res = 300, units = "px")
   pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
   dev.off()
-  
   
 
   # Posterior distributions
@@ -1334,9 +1344,20 @@ zinb_nf_mites_a_brms_bayes<-readRDS("data/data_analyses/models/2m.model_ABUNDANC
 
 # removed Premnoplex_brunnescens
 
+zinb_nf_mites_a_brms_bayes_interactions<-brm(total_no_feathers_mites~sociality+scale(elevation)+sociality:scale(elevation)+
+                                  (1|gr(species_jetz, cov = phy_cov))+  
+                                  (1|Powder.lvl) + 
+                                  (1|species),
+                                data=ectos_birds_dff,
+                                family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                data2 = list(phy_cov=phy_cov),
+                                iter=6000, warmup=3000,
+                                thin=2,
+                                control=list(adapt_delta=0.99, max_treedepth=12)) 
+
 
 # Summarize the model
-summary (zinb_nf_mites_a_brms_bayes)
+summary (zinb_nf_mites_a_brms_bayes_interactions)
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 
@@ -1345,10 +1366,12 @@ coef() # if you have group-level effects (hierarchical data)
 #If we do so, we clearly see that zero is not included in any of the density plots, meaning that we can be reasonably certain the regression coefficients are different from zero.
 #INTERPRETATION:In the model, the parameter for Sociality means the expected difference between non_social(0) and social (1) with all other covariates held constant. we clearly see that zero is included in the density plot for sociality so there is not effect of sociality??
 bayes_R2(zinb_nf_mites_a_brms_bayes) 
-bayes_R2(zip_nf_mites_a_brms_bayes)
+bayes_R2(zinb_nf_mites_a_brms_bayes_interactions)
 plot(zinb_nf_mites_a_brms_bayes)
-mcmc_plot(nf_mites_a_brms_bayes) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
-launch_shinystan()
+png("data/data_analyses/models/model_plots/Interactions.png",width = 3000, height = 3000, res = 300, units = "px")
+mcmc_plot(zinb_nf_mites_a_brms_bayes_interactions,prob=0.90, prob_outer=0.95)# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+dev.off()
+  launch_shinystan()
 pp_check(zinb_nf_mites_a_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(zinb_nf_mites_a_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
@@ -1990,6 +2013,13 @@ zinb_lice_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDA
 
 hypothesis(zinb_lice_a_brms_bayes_degree,"scale(degree)>0", alpha=0.05 ) # increase of degree increases lice abundance
 hypothesis(zinb_lice_a_brms_bayes_degree,"total_lice=degree+species", alpha=0.05 ) # increase of degree increases lice abundance
+###
+
+
+
+#saveRDS(zinb_lice_a_brms_bayes_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+zinb_lice_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
+
 
 #  exploring zero inflated poisson 
 # degree zip
@@ -2009,6 +2039,7 @@ zip_lice_a_brms_bayes_degree
 
 # some outliers and smaller R2, overall performed porrly compared to zeroinflated negative binomial)_
 
+
 # Lice
 #w_Degree!!!
 
@@ -2024,7 +2055,7 @@ zinb_lice_a_brms_bayes_w_degree<-brm(total_lice~scale(w_degree, center=TRUE) +sc
                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 
-#saveRDS(zinb_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
+saveRDS(zinb_lice_a_brms_bayes_w_degree, "data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
 zinb_lice_a_brms_bayes_w_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
 
 hypothesis(zinb_lice_a_brms_bayes_degree,"degree>0", alpha=0.05 ) # increase of degree increases lice abundance
@@ -2086,7 +2117,7 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 ###_###_###_###_
 # Plots BRMS_degree
 zinb_lice_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_25032023_degree.RDS")
-color_scheme_set("viridisE") 
+color_scheme_set("yellow") 
 # model convergence 
 png("data/data_analyses/models/model_plots/4l.model_convergence_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(zinb_lice_a_brms_bayes_degree)
@@ -2099,7 +2130,6 @@ ppc_rootogram(y=zinb_lice_a_brms_bayes_degree$data$total_lice, pp_m[1:200, ])  +
   coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 dev.off()
 
-zinb_lice_a_brms_bayes_degree
 # FOREST PLOTS OF POSTEIOR INTERVALS
 
 estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes_degree,prob=0.90, prob_outer=0.95,
@@ -2125,6 +2155,7 @@ dev.off()
 png("data/data_analyses/models/model_plots/4l.parameters_plot_model_ABUNDANCE_LICE_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
+
 
 # Model comparisons 
 loo(zip_nf_mites_a_brms_bayes,zinb_nf_mites_a_brms_bayes,compare = TRUE)
@@ -2449,7 +2480,7 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 
 # plots BRMS degree mites
 zinb_nf_mites_a_brms_bayes_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_nf_mites_brms_zinb_phylo_multiple_obs_25032023_DEGREE.RDS")
-color_scheme_set("mix-pink-green") 
+color_scheme_set("red") 
 
 # model convergence 
 png("data/data_analyses/models/model_plots/4md.model_convergence_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
@@ -2457,13 +2488,12 @@ plot(zinb_nf_mites_a_brms_bayes_degree)
 dev.off()
 
 # model fit
-png("data/data_analyses/models/model_plots/4md.model_fit_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123_degree.png",width = 3000, height = 3000, res = 300, units = "px")
+png("data/data_analyses/models/model_plots/4md.model_fit_ABUNDANCE_nf_MITES_brms_zinb_phylo_multiple_obs_032123_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes_degree)
 ppc_rootogram(y=zinb_nf_mites_a_brms_bayes$data$total_no_feathers_mites, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 dev.off()
 
-pp_m<- brms::posterior_predict(zinb_nf_mites_a_brms_bayes)
 
 # FOREST PLOTS OF POSTEIOR INTERVALS
 
@@ -2497,7 +2527,7 @@ loo(zinb_nf_mites_a_brms_bayes_w_degree,zip_mites_a_brms_bayes_w_degree,compare 
 # Plots BRMS_w_degree_mites
 #W_degree
 zinb_nf_mites_a_brms_bayes_w_degree<-readRDS("data/data_analyses/models/2.model_ABUNDANCE_nf_mites_brms_zinb_phylo_multiple_obs_25032023_w_degree.RDS")
-color_scheme_set("mix-red-green") 
+color_scheme_set("purple") 
 
 # model convergence 
 png("data/data_analyses/models/model_plots/4mwd.model_convergence_ABUNDANCE_MITES_brms_zinb_phylo_multiple_obs_032123_W_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
@@ -2511,7 +2541,6 @@ ppc_rootogram(y=zinb_nf_mites_a_brms_bayes_w_degree$data$total_no_feathers_mites
   coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 dev.off()
 
-zinb_lice_a_brms_bayes_degree
 # FOREST PLOTS OF POSTEIOR INTERVALS
 
 estimates_plot<-mcmc_plot(zinb_nf_mites_a_brms_bayes_w_degree,prob=0.90, prob_outer=0.95,
