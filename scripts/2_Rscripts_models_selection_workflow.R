@@ -225,21 +225,55 @@ ecto_p_brms_bayes_all_interactions<-brms::brm(ectoparasites_PA~
 #saveRDS(ecto_p_brms_bayes_all_interactions, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions.RDS")
 #ecto_p_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions.RDS")
 
-loo(ecto_p_brms_bayes_no_int,ecto_p_brms_bayes_sociality_interactions, ecto_p_brms_bayes_all_interactions,compare=TRUE)
+#MODEL COMPARISON
+loo(m1,m2,m3, compare=TRUE)
 
-summary (ecto_p_brms_bayes)
+#PLOTS
+summary ()
 fixef() # to get more detailed values for estimates
-coef(ecto_p_brms_bayes) # if you have group-level effects (hierarchical data)
-bayes_R2(ecto_p_brms_bayes_all_interactions) # R2 0.1529
+coef() # if you have group-level effects (hierarchical data)
+bayes_R2() # R2 0.1529
 
-plot(ecto_p_brms_bayes) # paarameter distributio and convergence
-mcmc_plot(ecto_p_brms_bayes_no_int) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+# model convergence 
+png("data/data_analyses/models/model_plots/M.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(MODEL)
+dev.off()
+
+# model fit
+png("data/data_analyses/models/model_plots/M.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_m<- brms::posterior_predict(MODEL)
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
+dev.off()
+
 pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
 pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
-pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
-ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+estimates_plot<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions Prevalences", subtitle ="Ectos prevalence with medians and 95% intervals")+
+  theme_minimal(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey50")+
+  xlab("Estimate")
+
+estimates_plot_intervals<-mcmc_plot(zinb_lice_a_brms_bayes,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions Lice abundance", subtitle ="Lice abundance with medians and 95% intervals")+
+  theme_minimal(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+png("data/data_analyses/models/model_plots/plot_model_parameters.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
+
+png("data/data_analyses/models/model_plots/plot_model_intervals.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
 
 # ##### 1.Data processing abundance lice ----------------------------------------------------
 
@@ -333,9 +367,451 @@ zip_a_lice_brms_bayes_all_interactions<-brms::brm(total_lice~
                                               thin=2,
                                               control=list(adapt_delta=0.99, max_treedepth=12)) 
 
-#saveRDS(ecto_p_brms_bayes_all_interactions, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions.RDS")
-#ecto_p_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions.RDS")
+saveRDS(zip_a_lice_brms_bayes_all_interactions, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
+zip_a_lice_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
 
+loo(zip_a_lice_brms_bayes_all_interactions,zip_a_lice_brms_bayes_sociality_interactions,zip_a_lice_brms_bayes_no_int)
+
+# ##### 3.1.Data processing abundance mites ----------------------------------------------------
+
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_mesostigmatidae, total_no_feathers_mites,year_seasonality ) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") 
+#filter(total_lice<60)  # removing outliers 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
+
+ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
+ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
+ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
+ectos_birds_dff$total_mites<-as.numeric(ectos_birds_dff$total_mites)
+ectos_birds_dff$total_mesostigmatidae<-as.numeric(ectos_birds_dff$total_mesostigmatidae)
+ectos_birds_dff$total_no_feathers_mites<-as.numeric(ectos_birds_dff$total_no_feathers_mites)
+ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(ectos_birds_dff$species_jetz)) %>% mutate(name=ectos_birds_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+#Phylogenetic covariance matrix
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# ##### 2.2.Model selection abundance mites --------------------------------------------------------
+
+zip_a_nf_mites_brms_bayes_no_int<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                          (1|Powder.lvl)+
+                                          (1|species),
+                                        data=ectos_birds_dff,
+                                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                        data2 = list(phy_cov=phy_cov),
+                                        iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                        thin=2,
+                                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(zip_a_nf_mites_brms_bayes_no_int, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions.RDS")
+zip_a_nf_mites_brms_bayes_no_int<-readRDS("data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions.RDS")
+
+zip_a_nf_mites_brms_bayes_sociality_interactions<-brms::brm(total_no_feathers_mites~
+                                                          sociality+
+                                                          scale(elevation)+
+                                                          scale(year_seasonality)+
+                                                          sociality:scale(elevation)+
+                                                          sociality:scale(year_seasonality)+
+                                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                          (1|Powder.lvl)+
+                                                          (1|species),
+                                                        data=ectos_birds_dff,
+                                                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                        data2 = list(phy_cov=phy_cov),
+                                                        iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                        thin=2,
+                                                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(zip_a_nf_mites_brms_bayes_sociality_interactions, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
+zip_a_nf_mites_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
+
+zip_a_nf_mites_brms_bayes_all_interactions<-brms::brm(total_no_feathers_mites~
+                                                    sociality+
+                                                    scale(elevation)+
+                                                    scale(year_seasonality)+
+                                                    sociality:scale(elevation)+
+                                                    sociality:scale(year_seasonality)+
+                                                    scale(elevation):scale(year_seasonality)+
+                                                    sociality:scale(year_seasonality):scale(elevation)+
+                                                    (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                    (1|Powder.lvl)+
+                                                    (1|species),
+                                                  data=ectos_birds_dff,
+                                                  family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                  data2 = list(phy_cov=phy_cov),
+                                                  iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                  thin=2,
+                                                  control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+#saveRDS(zip_a_nf_mites_brms_bayes_all_interactions, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
+zip_a_nf_mites_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
+
+loo(zip_a_lice_brms_bayes_all_interactions,zip_a_lice_brms_bayes_sociality_interactions,zip_a_lice_brms_bayes_no_int)
 
 mcmc_plot(zip_a_lice_brms_bayes_no_int)
+
+
+# ##### 1.Data processing NETWORKS prevalence ectos ----------------------------------------------------
+
+#seasonality_date<-read.csv("data/data_analyses/data_manuscript/7.dff_parasites_seasonality.csv")
+#dff_ectos_network<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>%
+#inner_join(read.csv("data/data_analyses/data_manuscript/7.dff_parasites_seasonality.csv"), by="Full_Label")
+# write.csv(dff_ectos_network,"data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv" )
+
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+dff_ectos_network_individual_metrics$ectoparasites_PA<-as.numeric(dff_ectos_network_individual_metrics$ectoparasites_PA)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
+LICE 
+
+
+
+# ##### 1.2.Model selection NETWORKS prevalence ectos --------------------------------------------------------
+###_###_###
+
+ecto_p_brms_bayes_no_int_degree<-brms::brm(ectoparasites_PA~degree+ scale(elevation)+ scale(year_seasonality)+
+                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                      (1|Powder.lvl)+
+                                      (1|species),
+                                    data=dff_ectos_network_individual_metrics,
+                                    family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                    data2 = list(phy_cov=phy_cov),
+                                    iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                    thin=2,
+                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(ecto_p_brms_bayes_no_int_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+#ecto_p_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+
+ecto_p_brms_bayes_sociality_interactions_degree<-brms::brm(ectoparasites_PA~
+                                                      degree+
+                                                      scale(elevation)+
+                                                      scale(year_seasonality)+
+                                                      sociality:scale(elevation)+
+                                                      sociality:scale(year_seasonality)+
+                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                      (1|Powder.lvl)+
+                                                      (1|species),
+                                                    data=dff_ectos_network_individual_metrics,
+                                                    family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                                    data2 = list(phy_cov=phy_cov),
+                                                    iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                    thin=2,
+                                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
+saveRDS(ecto_p_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions.RDS")
+ecto_p_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions.RDS")
+
+ecto_p_brms_bayes_all_interactions_degree<-brms::brm(ectoparasites_PA~
+                                                degree+
+                                                scale(elevation)+
+                                                scale(year_seasonality)+
+                                                sociality:scale(elevation)+
+                                                sociality:scale(year_seasonality)+
+                                                scale(elevation):scale(year_seasonality)+
+                                                sociality:scale(year_seasonality):scale(elevation)+
+                                                (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                (1|Powder.lvl)+
+                                                (1|species),
+                                              data=dff_ectos_network_individual_metrics,
+                                              family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                              data2 = list(phy_cov=phy_cov),
+                                              iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                              thin=2,
+                                              control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+#saveRDS(ecto_p_brms_bayes_all_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
+#ecto_p_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
+
+loo(ecto_p_brms_bayes_no_int,ecto_p_brms_bayes_sociality_interactions, ecto_p_brms_bayes_all_interactions,compare=TRUE)
+
+summary (ecto_p_brms_bayes)
+fixef() # to get more detailed values for estimates
+coef(ecto_p_brms_bayes) # if you have group-level effects (hierarchical data)
+bayes_R2(ecto_p_brms_bayes_sociality_interactions) # R2 0.1529
+
+plot(ecto_p_brms_bayes) # paarameter distributio and convergence
+mcmc_plot(ecto_p_brms_bayes_sociality_interactions) # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
+ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
+
+# ##### 1.Data processing NETWORKS abundance lice ----------------------------------------------------
+
+
+# Lice
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_individual_metrics$total_lice)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
+
+
+# ##### 2.2.Model selection NETWORKS abundance lice --------------------------------------------------------
+
+zip_a_lice_brms_bayes_no_int_degree<-brms::brm(total_lice~degree+ scale(elevation)+ scale(year_seasonality)+
+                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                          (1|Powder.lvl)+
+                                          (1|species),
+                                        data=dff_ectos_network_individual_metrics,
+                                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                        data2 = list(phy_cov=phy_cov),
+                                        iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                        thin=2,
+                                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(zip_a_lice_brms_bayes_no_int_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+zip_a_lice_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+
+zip_a_lice_brms_bayes_sociality_interactions_degree<-brms::brm(total_lice~
+                                                          degree+
+                                                          scale(elevation)+
+                                                          scale(year_seasonality)+
+                                                          sociality:scale(elevation)+
+                                                          sociality:scale(year_seasonality)+
+                                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                          (1|Powder.lvl)+
+                                                          (1|species),
+                                                        data=ectos_birds_dff,
+                                                        family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                        data2 = list(phy_cov=phy_cov),
+                                                        iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                        thin=2,
+                                                        control=list(adapt_delta=0.99, max_treedepth=12)) 
+saveRDS(zip_a_lice_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+zip_a_lice_brms_bayes_sociality_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms__LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+
+zip_a_lice_brms_bayes_all_interactions_degree<-brms::brm(total_lice~
+                                                    degree+
+                                                    scale(elevation)+
+                                                    scale(year_seasonality)+
+                                                    sociality:scale(elevation)+
+                                                    sociality:scale(year_seasonality)+
+                                                    scale(elevation):scale(year_seasonality)+
+                                                    sociality:scale(year_seasonality):scale(elevation)+
+                                                    (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                    (1|Powder.lvl)+
+                                                    (1|species),
+                                                  data=dff_ectos_network_individual_metrics,
+                                                  family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                  data2 = list(phy_cov=phy_cov),
+                                                  iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                  thin=2,
+                                                  control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+saveRDS(zip_a_lice_brms_bayes_all_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_DEGREE.RDS")
+zip_a_lice_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_DEGREE.RDS")
+
+loo(zip_a_lice_brms_bayes_all_interactions,zip_a_lice_brms_bayes_sociality_interactions,zip_a_lice_brms_bayes_no_int)
+
+# ##### 3.1.Data processing NETWORKS abundance mites ----------------------------------------------------
+
+# Mites
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_no_feathers_mites, degree, w_degree, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+#dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_individual_metrics$total_lice)
+dff_ectos_network_individual_metrics$total_mites<-as.numeric(dff_ectos_network_individual_metrics$total_mites)
+dff_ectos_network_individual_metrics$total_no_feathers_mites<-as.numeric(dff_ectos_network_individual_metrics$total_no_feathers_mites)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
+
+# ##### 2.2.Model selection NETWORKS abundance mites --------------------------------------------------------
+
+zip_a_nf_mites_brms_bayes_no_int_degree<-brms::brm(total_no_feathers_mites~degree+ scale(elevation)+ scale(year_seasonality)+
+                                              (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                              (1|Powder.lvl)+
+                                              (1|species),
+                                            data=dff_ectos_network_individual_metrics,
+                                            family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                            data2 = list(phy_cov=phy_cov),
+                                            iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                            thin=2,
+                                            control=list(adapt_delta=0.99, max_treedepth=12)) 
+#saveRDS(zip_a_nf_mites_brms_bayes_no_int_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+zip_a_nf_mites_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+
+zip_a_nf_mites_brms_bayes_sociality_interactions_degree<-brms::brm(total_no_feathers_mites~
+                                                              degree+
+                                                              scale(elevation)+
+                                                              scale(year_seasonality)+
+                                                              sociality:scale(elevation)+
+                                                              sociality:scale(year_seasonality)+
+                                                              (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                              (1|Powder.lvl)+
+                                                              (1|species),
+                                                            data=dff_ectos_network_individual_metrics,
+                                                            family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                            data2 = list(phy_cov=phy_cov),
+                                                            iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                            thin=2,
+                                                            control=list(adapt_delta=0.99, max_treedepth=12)) 
+saveRDS(zip_a_nf_mites_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+zip_a_nf_mites_brms_bayes_sociality_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+
+zip_a_nf_mites_brms_bayes_all_interactions_degree<-brms::brm(total_lice~
+                                                        degree+
+                                                        scale(elevation)+
+                                                        scale(year_seasonality)+
+                                                        sociality:scale(elevation)+
+                                                        sociality:scale(year_seasonality)+
+                                                        scale(elevation):scale(year_seasonality)+
+                                                        sociality:scale(year_seasonality):scale(elevation)+
+                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                        (1|Powder.lvl)+
+                                                        (1|species),
+                                                      data=dff_ectos_network_individual_metrics,
+                                                      family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                      data2 = list(phy_cov=phy_cov),
+                                                      iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                      thin=2,
+                                                      control=list(adapt_delta=0.99, max_treedepth=12)) 
+
+saveRDS(zip_a_nf_mites_brms_bayes_all_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_all_interactions_DEGREE.RDS")
+zip_a_nf_mites_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_all_interactions_DEGREE.RDS")
+
+loo(zip_a_lice_brms_bayes_all_interactions,zip_a_lice_brms_bayes_sociality_interactions,zip_a_lice_brms_bayes_no_int)
+
+
+
+
 
