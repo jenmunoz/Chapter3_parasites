@@ -6,8 +6,25 @@
 ###
 ### Last update: March 2023                                                ###
 ################################################################################
+#As the proportion of zeros is quite high in the data, it is worthwhile to test also a zero-inflated negative-binomial model, 
+#which is a mixture of two models - logistic regression to model the proportion of extra zero counts - negative-binomial model
 #Notes check this blog for discussion in STAN BRMS situations: https://discourse.mc-stan.org
-# chek this blog for discussion in model selection https://discourse.mc-stan.org/t/model-selection-in-brms/30492
+# check this blog for discussion in model selection https://discourse.mc-stan.org/t/model-selection-in-brms/30492
+# about loo package interpretation https://mc-stan.org/loo/reference/loo-glossary.html
+# some examples here : https://avehtari.github.io/modelselection/roaches.html
+
+# Notes for model selection with BRMS, [Work in progress]
+# definition [elpd_loo] The ELPD is the theoretical expected log pointwise predictive density for a new dataset 
+# definition [elpd_loo SE] This standard error is a coarse description of our uncertainty about the predictive performance for unknown future data. 
+# In well behaving cases p_loo < N and p_loo < p, where p is the total number of parameters in the model and n ( number of observations)
+#elpd_loo differences of more than 4 magnitude are consider lareg enough to make a difference in teh model
+# elpd_loo large compared to se_diff indicate changes in the model selection too
+# notes more model overfiiting in BRMS 
+# Look at the number of observations (226 is shown in the first line), 
+# The effective number of parameters, p_loo ()  p_loo < N (number of observations) and p_loo < p (parameters of the model)
+# and the number of high Pareto k’s ( All Pareto k’s are good, so there are no highly influential individual observations, This indicates that loo computation is reliable)
+
+# also important to check teh priors prior_summary()
 # 0.Libraries  --------------------------------------------------------------
 
 # libraries for easier manipulation of data
@@ -174,6 +191,7 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # ##### 1.2.Model selection prevalence ectos --------------------------------------------------------
 ###_###_###
+
 
 ecto_p_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+ scale(elevation)+ scale(year_seasonality)+
                                (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
@@ -474,6 +492,7 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # ##### 2.2.Model selection abundance mites --------------------------------------------------------
 
+loop<-loo(zip_a_nf_mites_brms_bayes_no_int)
 zip_a_nf_mites_brms_bayes_no_int<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                           (1|Powder.lvl)+

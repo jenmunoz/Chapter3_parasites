@@ -83,8 +83,9 @@ manu_detections<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_180
 jetz_taxonomy_manu_only<-read.csv("data/4.list_manu_jetz_tax_missmatches_corrected.csv") %>% 
   distinct(species_taxonomy_SACC_2021, .keep_all = TRUE)
 
-list_manu_jetz<-read.csv("data/0.list_manu_species_jetz_taxonomy.csv") %>% select( species_jetz, species_from_detections,species_taxonomy_SACC_2021) %>% 
+list_manu_jetz<-read.csv("data/1.list_manu_species_jetz_taxonomy.csv") %>% select( species_jetz, species_from_detections,species_taxonomy_SACC_2021) %>% 
   distinct(species_taxonomy_SACC_2021, .keep_all = TRUE)
+
 
 #list_manu<-manu_detections %>% distinct(species_clean,species_taxonomy_SACC_2021)
 #list_manu_jetz<-full_join(list_manu,jetz_taxonomy_manu_only, by="species_taxonomy_SACC_2021") %>% rename(species_from_detections=species_clean)
@@ -122,7 +123,8 @@ View(flocks)
 ###_###_###_###_
 
 # Detections
-manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv")
+manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv")%>% filter(database_decision=="include")
+str(manu_detections_jetz)
 # ectoparasite samples for social species only 
 samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv") %>% 
   rename(elevation=elevation_extrapolated_date) %>% 
@@ -130,11 +132,10 @@ samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_indiv
   filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
 unique(samples$elevation)
 
-
 # the ranges observed
 observed_species_range_limits<-manu_detections_jetz %>% group_by(species_jetz) %>% 
   summarise(low_limit=min(elevation), high_limit=max(elevation)) %>% 
-  mutate_at("species_jetz", str_replace, " ", "_")
+  mutate_at("species_jetz", str_replace, " ", "_") 
 
 #write.csv(observed_species_range_limits,"data/data_analyses/1.observed_species_range_limits.csv")
 
