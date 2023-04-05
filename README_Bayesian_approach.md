@@ -3,16 +3,26 @@ This is a cummary in my own words ofthe workflow for bayesian in the way I have 
 It also includes refrecences to papers and links to blogs to underestand better bayesian.
 
 Bayesian workflow [in progress]
+Visualizing the bayesian workflow: https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
+paper: https://academic.oup.com/jrsssa/article/182/2/389/7070184
+
 
 
 ------
 **Prior selection workflow ( my learning process)
+
+I am reading this now very useful: http://svmiller.com/blog/2021/02/thinking-about-your-priors-bayesian-analysis/
+aslo this : https://github.com/paul-buerkner/brms/issues/131
+and this :https://discourse.mc-stan.org/t/default-student-t-priors-in-brms/17197/7
+
 
 FIRST: Prior selection matter!!!
 
 i) At first I started running the models with the defaul priors, because I thoug that will be reasnable without known more about priors.
 Also the defauls look ok, for the fixed efefct predictors the priors were non-informative priors (flat) with I though it was an k decision.
 However when I started reading more, it seem that on informative priors are not as hrmfull as I though. Sevral papers and blogs suggest that this is not a good ideam and  Most of the priors that people think are uninformative turn out not to be, and can be harmfull when saple size is not huge and when effec sizes are intrnsically small.
+
+Default priors in brms change with teh model so it tries t o addapt to your model ???
 This ia a blog about it https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations, another https://statmodeling.stat.columbia.edu/2018/04/03/justify-my-love/ and some papers https://projecteuclid.org/journals/bayesian-analysis/volume-1/issue-3/Prior-distributions-for-variance-parameters-in-hierarchical-models-comment-on/10.1214/06-BA117A.full
 
 ii) My conclusion after reading all this and without much knowledge of teh system that i ma working on, It seems taht using weakly informative priors is a better option since this 
@@ -29,6 +39,7 @@ ALSO FOND NA INTERESTING PAPAER THAT LOOS AT BRMS TOO NAD JUST USE the default p
 
 
 
+
 #5 levels of priors
 #Flat prior (not usually recommended);
 #Super-vague but proper prior: normal(0, 1e6) (not usually recommended);
@@ -40,6 +51,9 @@ ALSO FOND NA INTERESTING PAPAER THAT LOOS AT BRMS TOO NAD JUST USE the default p
 Notes on priors: ( Gelman 2006)
 1)non informative priors =Improper priors, uniform the uniform(0;A) model yields a limiting proper posterior densityas A ! 1, as long as the number of groups J is at least 3. Thus, for a ¯nite butsu±ciently large A, inferences are not sensitive to the choice of A.
 Noninformative prior distributions are intended to allow Bayesian inference for param-eters about which not much is known beyond the data included in the analysis at hand.
+ Uniform prior distributions are possible (e.g. by setting stan_glm's prior argument to NULL) but, unless the data is very strong, they are not recommended and are not non-informative, giving the same probability mass to implausible values as plausible ones.
+
+
 
 2) weakly informative priors:We characterize a prior distribution as weakly informative if it is proper but is set upso that the information it does provide is intentionally weaker than whatever actualprior knowledge is available. Iin general any problem has some natural constraints that would allow aweakly-informative model. dor regression models on the logarithmic orlogit scale, with predictors that are binary or scaled to have standard deviation 1, wecan be sure for most applications that e®ect sizes will be less than 10, or certainly lessthan 100.
 

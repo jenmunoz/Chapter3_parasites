@@ -475,8 +475,8 @@ zinb_a_lice_brms_bayes_no_int<-brms::brm(total_lice~sociality+ scale(elevation)+
 
 
 
-#saveRDS(zinb_a_lice_brms_bayes_no_int, "data/data_analyses/model_selection/L1.model_prevalence_zinb_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions.RDS")
-zinb_a_lice_brms_bayes_no_int<-readRDS("data/data_analyses/model_selection/l1.model_prevalence_zinb_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions.RDS")
+saveRDS(zinb_a_lice_brms_bayes_no_int, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions.RDS")
+zinb_a_lice_brms_bayes_no_int<-readRDS("data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions.RDS")
 
 zinb_a_lice_brms_bayes_sociality_interactions<-brms::brm(total_lice~
                                                       sociality+
@@ -494,8 +494,8 @@ zinb_a_lice_brms_bayes_sociality_interactions<-brms::brm(total_lice~
                                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                     thin=2,
                                                     control=list(adapt_delta=0.99, max_treedepth=14)) 
-#saveRDS(zip_a_lice_brms_bayes_sociality_interactions, "data/data_analyses/model_selection/L1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
-zinb_a_lice_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/L1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
+#saveRDS(zip_a_lice_brms_bayes_sociality_interactions, "data/data_analyses/model_selection/1L.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
+zinb_a_lice_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/1L.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions.RDS")
 
 zinb_a_lice_brms_bayes_all_interactions<-brms::brm(total_lice~
                                                 sociality+
@@ -515,8 +515,8 @@ zinb_a_lice_brms_bayes_all_interactions<-brms::brm(total_lice~
                                               thin=2,
                                               control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-#saveRDS(zinb_a_lice_brms_bayes_all_interactions, "data/data_analyses/model_selection/1L.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
-zinb_a_lice_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1L.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
+#saveRDS(zinb_a_lice_brms_bayes_all_interactions, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
+zinb_a_lice_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions.RDS")
 
 # PRIORS
 
@@ -540,8 +540,8 @@ zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elev
                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                          thin=2,
                                          control=list(adapt_delta=0.99, max_treedepth=14)) 
-#saveRDS(zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/1L.model_zip_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
-zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "data/data_analyses/model_selection/1L.model_zip_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
+#saveRDS(zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
+zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "data/data_analyses/model_selection/1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
 
 
 mcmc_plot(zinb_a_lice_brms_bayes_sociality_interactions_priors)
@@ -566,8 +566,31 @@ zinb_a_lice_brms_bayes_sociality_interactions_priors<-brms::brm(total_lice~
                                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                          thin=2,
                                                          control=list(adapt_delta=0.99, max_treedepth=14)) 
-#saveRDS(zinb_a_lice_brms_bayes_sociality_interactions_priors, "data/data_analyses/model_selection/1L.model_zip_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
-zinb_a_lice_brms_bayes_sociality_interactions_priors<-readRDS( "data/data_analyses/model_selection/1L.model_zip_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
+#saveRDS(zinb_a_lice_brms_bayes_sociality_interactions_priors, "data/data_analyses/model_selection/1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
+zinb_a_lice_brms_bayes_sociality_interactions_priors<-readRDS( "data/data_analyses/model_selection/1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
+
+
+
+zinb_a_lice_brms_bayes_all_interactions_priors<-brms::brm(total_lice~
+                                                     sociality+
+                                                     scale(elevation)+
+                                                     scale(year_seasonality)+
+                                                     sociality:scale(elevation)+
+                                                     sociality:scale(year_seasonality)+
+                                                     scale(elevation):scale(year_seasonality)+
+                                                     sociality:scale(year_seasonality):scale(elevation)+
+                                                     (1|gr(species_jetz, cov = phy_cov))+ 
+                                                     (1|Powder.lvl)+
+                                                     (1|species),                                                       
+                                                     prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+                                                     data=ectos_birds_dff,
+                                                   family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                   data2 = list(phy_cov=phy_cov),
+                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   thin=2,
+                                                   control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+#saveRDS(zinb_a_lice_brms_bayes_all_interactions_priors, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_priors.RDS")
 
 #MODEL COMPARISSOM
 looni<-loo(zip_a_lice_brms_bayes_no_int)
@@ -774,8 +797,8 @@ zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~socia
                                              prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
                                              #save_pars = save_pars(all=  TRUE),
                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
-#saveRDS(zinb_a_nf_mites_brms_bayes_no_int_prior, "data/data_analyses/model_selection/1NFM.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_Prior.RDS")
-zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/1NFM.model_prevalence_zip_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_Prior.RDS")
+#saveRDS(zinb_a_nf_mites_brms_bayes_no_int_prior, "data/data_analyses/model_selection/1NFM.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
+zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/1NFM.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
 
 zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-brms::brm(total_no_feathers_mites~
                                                                sociality+
