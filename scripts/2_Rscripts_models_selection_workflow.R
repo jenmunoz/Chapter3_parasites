@@ -311,29 +311,14 @@ prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure 
 
 
 # half student only allows positive values
-#prior_summary(ecto_p_brms_bayes_no_int)
+
+# I am not sure why it does not like the intercept wider prior so I used the default
 ecto_p_brms_bayes_no_int_prior<-brms::brm(ectoparasites_PA~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                            (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                            (1|Powder.lvl)+
-                                            (1|species),
-                                          data=ectos_birds_dff,
-                                          #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
-                                          family= bernoulli(), # bernoulli() uses the (link = "logit")
-                                          data2 = list(phy_cov=phy_cov),
-                                          prior=c(prior_predictors,prior_random,prior_intercept),
-                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                          thin=2,
-                                          control=list(adapt_delta=0.99, max_treedepth=14))
-
-#saveRDS(ecto_p_brms_bayes_no_int_prior, "data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_priors.RDS")
-
-
-ecto_p_brms_bayes_no_int_prior2<-brms::brm(ectoparasites_PA~sociality+ scale(elevation)+ scale(year_seasonality)+
                                              (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                              (1|Powder.lvl)+
                                              (1|species),
                                            data=ectos_birds_dff,
-                                           #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                           save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
                                            family= bernoulli(), # bernoulli() uses the (link = "logit")
                                            data2 = list(phy_cov=phy_cov),
                                            prior=c(prior_predictors,prior_random),
@@ -341,22 +326,84 @@ ecto_p_brms_bayes_no_int_prior2<-brms::brm(ectoparasites_PA~sociality+ scale(ele
                                            thin=2,
                                            control=list(adapt_delta=0.99, max_treedepth=14))
 
-saveRDS(ecto_p_brms_bayes_no_int_prior2, "data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_priors_wo_i.RDS")
+saveRDS(ecto_p_brms_bayes_no_int_prior, "data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_priors_default_intercept.RDS")
 
-loo(ecto_p_brms_bayes_no_int_prior2,ecto_p_brms_bayes_no_int_prior, compare=TRUE)
+# THIS IS INCLUDING THE WEAKLY INFORMATIVE SPECIFIED FOR THE INTERCEPT BUT SOME HOW IT DOES NOT LIKE IT
+
+#ecto_p_brms_bayes_no_int_prior2<-brms::brm(ectoparasites_PA~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                             (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                             (1|Powder.lvl)+
+                                             (1|species),
+                                           data=ectos_birds_dff,
+                                           #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                           family= bernoulli(), # bernoulli() uses the (link = "logit")
+                                           data2 = list(phy_cov=phy_cov),
+                                           prior=c(prior_predictors,prior_random,prior_intercept),
+                                           iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                           thin=2,
+                                           control=list(adapt_delta=0.99, max_treedepth=14))
+
+#saveRDS(ecto_p_brms_bayes_no_int_prior, "data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_priors.RDS")
+
+ecto_p_brms_bayes_sociality_interactions_priors<-brms::brm(ectoparasites_PA~
+                                                      sociality+
+                                                      scale(elevation)+
+                                                      scale(year_seasonality)+
+                                                      sociality:scale(elevation)+
+                                                      sociality:scale(year_seasonality)+
+                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                      (1|Powder.lvl)+
+                                                      (1|species),
+                                                    data=ectos_birds_dff,
+                                                    save_pars = save_pars(all=  TRUE),
+                                                    prior=c(prior_predictors,prior_random),
+                                                    family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                                    data2 = list(phy_cov=phy_cov),
+                                                    iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                    thin=2,
+                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
+#saveRDS(ecto_p_brms_bayes_sociality_interactions_priors,"data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_priors.RDS")
+
+ecto_p_brms_bayes_all_interactions_priors<-brms::brm(ectoparasites_PA~
+                                                sociality+
+                                                scale(elevation)+
+                                                scale(year_seasonality)+
+                                                sociality:scale(elevation)+
+                                                sociality:scale(year_seasonality)+
+                                                scale(elevation):scale(year_seasonality)+
+                                                sociality:scale(year_seasonality):scale(elevation)+
+                                                (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                (1|Powder.lvl)+
+                                                (1|species),
+                                              data=ectos_birds_dff,
+                                              family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                              data2 = list(phy_cov=phy_cov),
+                                              prior=c(prior_predictors,prior_random),
+                                              save_pars = save_pars(all=  TRUE),
+                                              iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                              thin=2,
+                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+saveRDS(ecto_p_brms_bayes_all_interactions_priors,"data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_priors.RDS")
+
 
 
 #MODEL COMPARISON
 #paper https://arxiv.org/abs/2008.10296v3 and forum https://discourse.mc-stan.org/t/relationship-between-elpd-differences-and-likelihood-ratios/23855
 #we can compute the probability that one model has a better predictive performance than the other.
 #The oft-cited rule of thumb is that Bayesian elpd_loo differences less than |4| are small.
-
-bayes_R2(ecto_p_brms_bayes_no_int) 
-bayes_R2(ecto_p_brms_bayes_sociality_interactions) 
+bayes_R2(ecto_p_brms_bayes_no_int_prior)
+bayes_R2(ecto_p_brms_bayes_sociality_interactions_priors)
+bayes_R2(ecto_p_brms_bayes_all_interactions_priors)
 
 # use loo cross validation 
-loo(ecto_p_brms_bayes_sociality_interactions, ecto_p_brms_bayes_no_int, compare=TRUE)
+loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_sociality_interactions_priors, ecto_p_brms_bayes_all_interactions_priors,compare=TRUE)
+loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_sociality_interactions_priors,compare=TRUE)
+loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_all_interactions_priors,compare=TRUE)
 # eld_diff<0.4 so we keep the simplest model 
+
+mcmc_plot(ecto_p_brms_bayes_no_int_prior)
+mcmc_plot(ecto_p_brms_bayes_all_interactions_priors)
 
 # use k-fold-cv validation
 k_ecto_p_brms_bayes_no_int<-kfold(ecto_p_brms_bayes_no_int, K=10)
@@ -590,7 +637,7 @@ zinb_a_lice_brms_bayes_all_interactions_priors<-brms::brm(total_lice~
                                                    thin=2,
                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-#saveRDS(zinb_a_lice_brms_bayes_all_interactions_priors, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_priors.RDS")
+saveRDS(zinb_a_lice_brms_bayes_all_interactions_priors, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_priors.RDS")
 
 #MODEL COMPARISSOM
 looni<-loo(zip_a_lice_brms_bayes_no_int)
