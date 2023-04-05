@@ -24,6 +24,9 @@ Here are some notes in weakly informative priors:We characterize a prior distrib
 In our case the data are scaled and centered ( mean zero,a dn sd of 1), therefore we are  we are using a t-student for the predictors with 3 degrees of freedom, a mean of zero and 
 
 
+ALTHOUGH I am now happy to use the weakly informative priors, interestingly I went to see max farell paper ad recreate their models and for some reason they have flat priors for the fixed effects !!!! ( I am assumnig that was ust an error uploadding the model but it made me freak out). ANyways my main concern now is how to decide the prior for teh intercept cause i have no idea what to do there. 
+ALSO FOND NA INTERESTING PAPAER THAT LOOS AT BRMS TOO NAD JUST USE the default parameters (Barrow et al 2019.Deeply+conserved+susceptibility+in+a+multi-host,+m)
+
 
 
 #5 levels of priors
