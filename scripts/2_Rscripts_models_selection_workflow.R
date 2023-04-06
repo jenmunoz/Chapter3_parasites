@@ -7,6 +7,7 @@
 ### Last update: March 2023                                                ###
 ################################################################################
 
+# Underestanding parameters in brms models https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 # Cross validation for model selection https://mc-stan.org/loo/articles/online-only/faq.html#modelselection
 
 #Cross-validation is a family of techniques that try to estimate how well a model would predict previously unseen data by using fits of the model to a subset of the data to predict the rest of the data.
@@ -203,6 +204,8 @@ ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_pr
   na.omit() %>% 
   filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
+ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 
 
@@ -387,8 +390,10 @@ ecto_p_brms_bayes_all_interactions_priors<-brms::brm(ectoparasites_PA~
 saveRDS(ecto_p_brms_bayes_all_interactions_priors,"data/data_analyses/model_selection/P1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_priors.RDS")
 
 
-
+###_###_###_##
 #MODEL COMPARISON
+###_###_###_##
+
 #paper https://arxiv.org/abs/2008.10296v3 and forum https://discourse.mc-stan.org/t/relationship-between-elpd-differences-and-likelihood-ratios/23855
 #we can compute the probability that one model has a better predictive performance than the other.
 #The oft-cited rule of thumb is that Bayesian elpd_loo differences less than |4| are small.
@@ -400,37 +405,56 @@ bayes_R2(ecto_p_brms_bayes_all_interactions_priors)
 loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_sociality_interactions_priors, ecto_p_brms_bayes_all_interactions_priors,compare=TRUE)
 loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_sociality_interactions_priors,compare=TRUE)
 loo(ecto_p_brms_bayes_no_int_prior, ecto_p_brms_bayes_all_interactions_priors,compare=TRUE)
-# eld_diff<0.4 so we keep the simplest model 
+# R=eld_diff<4 so we keep the simplest model !
+loo_compare(waic(ecto_p_brms_bayes_no_int_prior), waic(ecto_p_brms_bayes_sociality_interactions_priors)) # interesting warning
 
-mcmc_plot(ecto_p_brms_bayes_no_int_prior)
-mcmc_plot(ecto_p_brms_bayes_all_interactions_priors)
+# use k-fold-cv validation instead because in models with random efects loo tends to fail # but this is taking forevwer so i WILL RUNT IT AT UBC TOMORROW
+k_ecto_p_brms_no_int<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
+k_ecto_p_brms_sociality_int<-kfold(ecto_p_brms_bayes_sociality_interactions_priors, K=10)
+loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
 
-# use k-fold-cv validation
-k_ecto_p_brms_bayes_no_int<-kfold(ecto_p_brms_bayes_no_int, K=10)
-k_ecto_p_brms_bayes_sociality_interactions<-kfold(ecto_p_brms_bayes_sociality_interactions, K=10)
+# Model posterior predictive checks 
+#The idea of posterior predictive checks is to compare our observed data to replicated data from the model. 
+#If our model is a good fit, we should be able to use it to generate a dataset that resembles the observed data.
+#gettigsamples from the posterior predictive distribution:
+pp_check(ecto_p_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100) 
 
-loo_compare(k_ecto_p_brms_bayes_no_int, k_ecto_p_brms_bayes_sociality_interactions)
+#or dependeing or the data use
+#pp_check(ecto_p_brms_bayes_no_int_prior, type = "stat", stat = 'median', nsamples = 100)
+#pp_m<- brms::posterior_predict(ecto_p_brms_bayes_no_int_prior)
+#ppc_rootogram(y=ecto_p_brms_bayes_no_int_prior$data$ectoparasites_PA, pp_m[1:200, ])  +   
+  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 
+###_###_###_##
 #PLOTS
+###_###_###_##
+  
 summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 bayes_R2() # R2 0.1529
 
+color_scheme_set("blue")
+
 # model convergence 
-png("data/data_analyses/models/model_plots/M.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(ecto_p_brms_bayes_no_int)
+png("figures/figures_manuscript/models_selected_figures/Fig3.ecto_p_brms_bayes_no_int_prior_CONVERGENCE.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(ecto_p_brms_bayes_no_int_prior)
 dev.off()
 
 # model fit
-png("data/data_analyses/models/model_plots/M.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_m<- brms::posterior_predict(MODEL)
-ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
-  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
+png("figures/figures_manuscript/models_selected_figures/Fig3.ecto_p_brms_bayes_no_int_prior_FIT.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(ecto_p_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100) 
 dev.off()
 
-pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+# Choose depending on the model type
+#png("figures/figures_manuscript/mT.png",width = 3000, height = 3000, res = 300, units = "px")
+#pp_m<- brms::posterior_predict(MODEL)
+#ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
+#  coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
+#dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
 
 
 #MODEL ESTIMATES
@@ -438,25 +462,27 @@ pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20)
 
 color_scheme_set("blue")
 
-estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions Ectos prevalence", subtitle ="Ectos prevalence with medians and 95% intervals")+
-  theme_minimal(20)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey50")+
+  theme_classic(30)+
+  xlim(-3,3)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("data/data_analyses/model_selection/plots_model_selected/Fig2.plot_model_parameters_ecto_PREVALENCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig3.ecto_p_brms_bayes_no_int_prior_ESTIMATES.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions Ectos prevalence", subtitle ="Ectos prevalence with medians and 95% intervals")+
-  theme_minimal(20)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  theme_classic(30)+
+  xlim(-3,3)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("data/data_analyses/model_selection/plots_model_selected/Fig2.plot_model_parameters_intervals_ecto_PREVALENCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig3.ecto_p_brms_bayes_no_int_prior_ESTIMATES_INTERVALS.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
@@ -595,8 +621,6 @@ mcmc_plot(zinb_a_lice_brms_bayes_sociality_interactions_priors)
 mcmc_plot(zinb_a_lice_brms_bayes_sociality_interactions)
 
 
-
-
 zinb_a_lice_brms_bayes_sociality_interactions_priors<-brms::brm(total_lice~
                                                            sociality+
                                                            scale(elevation)+
@@ -639,6 +663,42 @@ zinb_a_lice_brms_bayes_all_interactions_priors<-brms::brm(total_lice~
 
 saveRDS(zinb_a_lice_brms_bayes_all_interactions_priors, "data/data_analyses/model_selection/1L.model_prevalence_zinb_brms_LICE_ABUNDANCE_phylo_multiple_obs_all_interactions_priors.RDS")
 
+
+###_###_###_##
+#MODEL COMPARISON
+###_###_###_##
+
+#paper https://arxiv.org/abs/2008.10296v3 and forum https://discourse.mc-stan.org/t/relationship-between-elpd-differences-and-likelihood-ratios/23855
+#we can compute the probability that one model has a better predictive performance than the other.
+#The oft-cited rule of thumb is that Bayesian elpd_loo differences less than |4| are small.
+bayes_R2(zinb_a_lice_brms_bayes_no_int_priors)
+bayes_R2(zinb_a_lice_brms_bayes_sociality_interactions_priors)
+bayes_R2(zinb_a_lice_brms_bayes_all_interactions_priors)
+
+# use loo cross validation [ In this case we are not interested inteh interaaction between the different factors because the sociality of a speceis does not change with seasonality or elevation, cause those are attributes to the individuals does not change ]
+loo(zinb_a_lice_brms_bayes_no_int_priors, zinb_a_lice_brms_bayes_sociality_interactions_priors, zinb_a_lice_brms_bayes_all_interactions_priors,compare=TRUE)
+loo(zinb_a_lice_brms_bayes_no_int_priors, zinb_a_lice_brms_bayes_sociality_interactions_priors,compare=TRUE)
+# R=eld_diff<4 so we keep the simplest model !
+loo_compare(waic(zinb_a_lice_brms_bayes_no_int_priors), waic(zinb_a_lice_brms_bayes_sociality_interactions_priors)) # interesting warning
+
+# use k-fold-cv validation instead because in models with random efects loo tends to fail # but this is taking forevwer so i WILL RUNT IT AT UBC TOMORROW
+k_ecto_p_brms_no_int<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
+k_ecto_p_brms_sociality_int<-kfold(ecto_p_brms_bayes_sociality_interactions_priors, K=10)
+loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
+
+# Model posterior predictive checks 
+#The idea of posterior predictive checks is to compare our observed data to replicated data from the model. 
+#If our model is a good fit, we should be able to use it to generate a dataset that resembles the observed data.
+#gettigsamples from the posterior predictive distribution:
+pp_check(ecto_p_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100) 
+
+#or dependeing or the data use
+#pp_check(ecto_p_brms_bayes_no_int_prior, type = "stat", stat = 'median', nsamples = 100)
+#pp_m<- brms::posterior_predict(ecto_p_brms_bayes_no_int_prior)
+#ppc_rootogram(y=ecto_p_brms_bayes_no_int_prior$data$ectoparasites_PA, pp_m[1:200, ])  +   
+coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
+
+
 #MODEL COMPARISSOM
 looni<-loo(zip_a_lice_brms_bayes_no_int)
 loonip<-loo(zinb_a_lice_brms_bayes_no_int_priors)
@@ -651,8 +711,6 @@ looni4<-reloo(zinb_a_lice_brms_bayes_no_int,loo=looni, chains=4) # ### THIS ONE 
 loosi4<-reloo(zinb_a_lice_brms_bayes_sociality_interactions, loo=loosi, chains=4)
 
 loo_compare(loon, loosi)
-
-#MODEL COMPARISON
 
 # model check  example
 
@@ -867,6 +925,7 @@ zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-brms::brm(total_no_feat
 #saveRDS(zinb_a_nf_mites_brms_bayes_sociality_interactions_prior, "data/data_analyses/model_selection/1NFM.model_prevalence_zinb_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_prior.RDS")
 zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-readRDS ("data/data_analyses/model_selection/1NFM.model_prevalence_zinb_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_prior.RDS")
 
+
 zip_a_nf_mites_brms_bayes_all_interactions_prior<-brms::brm(total_no_feathers_mites~
                                                         sociality+
                                                         scale(elevation)+
@@ -995,12 +1054,12 @@ dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metri
 
 names(dff_ectos_network_individual_metrics)
 is.ultrametric(phylo)
-LICE 
-
 
 
 # ##### 1.2.Model selection NETWORKS prevalence ectos --------------------------------------------------------
 ###_###_###
+#2PND stands for PREVALENCE NETWORK DEGREE
+prior_summary(ecto_p_brms_bayes_no_int_degree)
 mcmc_plot(ecto_p_brms_bayes_no_int_degree)
 ecto_p_brms_bayes_no_int_degree<-brms::brm(ectoparasites_PA~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
                                       (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
@@ -1011,11 +1070,10 @@ ecto_p_brms_bayes_no_int_degree<-brms::brm(ectoparasites_PA~scale(degree)+ scale
                                     data2 = list(phy_cov=phy_cov),
                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                     thin=2,
-                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
-#saveRDS(ecto_p_brms_bayes_no_int_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
-ecto_p_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
-
-mcmc_plot(ecto_p_brms_bayes_sociality_interactions_degree)
+                                    save_pars = save_pars(all=  TRUE),
+                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
+#saveRDS(ecto_p_brms_bayes_no_int_degree, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+ecto_p_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE.RDS")
 
 ecto_p_brms_bayes_sociality_interactions_degree<-brms::brm(ectoparasites_PA~
                                                       scale(degree)+
@@ -1029,11 +1087,12 @@ ecto_p_brms_bayes_sociality_interactions_degree<-brms::brm(ectoparasites_PA~
                                                     data=dff_ectos_network_individual_metrics,
                                                     family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
                                                     data2 = list(phy_cov=phy_cov),
+                                                    save_pars = save_pars(all=  TRUE),
                                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                     thin=2,
-                                                    control=list(adapt_delta=0.99, max_treedepth=12)) 
-#saveRDS(ecto_p_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
-ecto_p_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(ecto_p_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
+ecto_p_brms_bayes_sociality_interactions<-readRDS( "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
 
 ecto_p_brms_bayes_all_interactions_degree<-brms::brm(ectoparasites_PA~
                                                 scale(degree)+
@@ -1049,14 +1108,90 @@ ecto_p_brms_bayes_all_interactions_degree<-brms::brm(ectoparasites_PA~
                                               data=dff_ectos_network_individual_metrics,
                                               family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
                                               data2 = list(phy_cov=phy_cov),
+                                              save_pars = save_pars(all=  TRUE),
                                               iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                               thin=2,
-                                              control=list(adapt_delta=0.99, max_treedepth=12)) 
+                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-saveRDS(ecto_p_brms_bayes_all_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
-ecto_p_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
+saveRDS(ecto_p_brms_bayes_all_interactions_degree, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
+ecto_p_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree.RDS")
 
+# PRIORS
+#2PND stands for PREVALENCE NETWORK DEGREE
+
+prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+
+
+install.packages("arm")
+library(arm)
+mean(standardize(dff_ectos_network_individual_metrics$degree))
+
+
+ecto_p_brms_bayes_no_int_degree_prior<-brms::brm(ectoparasites_PA~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                             (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                             (1|Powder.lvl)+
+                                             (1|species),
+                                           data=dff_ectos_network_individual_metrics,
+                                           family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                           data2 = list(phy_cov=phy_cov),
+                                           iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                           thin=2,
+                                           save_pars = save_pars(all=  TRUE),
+                                           prior = c(prior_predictors,prior_random, prior_intercept),
+                                           control=list(adapt_delta=0.999, max_treedepth=14)) 
+saveRDS(ecto_p_brms_bayes_no_int_degree, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+ecto_p_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+
+ecto_p_brms_bayes_sociality_interactions_degree_prior<-brms::brm(ectoparasites_PA~
+                                                             scale(degree)+
+                                                             scale(elevation)+
+                                                             scale(year_seasonality)+
+                                                             scale(degree):scale(elevation)+
+                                                             scale(degree):scale(year_seasonality)+
+                                                             (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                             (1|Powder.lvl)+
+                                                             (1|species),
+                                                           data=dff_ectos_network_individual_metrics,
+                                                           family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                                           data2 = list(phy_cov=phy_cov),
+                                                           save_pars = save_pars(all=  TRUE),
+                                                           prior = c(prior_predictors,prior_random, prior_intercept),
+                                                           iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                           thin=2,
+                                                           control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(ecto_p_brms_bayes_sociality_interactions_degree_prior, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE_prior.RDS")
+ecto_p_brms_bayes_sociality_interactions_degree_prior<-readRDS( "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_sociality_interactions_DEGREE_prior.RDS")
+
+ecto_p_brms_bayes_all_interactions_degree_prior<-brms::brm(ectoparasites_PA~
+                                                       scale(degree)+
+                                                       scale(elevation)+
+                                                       scale(year_seasonality)+
+                                                       scale(degree):scale(elevation)+
+                                                       scale(degree):scale(year_seasonality)+
+                                                       scale(elevation):scale(year_seasonality)+
+                                                       scale(degree):scale(year_seasonality):scale(elevation)+
+                                                       (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                       (1|Powder.lvl)+
+                                                       (1|species),
+                                                       prior = c(prior_predictors,prior_random, prior_intercept),
+                                                     data=dff_ectos_network_individual_metrics,
+                                                     family= bernoulli(), # bernoulli() uses the (link = "logit").#zero_inflated_negbinomial() 
+                                                     data2 = list(phy_cov=phy_cov),
+                                                     save_pars = save_pars(all=  TRUE),
+                                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                     thin=2,
+                                                     control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+saveRDS(ecto_p_brms_bayes_all_interactions_degree_prior, "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree_prior.RDS")
+ecto_p_brms_bayes_all_interactions_degree_prior<-readRDS( "data/data_analyses/model_selection/2PND.model_prevalence_b_brms_phylo_multiple_obs_all_interactions_degree_prior.RDS")
+
+#p
 loo(ecto_p_brms_bayes_no_int_degree,ecto_p_brms_bayes_sociality_interactions_degree,ecto_p_brms_bayes_all_interactions_degree,compare=TRUE)
+
+LOO(brms.0, brms.0.RE, brms.noRE, brms.speciesRE, brms.phyloRE, brms.full,brms.reduced.noRE,brms.reduced.speciesRE,brms.reduced.phyloRE,brms.reduced.bothRE,reloo=TRUE)
 
 summary (ecto_p_brms_bayes)
 fixef() # to get more detailed values for estimates
@@ -1072,14 +1207,24 @@ pp_m<- brms::posterior_predict(ecto_p_brms_bayes)
 ppc_rootogram(y=ecto_p_brms_bayes$data$ectoparasites_PA, pp_m[1:200, ])  +   
   coord_cartesian(xlim = c(0, 5), ylim = c(0,30))
 
+plot.O <- stanplot(brms.full)
+my_O_title <- expression(paste(bold("   Overall Infected"),bold(" posterior estimates")))
+plot.O + ggtitle(my_O_title) + theme(plot.title = element_text(family = "Arial", color="black",size=16)) + theme(text = element_text(family="Arial",size=14))
+
+
 # ##### 1.Data processing NETWORKS abundance lice ----------------------------------------------------
 
-
-# Lice
 
 dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+names(dff_ectos_network_individual_metrics)
+# Lice
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
 unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
@@ -1143,7 +1288,7 @@ get_num_upars(zip_a_lice_brms_bayes_no_int_degree)
 install.packages("rstan")
 library(rstan)
 loo(zip_a_lice_brms_bayes_no_int_degree,zip_a_lice_brms_bayes_sociality_interactions_degree, compare=TRUE)
-zip_a_lice_brms_bayes_no_int_degree<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+zinb_a_lice_brms_bayes_no_int_degree<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                           (1|Powder.lvl)+
                                           (1|species),
@@ -1152,13 +1297,14 @@ zip_a_lice_brms_bayes_no_int_degree<-brms::brm(total_lice~scale(degree)+ scale(e
                                         data2 = list(phy_cov=phy_cov),
                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                         thin=2,
+                                        save_pars = save_pars(all=  TRUE),
                                         control=list(adapt_delta=0.99, max_treedepth=12)) 
 
 prior_summary(zip_a_lice_brms_bayes_no_int_degree)
-#saveRDS(zinb_a_lice_brms_bayes_no_int_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
-zinb_a_lice_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/1.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+saveRDS(zinb_a_lice_brms_bayes_no_int_degree, "data/data_analyses/model_selection/2LND.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
+zinb_a_lice_brms_bayes_no_int_degree<-readRDS("data/data_analyses/model_selection/2LND.model_prevalence_zip_brms_ABUNDANCE_LICE_phylo_multiple_obs_no_interactions_DEGREE.RDS")
 
-zip_a_lice_brms_bayes_sociality_interactions_degree<-brms::brm(total_lice~
+zinb_a_lice_brms_bayes_sociality_interactions_degree<-brms::brm(total_lice~
                                                           scale(degree)+
                                                           scale(elevation)+
                                                           scale(year_seasonality)+
@@ -1172,13 +1318,14 @@ zip_a_lice_brms_bayes_sociality_interactions_degree<-brms::brm(total_lice~
                                                         data2 = list(phy_cov=phy_cov),
                                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                         thin=2,
+                                                        save_pars = save_pars(all=  TRUE),
                                                         control=list(adapt_delta=0.99, max_treedepth=12)) 
 prior_summary(model)
 
 #saveRDS(zip_a_lice_brms_bayes_sociality_interactions_degree, "data/data_analyses/model_selection/1.model_prevalence_zip_brms_LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
 zip_a_lice_brms_bayes_sociality_interactions_degree<-readRDS( "data/data_analyses/model_selection/1.model_prevalence_zip_brms__LICE_ABUNDANCE_phylo_multiple_obs_sociality_interactions_DEGREE.RDS")
 
-zip_a_lice_brms_bayes_all_interactions_degree<-brms::brm(total_lice~
+zinb_a_lice_brms_bayes_all_interactions_degree<-brms::brm(total_lice~
                                                     scale(degree)+
                                                     scale(elevation)+
                                                     scale(year_seasonality)+
@@ -1193,6 +1340,7 @@ zip_a_lice_brms_bayes_all_interactions_degree<-brms::brm(total_lice~
                                                   family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
                                                   data2 = list(phy_cov=phy_cov),
                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                  save_pars = save_pars(all=  TRUE),
                                                   thin=2,
                                                   control=list(adapt_delta=0.99, max_treedepth=12)) 
 
@@ -1390,6 +1538,9 @@ zip_a_nf_mites_brms_bayes_all_interactions_degree<-readRDS( "data/data_analyses/
 loo(zip_a_lice_brms_bayes_all_interactions,zip_a_lice_brms_bayes_sociality_interactions,zip_a_lice_brms_bayes_no_int)
 mcmc_plot(zip_a_nf_mites_brms_bayes_sociality_interactions)
 
+###_###_###_###_###_###_###_###_###_###_###_###_
+#### LOAD PREVIOUSLY SAVED MODELS #####
+###_###_###_###_###_###_###_###_###_###_###_###_
 
 # Checking model overfitting and missbehavior and model comparison  ----------------------------------------------
 

@@ -6,6 +6,34 @@ Bayesian workflow [in progress]
 Visualizing the bayesian workflow: https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 paper: https://academic.oup.com/jrsssa/article/182/2/389/7070184
 
+#1 Explore your data with some simple graphs
+
+#2 Prior predictive checks
+
+#2.1 Weakly informative priors
+
+#3 Run the models
+
+#4 Model posterior predictive checks 
+  The idea of posterior predictive checks is to compare our observed data to replicated data from the model. 
+  If our model is a good fit, we should be able to use it to generate a dataset that resembles the observed data.
+
+# Use Cross validation for model selections (loo)
+The last piece of this workflow is comparing models using leave-one-out cross validation. We are interested in estimating the out-of-sample predictive accuracy at each point  when all we have to fit the model is data that without point . We want to estimate the leave-one-out (LOO) posterior predictive densities and a summary of these across all points, which is called the LOO expected log pointwise predictive density (
+elpd. The bigger the numbers, the better we are at predicting the left out point 
+By comparing the (elpd_looO)  across models, we can choose the model that has the higher value. By looking at values for the individual points, we can see which observations are particularly hard to predict.
+
+# See detais for K-pareto and other diagnosis below
+
+**Model selection workflow :
+
+1)Analyze the posterior, do they make sense
+2Cross validation checking (use loo)
+2.1) if random effect present, high pareto K could indicate  misspecification but also flexibility of the model. importance sampling in PSIS-LOO can fail for “random effect” model. 
+2.2) Option 1, refi the model using reloo, but takes very long time
+2.3) Use k-fold and re-fit the model 10 times, each time leaving out 10 % of teh observations and compare the k-models with loo_compare()
+Use posterior predictive checking pp_check  to see if the model can predict the proportion of zeros well
+
 
 
 ------
@@ -75,12 +103,6 @@ a)In fitting hierarchical models, we recommend starting with a noninformative un
 b)For a noninformative but proper prior distribution, we recommend approximating theuniform density on ¾® by a uniform on a wide range (for example, U(0; 100) in the SATcoaching example) or a half-normal centered at 0 with standard deviation set to a highvalue such a 100. The latter approach is particularly easy to program as a N(0; 1002)prior distribution 
 
 c)When more prior information is desired, for instance to restrict ¾® away from verylarge values, we recommend working within the half-t family of prior distributions,which are more °exible and have better behavior near 0, compared to the inverse-gamma family. A reasonable starting point is the half-Cauchy family, with scale set toa value that is high but not o® the scale;
-
-
-
-
-
-
 
 
 
