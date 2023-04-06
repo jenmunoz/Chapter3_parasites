@@ -2,9 +2,15 @@
 This is a cummary in my own words ofthe workflow for bayesian in the way I have aapplied to this manuscript 
 It also includes refrecences to papers and links to blogs to underestand better bayesian.
 
+# Underestanding parameters in brms models https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+
+
 Bayesian workflow [in progress]
 Visualizing the bayesian workflow: https://www.monicaalexander.com/posts/2020-28-02-bayes_viz/
 paper: https://academic.oup.com/jrsssa/article/182/2/389/7070184
+a more complex but complete workflow https://arxiv.org/pdf/2011.01808.pdf
+
+if run into rpoblems check this out: https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 
 #1 Explore your data with some simple graphs
 
