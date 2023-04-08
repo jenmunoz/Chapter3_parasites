@@ -965,6 +965,7 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # MODEL 
 
+R2(NZ_a_lice_brms_bayes_no_int)
 NZ_a_lice_brms_bayes_no_int<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
                                            (1|gr(species_jetz, cov = phy_cov))+ 
                                            (1|Powder.lvl)+
@@ -978,7 +979,8 @@ NZ_a_lice_brms_bayes_no_int<-brms::brm(total_lice~sociality+ scale(elevation)+ s
                                          thin=2,
                                          control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-
+prior_summary(NZ_a_lice_brms_bayes_no_int)
+prior_summary()
 # ##### 2.3 Selected model Abundance Lice(ZIP) ------------------------------------
 
 
