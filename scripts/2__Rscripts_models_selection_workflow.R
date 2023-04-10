@@ -8,6 +8,8 @@
 ################################################################################
 
 # Underestanding parameters in brms models https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+
+# sd(RANDOM EFFECTS) is an estimate of the standard deviation across sociality slopes, thereby showing how much birds mean number of parasites differ in response to social context, elevation and ###
 # Cross validation for model selection https://mc-stan.org/loo/articles/online-only/faq.html#modelselection
 
 #Cross-validation is a family of techniques that try to estimate how well a model would predict previously unseen data by using fits of the model to a subset of the data to predict the rest of the data.
@@ -966,7 +968,11 @@ phylo<-drop.tip (phylo, tip$name)
 phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # MODEL 
+#prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("cauchy(0,2.5)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+
 #prior_intercept # we will just keep the default
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
@@ -987,35 +993,75 @@ NZ_a_lice_brms_bayes_no_int_prior<-brms::brm(total_lice~sociality+ scale(elevati
                                          thin=2,
                                          control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-
 saveRDS(NZ_a_lice_brms_bayes_no_int_prior, "data/data_analyses/model_selection/M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
 NZ_a_lice_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
+
+prior_summary(NZ_a_lice_brms_bayes_no_int_prior_nb)
+NZ_a_lice_brms_bayes_no_int_prior_nb<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                               (1|gr(species_jetz, cov = phy_cov))+ 
+                                               (1|Powder.lvl)+
+                                               (1|species),
+                                             data=ectos_birds_dff,
+                                             family=negbinomial(),  #zero_inflated_negbinomial()
+                                             data2 = list(phy_cov=phy_cov),
+                                             prior = c(prior_predictors, prior_random),
+                                             save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+                                             iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                             thin=2,
+                                             control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+mcmc_plo
+
+#saveRDS(NZ_a_lice_brms_bayes_no_int_prior_nb, "data/data_analyses/model_selection/M1L_NZ_NB.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
+NZ_a_lice_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/M1l_NZ_NB.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
+
+bayes_R2(NZ_a_lice_brms_bayes_no_int_prior_nb)
+# Also see withnormal priors and cauchy 
+bayes_R2(NZ_a_lice_brms_bayes_no_int_prior_nb_normal) 
 
 # Some model exploration 
 class(NZ_a_lice_brms_bayes_no_int_prior)
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(NZ_a_lice_brms_bayes_no_int_prior, integer = TRUE)
-plot( simulate_residuals, form = ectos_birds_dff$sociality)
+simulate_residuals <- dh_check_brms(NZ_a_lice_brms_bayes_no_int_prior_nb, integer = TRUE)
+plot(simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
 
+#  model comparison and overfitting 
+bayes_R2(NZ_a_lice_brms_bayes_no_int_prior)
+bayes_R2(NZ_a_lice_brms_bayes_no_int_prior_nb)
+
+loo_nz_lice<-loo(NZ_a_lice_brms_bayes_no_int_prior, moment_match = TRUE)
+k_ecto_NZ_lice_brms_no_int_prior<-kfold(NZ_a_lice_brms_bayes_no_int_prior, K=10)
+saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
+
+loo(NZ_a_lice_brms_bayes_no_int_prior_nb)
+loo_nz_lice_nb<-loo(NZ_a_lice_brms_bayes_no_int_prior_nb, moment_match = TRUE)
+k_ecto_NZ_lice_brms_no_int_prior_nb<-kfold(NZ_a_lice_brms_bayes_no_int_prior_nb, K=10)
+saveRDS(k_ecto_NZ_lice_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors_nb.RDS")
+
+loo_compare(loo_nz_lice,loo_nz_lice_nb)
+loo_compare(k_ecto_NZ_lice_brms_no_int_prior_nb,k_ecto_NZ_lice_brms_no_int_prior)
+
+mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior_nb)
+mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior)
 
 # plots 
 
 color_scheme_set("red") 
 
-bayes_R2(NZ_a_lice_brms_bayes_no_int_prior)
+# poisson 
 
 #model convergence 
-png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ.plot_model_CONVERGENCE_intervals_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ_NB.plot_model_CONVERGENCE_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(NZ_a_lice_brms_bayes_no_int_prior)
 dev.off()
 
 # model fit
 # model fit
-png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ.plot_modell_FIT_intervals_ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ_NB.plot_modell_FIT__ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_check(NZ_a_lice_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
 dev.off()
 
@@ -1026,35 +1072,32 @@ dev.off()
 # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 
 
-estimates_plot<-mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior_nb,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions NZ_LICE ABUNDANCE", subtitle ="NZ_LICE_ABUNDANCE_brms_bayes_no_int_prior with medians and 95% intervals")+
   theme_classic(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ.plot_model_parameters_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ_NB.plot_model_parameters_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(NZ_a_lice_brms_bayes_no_int_prior_nb,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions NZ_LICE ABUNDANCE", subtitle ="NZ_LICE_ABUNDANCE with medians and 95% intervals")+
   theme_classic(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ_plot_model_parameters_intervals_LICE_ABUNDANCE_brms_bayes_no_int_.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_ALNZ_NB.plot_model_parameters_intervals_LICE_ABUNDANCE_brms_bayes_no_int_.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
 
-loo_nz_lice<-loo(NZ_a_lice_brms_bayes_no_int_prior, moment_match = TRUE)
-k_ecto_NZ_lice_brms_no_int_prior<-kfold(NZ_a_lice_brms_bayes_no_int_prior, K=10)
-saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
 
 ###_###_###_###_###_###_###_###
-####### fITTING THE MODEL WITH PGLMM
+####### fITTING THE MODEL WITH PGLMM gave up on this approach!!
 ###_###_###_###_###_###_###_###
 
 
@@ -1077,12 +1120,13 @@ NZ_a_lice_pglmm<-phyr::pglmm(total_lice~sociality+ scale(elevation)+
 
 histogram(ectos_birds_dff$total_nf_mites) # id some outliers 
 
-summary(nf_mites_a_pglmm)
-rr2::R2(nf_mites_a_pglmm)
+summary(NZ_a_lice_pglmm)
+rr2::R2(NZ_a_lice_pglmm)
 fixef(nf_mites_a_pglmm)
 predict(ecto_a_pglmm)
 
 # Assumptions check
+
 simulationOutput<- DHARMa::simulateResiduals(fittedModel=NZ_a_lice_pglmm, plot = F,integerResponse = T, re.form = NULL ) #quantreg=T
 plot(simulationOutput)
 testUniformity(simulationOutput) #tests if the overall distribution conforms to expectations
@@ -1543,21 +1587,35 @@ NZ_a_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~sociality+
 saveRDS(NZ_a_mites_brms_bayes_no_int_prior, "data/data_analyses/model_selection/M1M_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
 NZ_a_mites_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/M1M_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
 
+NZ_a_mites_brms_bayes_no_int_prior_nb<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                                  (1|gr(species_jetz, cov = phy_cov))+ 
+                                                  (1|Powder.lvl)+
+                                                  (1|species),
+                                                data=ectos_birds_dff,
+                                                family=negbinomial(),  #zero_inflated_negbinomial()
+                                                data2 = list(phy_cov=phy_cov),
+                                                prior = c(prior_predictors, prior_random),
+                                                save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+                                                iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                thin=2,
+                                                control=list(adapt_delta=0.99, max_treedepth=14))
+# Some model exploration 
+class(NZ_a_mites_brms_bayes_no_int_prior)
 
 loo(NZ_a_mites_brms_bayes_no_int_prior)
 loo_nz_mite<-loo(NZ_a_mites_brms_bayes_no_int_prior, moment_match = TRUE)
 k_ecto_NZ_lice_brms_no_int_prior<-kfold(NZ_a_mites_brms_bayes_no_int_prior, K=10)
-saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
+saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ_NB.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
+
+loo(NZ_a_mites_brms_bayes_no_int_prior_nb)
+loo_nz_mite_nb<-loo(NZ_a_mites_brms_bayes_no_int_prior_nb, moment_match = TRUE)
+k_ecto_NZ_lice_brms_no_int_prior_nb<-kfold(NZ_a_mites_brms_bayes_no_int_prior_nb, K=10)
+saveRDS(k_ecto_NZ_lice_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ_NB.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
 
 
-
-
-
-# Some model exploration 
-class(NZ_a_mites_brms_bayes_no_int_prior)
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
-simulate_residuals <- dh_check_brms(NZ_a_mites_brms_bayes_no_int_prior, integer = TRUE)
+simulate_residuals <- dh_check_brms(NZ_a_mites_brms_bayes_no_int_prior_nb, integer = TRUE)
 plot( simulate_residuals, form = ectos_birds_dff$sociality)
 DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
@@ -1566,16 +1624,16 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 # plots 
 color_scheme_set("pink") 
 
-bayes_R2(NZ_a_lice_brms_bayes_no_int_prior)
+bayes_R2(NZ_a_mites_brms_bayes_no_int_prior_nb)
 
 #model convergence 
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ.plot_model_CONVERGENCE_intervals_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(NZ_a_mites_brms_bayes_no_int_prior)
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_CONVERGENCE_intervals_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(NZ_a_mites_brms_bayes_no_int_prior_nbr)
 dev.off()
 
 # model fit
 # model fit
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ.plot_modell_FIT_intervals_ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_modell_FIT_intervals_ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_check(NZ_a_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
 dev.off()
 
@@ -1593,7 +1651,7 @@ estimates_plot<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior,prob=0.90, prob_out
   geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ.plot_model_parameters_MITES_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_parameters_MITES_ABUNDANCE_brms_bayes_no_int_nb.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
@@ -1604,14 +1662,10 @@ estimates_plot_intervals<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior,prob=0.90
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_plot_model_parameters_intervals_MITES_ABUNDANCE_brms_bayes_no_int_.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB_plot_model_parameters_intervals_MITES_ABUNDANCE_brms_bayes_no_int_nb.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
-
-loo_nz_lice<-loo(NZ_a_lice_brms_bayes_no_int_prior, moment_match = TRUE)
-k_ecto_NZ_lice_brms_no_int_prior<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
-saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_LICE_ABUNDANCE_brms_no_interactions_priors.RDS")
 
 
 
