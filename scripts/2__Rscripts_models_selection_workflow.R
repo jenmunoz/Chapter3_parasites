@@ -830,7 +830,7 @@ loo_compare(waic(zinb_a_lice_brms_bayes_no_int_priors), waic(zinb_a_lice_brms_ba
 mcmc_plot(zinb_a_lice_brms_bayes_no_int)
 mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors)
 # use k-fold-cv validation instead because in models with random efects loo tends to fail # but this is taking forevwer so i WILL RUNT IT AT UBC TOMORROW
-k_ecto_p_brms_no_int<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
+k_ecto_p_brms_no_int_prior<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
 k_ecto_p_brms_sociality_int<-kfold(ecto_p_brms_bayes_sociality_interactions_priors, K=10)
 loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
 
@@ -1566,7 +1566,8 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # The model 
 
-prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_predictors<-prior("student_t(3,0,1)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
@@ -1596,23 +1597,47 @@ NZ_a_mites_brms_bayes_no_int_prior_nb<-brms::brm(total_no_feathers_mites~sociali
                                                 data2 = list(phy_cov=phy_cov),
                                                 prior = c(prior_predictors, prior_random),
                                                 save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
-                                                iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                 thin=2,
                                                 control=list(adapt_delta=0.99, max_treedepth=14))
+
+saveRDS(NZ_a_mites_brms_bayes_no_int_prior_nb, "data/data_analyses/model_selection/M1M_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors_nb.RDS")
+NZ_a_mites_brms_bayes_no_int_prior_nb<-readRDS("data/data_analyses/model_selection/M1M_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors_nb.RDS")
+
+
+NZ_a_mites_brms_bayes_no_int<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                                   (1|gr(species_jetz, cov = phy_cov))+ 
+                                                   (1|Powder.lvl)+
+                                                   (1|species),
+                                                 data=ectos_birds_dff,
+                                                 family=negbinomial(),  #zero_inflated_negbinomial()
+                                                 data2 = list(phy_cov=phy_cov),
+                                                 prior = c(prior_predictors, prior_random),
+                                                 save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+                                                 iter=5000, warmup=2000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                 thin=2,
+                                                 control=list(adapt_delta=0.99, max_treedepth=14))
+
+
+
+pp_check(NZ_a_mites_brms_bayes_no_int, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+
+
+
 # Some model exploration 
 class(NZ_a_mites_brms_bayes_no_int_prior)
 
 loo(NZ_a_mites_brms_bayes_no_int_prior)
 loo_nz_mite<-loo(NZ_a_mites_brms_bayes_no_int_prior, moment_match = TRUE)
-k_ecto_NZ_lice_brms_no_int_prior<-kfold(NZ_a_mites_brms_bayes_no_int_prior, K=10)
-saveRDS(k_ecto_NZ_lice_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ_NB.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
+k_ecto_NZ_mites_brms_no_int_prior<-kfold(NZ_a_mites_brms_bayes_no_int_prior, K=10)
+saveRDS(k_ecto_NZ_mites_brms_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
 
 loo(NZ_a_mites_brms_bayes_no_int_prior_nb)
 loo_nz_mite_nb<-loo(NZ_a_mites_brms_bayes_no_int_prior_nb, moment_match = TRUE)
-k_ecto_NZ_lice_brms_no_int_prior_nb<-kfold(NZ_a_mites_brms_bayes_no_int_prior_nb, K=10)
-saveRDS(k_ecto_NZ_lice_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ_NB.model_MITES_ABUNDANCE_brms_no_interactions_priors.RDS")
+k_ecto_NZ_mites_brms_no_int_prior_nb<-kfold(NZ_a_mites_brms_bayes_no_int_prior_nb, K=10)
+saveRDS(k_ecto_NZ_mites_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_M1P_NZ_NB.model_MITES_ABUNDANCE_brms_no_interactions_priors_nb.RDS")
 
-
+loo_compare(k_ecto_NZ_mites_brms_no_int_prior,k_ecto_NZ_mites_brms_no_int_prior_nb)
 #remotes::install_github("Pakillo/DHARMa.helpers")
 
 simulate_residuals <- dh_check_brms(NZ_a_mites_brms_bayes_no_int_prior_nb, integer = TRUE)
@@ -1628,23 +1653,24 @@ bayes_R2(NZ_a_mites_brms_bayes_no_int_prior_nb)
 
 #model convergence 
 png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_CONVERGENCE_intervals_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(NZ_a_mites_brms_bayes_no_int_prior_nbr)
+plot(NZ_a_mites_brms_bayes_no_int_prior_nb)
 dev.off()
 
 # model fit
 # model fit
 png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_modell_FIT_intervals_ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(NZ_a_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+pp_check(NZ_a_mites_brms_bayes_no_int_prior_nb, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
 dev.off()
 
-#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
-#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+pp_check(NZ_a_mites_brms_bayes_no_int_prior_nb, ndraws = 100)+ xlim(0, 10)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(NZ_a_mites_brms_bayes_no_int_prior_nb, type="bars", ndraws = 100)+ xlim(0, 20) 
 
 #MODEL ESTIMATES
 # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 
+mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior_nb)
 
-estimates_plot<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior_nb,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions NZ_MITES ABUNDANCE", subtitle ="NZ_MITES_ABUNDANCE_brms_bayes_no_int_prior with medians and 95% intervals")+
   theme_classic(20)+
