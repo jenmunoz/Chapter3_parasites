@@ -1566,8 +1566,8 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 
 # The model 
 
-prior_predictors<-prior("student_t(3,0,1)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
-#prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("student_t(3,0,1)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
@@ -1605,23 +1605,6 @@ saveRDS(NZ_a_mites_brms_bayes_no_int_prior_nb, "data/data_analyses/model_selecti
 NZ_a_mites_brms_bayes_no_int_prior_nb<-readRDS("data/data_analyses/model_selection/M1M_NZ.model_MITES_ABUNDANCE_brms_no_interactions_priors_nb.RDS")
 
 
-NZ_a_mites_brms_bayes_no_int<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                                   (1|gr(species_jetz, cov = phy_cov))+ 
-                                                   (1|Powder.lvl)+
-                                                   (1|species),
-                                                 data=ectos_birds_dff,
-                                                 family=negbinomial(),  #zero_inflated_negbinomial()
-                                                 data2 = list(phy_cov=phy_cov),
-                                                 prior = c(prior_predictors, prior_random),
-                                                 save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
-                                                 iter=5000, warmup=2000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                 thin=2,
-                                                 control=list(adapt_delta=0.99, max_treedepth=14))
-
-
-
-pp_check(NZ_a_mites_brms_bayes_no_int, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
-
 
 
 # Some model exploration 
@@ -1652,13 +1635,13 @@ color_scheme_set("pink")
 bayes_R2(NZ_a_mites_brms_bayes_no_int_prior_nb)
 
 #model convergence 
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_CONVERGENCE_intervals_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_CONVERGENCE_intervals_MITES_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(NZ_a_mites_brms_bayes_no_int_prior_nb)
 dev.off()
 
 # model fit
 # model fit
-png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_modell_FIT_intervals_ecto_LICE_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_modell_FIT_intervals_ecto_MITES_ABUNDANCE_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_check(NZ_a_mites_brms_bayes_no_int_prior_nb, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
 dev.off()
 
@@ -1681,9 +1664,9 @@ png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB.plot_model_
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior_nb,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
-  labs(title="Posterior distributions NZ_MITES ABUNDANCE", subtitle ="NZ_LICE_ABUNDANCE with medians and 95% intervals")+
+  labs(title="Posterior distributions NZ_MITES ABUNDANCE", subtitle ="NZ_MITES_ABUNDANCE with medians and 95% intervals")+
   theme_classic(20)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
   xlab("Estimate")
@@ -1691,10 +1674,6 @@ estimates_plot_intervals<-mcmc_plot(NZ_a_mites_brms_bayes_no_int_prior,prob=0.90
 png("figures/figures_manuscript/models_selected_figures/Fig1_AMNZ_NB_plot_model_parameters_intervals_MITES_ABUNDANCE_brms_bayes_no_int_nb.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
-
-
-
-
 
 # ##### 3.3 Selected model Abundance MITES (ZIP) ------------------------------------
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
@@ -1963,7 +1942,7 @@ dev.off()
 # model fit
 # model fit
 png("figures/figures_manuscript/models_selected_figures/Fig2PND.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(zinb_a_nf_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+pp_check(ecto_p_brms_bayes_no_int_degree_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
 dev.off()
 
 #pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
@@ -1998,6 +1977,16 @@ dev.off()
 plot.O <- stanplot(brms.full)
 my_O_title <- expression(paste(bold("   Overall Infected"),bold(" posterior estimates")))
 plot.O + ggtitle(my_O_title) + theme(plot.title = element_text(family = "Arial", color="black",size=16)) + theme(text = element_text(family="Arial",size=14))
+
+
+
+# ##### Data and model selection LICE without zeros NETWORKS ABUNDANCE  --------
+
+
+###_###_###_###_###_###_###_###
+####### fITTING THE MODEL WITH PGLMM gave up on this approach!!
+###_###_###_###_###_###_###_###
+
 
 
 # ##### 5.1.Data processing NETWORKS abundance lice ----------------------------------------------------
@@ -2269,6 +2258,188 @@ dev.off()
 
 
 # #### ### #### ## 3 ** Model abundance NETWORKS excluding zeros Lice -------------------------------
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  filter (total_lice!=0) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+names(dff_ectos_network_individual_metrics)
+# Lice
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+dff_ectos_network_individual_metrics$total_lice<-as.numeric(dff_ectos_network_individual_metrics$total_lice)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
+
+# MODEL 
+
+#PRIORS
+#prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+#prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+prior_summary(NZ_a_lice_brms_bayes_no_degree_int_prior)
+NZ_a_lice_brms_bayes_no_degree_int_prior<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                      (1|Powder.lvl)+
+                                                      (1|species),
+                                                    data=dff_ectos_network_individual_metrics,
+                                                    family=negbinomial(),  #zero_inflated_negbinomial()
+                                                    data2 = list(phy_cov=phy_cov),
+                                                    iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                    thin=2,
+                                                    save_pars = save_pars(all=  TRUE),
+                                                    prior = c(prior_predictors,prior_random),
+                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(NZ_a_lice_brms_bayes_no_degree_int_prior, "data/data_analyses/model_selection/M2LND_NZ.model_lICE_ABUNDANCE_nb_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+NZ_a_lice_brms_bayes_no_degree_int_prior<-readRDS("data/data_analyses/model_selection/M2LND_NZ.model_lICE_ABUNDANCE_nb_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+
+NZ_a_lice_brms_bayes_no_degree_int_prior_p<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                        (1|Powder.lvl)+
+                                                        (1|species),
+                                                      data=dff_ectos_network_individual_metrics,
+                                                      family=poisson(),  #zero_inflated_negbinomial()
+                                                      data2 = list(phy_cov=phy_cov),
+                                                      iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                      thin=2,
+                                                      save_pars = save_pars(all=  TRUE),
+                                                      prior = c(prior_predictors,prior_random),
+                                                      control=list(adapt_delta=0.99, max_treedepth=14))
+
+NZ_a_lice_brms_bayes_no_degree_int_prior_t<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                        (1|Powder.lvl)+
+                                                        (1|species),
+                                                      data=dff_ectos_network_individual_metrics,
+                                                      family=negbinomial(),  #zero_inflated_negbinomial()
+                                                      data2 = list(phy_cov=phy_cov),
+                                                      iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                      thin=2,
+                                                      save_pars = save_pars(all=  TRUE),
+                                                      prior = c(prior_predictors,prior_random),
+                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+NZ_a_lice_brms_bayes_no_degree_int_prior_np<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                         (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                         (1|Powder.lvl)+
+                                                         (1|species),
+                                                       data=dff_ectos_network_individual_metrics,
+                                                       family=negbinomial(),  #zero_inflated_negbinomial()
+                                                       data2 = list(phy_cov=phy_cov),
+                                                       iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                       thin=2,
+                                                       save_pars = save_pars(all=  TRUE),
+                                                       control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+
+
+MODEL_FIT 
+
+NZ_a_lice_brms_bayes_no_degree_int_prior
+
+
+simulate_residuals <- dh_check_brms(NZ_a_lice_brms_bayes_no_degree_int_prior, integer = TRUE)
+plot(simulate_residuals, form = dff_ectos_network_individual_metrics$sociality)
+DHARMa::testDispersion(simulate_residuals)
+DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
+testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
+
+loo(NZ_a_lice_brms_bayes_no_degree_int_prior)
+
+k_ecto_NZ_lice_brms_no_int_prior_nb<-kfold(NZ_a_lice_brms_bayes_no_degree_int_prior, K=10)
+#saveRDS(k_ecto_NZ_lice_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_ALNZ_DEGREE.model_lice_abundance_brms_no_interactions_priors.RDS")
+
+k_ecto_NZ_lice_brms_no_int_prior_p<-kfold(NZ_a_lice_brms_bayes_no_degree_int_prior_p, K=10)
+#saveRDS(k_ecto_NZ_lice_brms_no_int_prior_nb, "data/data_analyses/model_selection/k_fold/K_fold_ALNZ_DEGREE.model_lice_abundance_brms_no_interactions_priors_nb.RDS")
+
+
+loo_compare(k_ecto_NZ_lice_brms_no_int_prior_nb,k_ecto_NZ_lice_brms_no_int_prior_p)
+
+# plots 
+color_scheme_set("red") 
+
+# poisson 
+#model convergence 
+png("figures/figures_manuscript/models_selected_figures/Fig2_LNDNZ_NB_plot_model_CONVERGENCE_LICE_ABUNDANCE_brms_bayes_no_int_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(NZ_a_lice_brms_bayes_no_int_prior)
+dev.off()
+
+# model fit
+# model fit
+png("figures/figures_manuscript/models_selected_figures/Fig2_LNDNZ_NB_plot_modell_FIT__ecto_LICE_ABUNDANCE_brms_bayes_no_int_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(NZ_a_lice_brms_bayes_no_degree_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+
+estimates_plot<-mcmc_plot(NZ_a_lice_brms_bayes_no_degree_int_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions NZ_LICE ABUNDANCE_DEGREE", subtitle ="NZ_LICE_ABUNDANCE_brms_bayes_no_int_prior with medians and 95% intervals")+
+  theme_classic(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+png("figures/figures_manuscript/models_selected_figures/Fig2_LNDNZ_NB_plot_model_parameters_LICE_ABUNDANCE_brms_bayes_no_int_degree.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(NZ_a_lice_brms_bayes_no_degree_int_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions NZ_LICE ABUNDANCE", subtitle ="NZ_LICE_ABUNDANCE with medians and 95% intervals")+
+  theme_classic(20)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlab("Estimate")
+
+png("figures/figures_manuscript/models_selected_figures/Fig2_LNDNZ_NB_plot_model_parameters_intervals_LICE_ABUNDANCE_brms_bayes_no_int_degree.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
+
+
+
+
 # ##### 5.ZIP_Selected model LICE degree (ZIP) ------------------------------------------
 
 ZIP_a_lice_brms_bayes_no_int_degree_prior<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
@@ -2460,6 +2631,91 @@ zinb_a_nf_mites_brms_bayes_no_int_degree_prior<-brms::brm(total_no_feathers_mite
 
 ###_###_###_###_###_###_###_###_###_###_###_###_
 # #### ### #### ## 3 ** Model abundance excluding zeros Mites -------------------------------
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_no_feathers_mites, degree, w_degree, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  filter (total_no_feathers_mites!=0) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+names(dff_ectos_network_individual_metrics)
+# Lice
+
+unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+# data structure 
+
+#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
+dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
+dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
+dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
+dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
+dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
+dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
+
+#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
+dff_ectos_network_individual_metrics$sociality<-as.factor(dff_ectos_network_individual_metrics$sociality)
+dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
+dff_ectos_network_individual_metrics$total_no_feathers_mites<-as.numeric(dff_ectos_network_individual_metrics$total_no_feathers_mites)
+dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
+names(dff_ectos_network_individual_metrics)
+is.ultrametric(phylo)
+
+# MODEL 
+
+#PRIORS
+prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+#prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+
+NZ_a_mites_brms_bayes_no_degree_int_prior<-brms::brm(total_no_feathers_mites~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                      (1|Powder.lvl)+
+                                                      (1|species),
+                                                    data=dff_ectos_network_individual_metrics,
+                                                    family=negbinomial(),  #zero_inflated_negbinomial()
+                                                    data2 = list(phy_cov=phy_cov),
+                                                    iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                    thin=2,
+                                                    save_pars = save_pars(all=  TRUE),
+                                                    prior = c(prior_predictors,prior_random),
+                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(NZ_a_mites_brms_bayes_no_degree_int_prior, "data/data_analyses/model_selection/M2MND_NZ.model_MITES_ABUNDANCE_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+NZ_a_lice_brms_bayes_no_degree_int_prior<-readRDS("data/data_analyses/model_selection/M2MND_NZ.model_MITES_ABUNDANCE_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+
+NZ_a_lice_brms_bayes_no_degree_int_prior_p<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                        (1|Powder.lvl)+
+                                                        (1|species),
+                                                      data=dff_ectos_network_individual_metrics,
+                                                      family=poisson(),  #zero_inflated_negbinomial()
+                                                      data2 = list(phy_cov=phy_cov),
+                                                      iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                      thin=2,
+                                                      save_pars = save_pars(all=  TRUE),
+                                                      prior = c(prior_predictors,prior_random),
+                                                      control=list(adapt_delta=0.99, max_treedepth=14))
 #### LOAD PREVIOUSLY SAVED MODELS #####
 ###_###_###_###_###_###_###_###_###_###_###_###_
 
