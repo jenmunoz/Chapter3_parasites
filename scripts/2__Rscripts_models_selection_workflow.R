@@ -501,7 +501,7 @@ ectos_pres_abs<-ectos_birds_df %>% group_by(species_jetz ) %>%
   na.omit() 
 
 ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
-  filter(sample_size>4)     # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
+  filter(sample_size>9)     # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
 
 
 
@@ -576,6 +576,24 @@ ecto_p_brms_bayes_no_int_species_priors<-brms::brm(proportion_ectoparasites~soci
 
 saveRDS(ecto_p_brms_bayes_no_int_species_priors, "data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors.RDS")
 ecto_p_brms_bayes_no_int_species_priors<-readRDS("data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors.RDS")
+
+
+ecto_p_brms_bayes_no_int_species_priors_10<-brms::brm(proportion_ectoparasites~sociality+ scale(elevation)+
+                                                     (1|gr(species_jetz, cov = phy_cov))+
+                                                     (1|species),
+                                                   data=ectos_birds_dff,
+                                                   #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                                   family= bernoulli(),                                            data2 = list(phy_cov=phy_cov),
+                                                   prior = c(prior_predictors,prior_random,prior_intercept),
+                                                   iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   thin=2,
+                                                   control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+bayes_R2(ecto_p_brms_bayes_no_int_species_priors_10)
+
+mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_10)
+pp_check(ecto_p_brms_bayes_no_int_species_priors_10, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+
 
 loo(ecto_p_brms_bayes_no_int_species_priors)
 
@@ -736,7 +754,7 @@ zinb_a_lice_brms_bayes_all_interactions<-readRDS( "data/data_analyses/model_sele
 
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
-prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+#prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
 residual_prior<-prior(gamma(0.01, 0.01), class = "shape",lb=0) # this is the default
 residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
@@ -754,7 +772,8 @@ zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elev
                                          #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                          thin=2,
-                                         control=list(adapt_delta=0.99, max_treedepth=14)) 
+                                         control=list(adapt_delta=0.99, max_treedepth=14))
+
 #saveRDS(zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
 zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
 
@@ -781,7 +800,6 @@ zinb_a_lice_brms_bayes_sociality_interactions_priors<-brms::brm(total_lice~
                                                          control=list(adapt_delta=0.99, max_treedepth=14)) 
 #saveRDS(zinb_a_lice_brms_bayes_sociality_interactions_priors, "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
 zinb_a_lice_brms_bayes_sociality_interactions_priors<-readRDS( "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_sociality_interactions_priors.RDS")
-
 
 
 zinb_a_lice_brms_bayes_all_interactions_priors<-brms::brm(total_lice~
@@ -819,7 +837,7 @@ bayes_R2(zinb_a_lice_brms_bayes_sociality_interactions_priors)
 bayes_R2(zinb_a_lice_brms_bayes_all_interactions_priors)
 
 # use loo cross validation [ In this case we are not interested inteh interaaction between the different factors because the sociality of a speceis does not change with seasonality or elevation, cause those are attributes to the individuals does not change ]
-loo(zinb_a_lice_brms_bayes_no_int_priors,moment_match=TRUE) 
+loo(zinb_a_lice_brms_bayes_no_int_priors) 
 
 
 loo(zinb_a_lice_brms_bayes_no_int, zinb_a_lice_brms_bayes_sociality_interactions, zinb_a_lice_brms_bayes_all_interactions,compare=TRUE)
@@ -853,7 +871,7 @@ coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
-bayes_R2() # R2 0.1529
+bayes_R2(zinb_a_lice_brms_bayes_no_int_priors) # R2 0.1529
 
 color_scheme_set("teal")
 
@@ -883,7 +901,7 @@ dev.off()
 
 color_scheme_set("teal")
 
-estimates_plot<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions ZINB LICE ABUNDANCE", subtitle ="ZINB LICE ABUNDANCE with medians and 95% intervals")+
   theme_classic(30)+
@@ -895,7 +913,7 @@ png("figures/figures_manuscript/models_selected_figures/Fig1L.ZINB_LICE_ABUNDANC
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions ZINB LICE ABUNDANCE", subtitle ="ZINB LICE ABUNDANCE with medians and 95% intervals")+
   theme_classic(30)+
@@ -1356,7 +1374,6 @@ residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
 mcmc_plot(zinb_a_nf_mites_brms_bayes_no_int)
 mcmc_plot(zinb_a_nf_mites_brms_bayes_no_int_prior)
 
-
 zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
                                                (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                                (1|Powder.lvl)+
@@ -1369,8 +1386,9 @@ zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~socia
                                              prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
                                              #save_pars = save_pars(all=  TRUE),
                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
-#saveRDS(zinb_a_nf_mites_brms_bayes_no_int_prior, "data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
-zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/1NFM.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
+
+saveRDS(zinb_a_nf_mites_brms_bayes_no_int_prior, "data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
+zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
 
 zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-brms::brm(total_no_feathers_mites~
                                                                sociality+
@@ -1391,6 +1409,8 @@ zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-brms::brm(total_no_feat
                                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
 #saveRDS(zinb_a_nf_mites_brms_bayes_sociality_interactions_prior, "data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_prior.RDS")
 zinb_a_nf_mites_brms_bayes_sociality_interactions_prior<-readRDS ("data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_sociality_interactions_prior.RDS")
+
+
 
 
 zinb_a_nf_mites_brms_bayes_all_interactions_prior<-brms::brm(total_no_feathers_mites~
@@ -1417,6 +1437,28 @@ zinb_a_nf_mites_brms_bayes_all_interactions_prior=zip_a_nf_mites_brms_bayes_all_
 zinb_a_nf_mites_brms_bayes_all_interactions_prior<-readRDS( "data/data_analyses/model_selection/M1MNF.model_prevalence_zinb_brms_nf_MITES_ABUNDANCE_phylo_multiple_obs_all_interactions_prior.RDS")
 
 
+zinb_a_nf_mites_brms_bayes_no_int_prior_hurdle<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                                     (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                     (1|Powder.lvl)+
+                                                     (1|species),
+                                                   data=ectos_birds_dff,
+                                                   family=hurdle_poisson(),  #zero_inflated_negbinomial()
+                                                   data2 = list(phy_cov=phy_cov),
+                                                   iter=1000, warmup=500, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   thin=2,
+                                                   prior = c(prior_predictors,prior_random,prior_intercept),
+                                                   #save_pars = save_pars(all=  TRUE),
+                                                   control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+bayes_R2(zinb_a_nf_mites_brms_bayes_no_int_prior_hurdle)
+loo(zinb_a_nf_mites_brms_bayes_no_int_prior_hurdle, zinb_a_nf_mites_brms_bayes_no_int_prior, compare = TRUE)
+pp_check(zinb_a_nf_mites_brms_bayes_no_int_prior_hurdle, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+mcmc_plot(zinb_a_nf_mites_brms_bayes_no_int_prior_hurdle)
+
+
+
+
+
 prior_summary(zinb_a_nf_mites_brms_bayes_no_int_prior)
 loo(zinb_a_nf_mites_brms_bayes_no_int_prior,zinb_a_nf_mites_brms_bayes_sociality_interactions_prior,zinb_a_nf_mites_brms_bayes_all_interactions_prior)
 
@@ -1438,13 +1480,13 @@ bayes_R2(zinb_a_nf_mites_brms_bayes_sociality_interactions_prior)
 bayes_R2(zip_a_nf_mites_brms_bayes_all_interactions_prior)
 
 # use loo cross validation [ In this case we are not interested inteh interaaction between the different factors because the sociality of a speceis does not change with seasonality or elevation, cause those are attributes to the individuals does not change ]
+# R= the negaive binomial with non interactions is better that the hrdle model and models with ineteractions
 loo(zinb_a_nf_mites_brms_bayes_no_int_prior, zinb_a_nf_mites_brms_bayes_sociality_interactions_prior, zip_a_nf_mites_brms_bayes_all_interactions_prior,compare=TRUE)
 loo(zinb_a_nf_mites_brms_bayes_no_int, zinb_a_nf_mites_brms_bayes_sociality_interactions, zip_a_nf_mites_brms_bayes_all_interactions,compare=TRUE)
 loo(zinb_a_nf_mites_brms_bayes_no_int_prior, zinb_a_nf_mites_brms_bayes_sociality_interactions_prior,compare=TRUE)
 # R=eld_diff<4 so we keep the simplest model !
 loo_compare(waic(zinb_a_lice_brms_bayes_no_int_priors), waic(zinb_a_lice_brms_bayes_sociality_interactions_priors)) # interesting warning
-mcmc_plot(zinb_a_lice_brms_bayes_no_int)
-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors)
+mcmc_plot(zinb_a_nf_mites_brms_bayes_no_int_prior)
 # use k-fold-cv validation instead because in models with random efects loo tends to fail # but this is taking forevwer so i WILL RUNT IT AT UBC TOMORROW
 k_ecto_p_brms_no_int<-kfold(ecto_p_brms_bayes_no_int_prior, K=10)
 k_ecto_p_brms_sociality_int<-kfold(ecto_p_brms_bayes_sociality_interactions_priors, K=10)
@@ -1454,7 +1496,7 @@ loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
 #The idea of posterior predictive checks is to compare our observed data to replicated data from the model. 
 #If our model is a good fit, we should be able to use it to generate a dataset that resembles the observed data.
 #gettigsamples from the posterior predictive distribution:
-pp_check(zinb_a_nf_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100) 
+pp_check(zinb_a_nf_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100) +xlim(0,10)
 
 #or dependeing or the data use
 #pp_check(ecto_p_brms_bayes_no_int_prior, type = "stat", stat = 'median', nsamples = 100)
@@ -1469,7 +1511,7 @@ coord_cartesian(xlim = c(0, 100), ylim = c(0,30))
 summary ()
 fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
-bayes_R2() # R2 0.1529
+bayes_R2(zinb_a_nf_mites_brms_bayes_no_int_prior) # R2 0.1529
 
 color_scheme_set("green")
 
@@ -1980,12 +2022,86 @@ plot.O + ggtitle(my_O_title) + theme(plot.title = element_text(family = "Arial",
 
 
 
-# ##### Data and model selection LICE without zeros NETWORKS ABUNDANCE  --------
 
 
-###_###_###_###_###_###_###_###
-####### fITTING THE MODEL WITH PGLMM gave up on this approach!!
-###_###_###_###_###_###_###_###
+
+
+
+# # ##### 4.1.1 Model selection NETWORKS prevalence ectos species  --------
+
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+  select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, degree_species, degree_w_species, year_seasonality) %>% 
+  rename(elevation=elevation_extrapolated_date) %>%
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+
+ectos_prevalence_neworks<-dff_ectos_network_individual_metrics %>% group_by(species_jetz ) %>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), degree_species_level=max(degree_species), degree_w_species_level=max(degree_w_species)) %>% 
+  mutate(proportion_ectoparasites=ectoparasites_presence/sample_size) %>% 
+  na.omit() 
+
+ectos_birds_dff<-ectos_prevalence_neworks %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
+  filter(sample_size>9)  %>% 
+  na.omit()    # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
+
+#ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
+
+
+# Data structure
+ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
+ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+ectos_birds_dff$degree_w_species_level<-as.numeric(ectos_birds_dff$degree_w_species_level)
+ectos_birds_dff$degree_species_level<-as.numeric(ectos_birds_dff$degree_species_level)
+ectos_birds_dff$proportion_ectoparasites<-as.integer(ectos_birds_dff$proportion_ectoparasites)
+ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+
+str(ectos_birds_dff)
+is.ultrametric(phylo)
+
+# Make sure the tips and the names on the file coincide and formatting of name is consistent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(ectos_birds_dff$species_jetz)) %>% mutate(name=ectos_birds_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+
+#PRIORS
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl work, cause our predictors are scaled could use a wider prior if needed normal(0,10)
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+
+
+ecto_prevalence_degree_brms_bayes_no_int_species_priors<-brms::brm(proportion_ectoparasites~scale(degree_species_level)+ scale(elevation)+scale(sample_size)+
+                                                     (1|gr(species_jetz, cov = phy_cov))+
+                                                     (1|species),
+                                                   data=ectos_birds_dff,
+                                                   #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                                   family= zero_inflated_negbinomial(),                                            data2 = list(phy_cov=phy_cov),
+                                                   prior = c(prior_predictors,prior_random,prior_intercept),
+                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   thin=2,
+                                                   control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+saveRDS(ecto_prevalence_degree_brms_bayes_no_int_species_priors, "data/data_analyses/model_selection/M2PND_species.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+ecto_prevalence_degree_brms_bayes_no_int_species_priors<-readRDS("data/data_analyses/model_selection/M2PND_species.model_prevalence_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior.RDS")
+
+
+bayes_R2(ecto_prevalence_degree_brms_bayes_no_int_species_priors)
+mcmc_plot(ecto_prevalence_degree_brms_bayes_no_int_species_priors)
+pp_check(ecto_prevalence_degree_brms_bayes_no_int_species_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
 
 
 
