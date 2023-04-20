@@ -1174,7 +1174,7 @@ ZIP_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(eleva
                                                 thin=2,
                                                 control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-saveRDS(ZIP_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/1.ZIP_model_ABUNDANCE_LICE_brms__multiple_obs_all_interactions_priors.RDS")
+saveRDS(ZIP_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/1.ZIP_model_ABUNDANCE_LICE_brms_multiple_obs_all_interactions_priors.RDS")
 ZIP_a_lice_brms_bayes_no_int_priors<-readRDS()
 
 ##_###_###
@@ -1209,7 +1209,9 @@ loonip_nb<-loo(zinb_a_lice_brms_bayes_no_int_priors)
 loonip_p<-loo(ZIP_a_lice_brms_bayes_no_int_priors)
 loo_compare(loonip_nb, loonip_p)
 
-k_ZIP_a_lice_no_int<-kfold(ZIP_a_lice_brms_bayes_no_int_priors, K=10)
+k_ZIP_a_lice_no_int_prior<-kfold(ZIP_a_lice_brms_bayes_no_int_priors, K=10)
+saveRDS(k_ZIP_a_lice_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_1.ZIP_model_ABUNDANCE_LICE_brms_multiple_obs_all_interactions_priors_poisson.RDS.RDS")
+
 k_zinb_a_lice_no_int<-kfold(zinb_a_lice_brms_bayes_no_int_priors, K=10)
 loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
 
