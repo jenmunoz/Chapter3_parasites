@@ -1189,11 +1189,11 @@ zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elev
                                                 data2 = list(phy_cov=phy_cov),
                                                 prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
                                                 #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
-                                                iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                iter=10000, warmup=5000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                 thin=2,
                                                 control=list(adapt_delta=0.99, max_treedepth=14))
 
-#saveRDS(zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
+saveRDS(zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
 zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors.RDS")
 
 #explore model structure
@@ -1223,9 +1223,9 @@ loo_compare(k_ZIP_a_lice_no_int_prior, k_zinb_a_lice_no_int) # compare using elp
 
 #looni1<-loo(zinb_a_nf_mites_brms_bayes_no_int_outliers, moment_match = TRUE)
 #looni2<-loo_moment_match(zinb_a_nf_mites_brms_bayes_no_int_outliers, loo=loo1,k_threshold = 0.7)
-looni3<-loo(zinb_a_lice_brms_bayes_no_int, reloo = TRUE) # exclude the observation with high pareto to allow me to compare with other models 
-looni4<-reloo(zinb_a_lice_brms_bayes_no_int,loo=looni, chains=4) # ### THIS ONE WORKS!!! abit faster that the one on top # and actually removes all pareto >0.7
-loosi4<-reloo(zinb_a_lice_brms_bayes_sociality_interactions, loo=loosi, chains=4)
+#looni3<-loo(zinb_a_lice_brms_bayes_no_int, reloo = TRUE) # exclude the observation with high pareto to allow me to compare with other models 
+#looni4<-reloo(zinb_a_lice_brms_bayes_no_int,loo=looni, chains=4) # ### THIS ONE WORKS!!! abit faster that the one on top # and actually removes all pareto >0.7
+#loosi4<-reloo(zinb_a_lice_brms_bayes_sociality_interactions, loo=loosi, chains=4)
 
 ###_###_###_##
 #PLOTS
@@ -1236,16 +1236,16 @@ fixef() # to get more detailed values for estimates
 coef() # if you have group-level effects (hierarchical data)
 bayes_R2() # R2 0.1529
 
-color_scheme_set("blue")
+color_scheme_set("teal")
 
 # model convergence 
-png("figures/figures_manuscript/models_selected_figures/ZIP_Fig3L.zinb_a_lice_brms_bayes_no_int_priors_CONVERGENCE.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(ZIP_a_lice_brms_bayes_no_int_priors)
+png("figures/figures_manuscript/models_selected_figures/best_models/Fig3L_BEST_zinb_a_lice_brms_bayes_no_int_priors_CONVERGENCE.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(zinb_a_lice_brms_bayes_no_int_priors)
 dev.off()
 
 # model fit
-png("figures/figures_manuscript/models_selected_figures/ZIP_Fig3L.zinb_a_lice_brms_bayes_no_int_priors_FIT.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(ZIP_a_lice_brms_bayes_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+png("figures/figures_manuscript/models_selected_figures/best_models/Fig3L_BEST_zinb_a_lice_brms_bayes_no_int_priors_FIT.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(zinb_a_lice_brms_bayes_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
 dev.off()
 
 # Choose depending on the model type
@@ -1264,27 +1264,27 @@ dev.off()
 
 color_scheme_set("teal")
 
-estimates_plot<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,
                           type="areas") +
-  labs(title="Posterior distributions ZIP LICE ABUNDANCE", subtitle ="ZIP LICE ABUNDANCE with medians and 95% intervals")+
+  labs(title="Posterior distributions ZINB LICE ABUNDANCE", subtitle ="ZINB LICE ABUNDANCE with medians and 95% intervals")+
   theme_classic(30)+
   xlim(-3,3)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/ZIP_Fig3L.LICE_ABUNDANCE_brms_bayes_no_int_prior_ESTIMATES.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/best_models/Fig3L_BEST_ZINB_LICE_ABUNDANCE_brms_bayes_no_int_prior_ESTIMATES.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
 estimates_plot_intervals<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
-  labs(title="Posterior distributions ZIP LICE ABUNDANCE", subtitle ="ZIP LICE ABUNDANCE with medians and 95% intervals")+
+  labs(title="Posterior distributions ZINB LICE ABUNDANCE", subtitle ="ZINB LICE ABUNDANCE with medians and 95% intervals")+
   theme_classic(30)+
   xlim(-3,3)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/ZIP_Fig3L.LICE_ABUNDANCE_brms_bayes_no_int_prior_ESTIMATES_INTERVALS.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/best_models/Fig3L_BEST_ZINB_LICE_ABUNDANCE_brms_bayes_no_int_prior_ESTIMATES_INTERVALS.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
@@ -3519,3 +3519,35 @@ ggplot(ame_fancy_zi_polyarchy_quota,
 
 # Fancy plots  ------------------------------------------------------------
 
+# combine the summaries for two models
+bind_rows(
+  # m11.10
+  fixef(m11.10) %>% 
+    data.frame() %>% 
+    rownames_to_column("param") %>% 
+    mutate(fit = "m11.10"),
+  
+  # m11.11
+  fixef(m11.11) %>% 
+    data.frame() %>% 
+    rownames_to_column("param") %>% 
+    mutate(fit = "m11.11")
+) %>% 
+  # wrangle
+  filter(param != "Intercept") %>% 
+  mutate(param = factor(param,
+                        levels = str_c("X", 1:30),
+                        labels = str_c("X[", 1:30, "]"))) %>% 
+  
+  # plot!
+  ggplot(aes(x = param, y = Estimate, ymin = Q2.5, ymax = Q97.5, color = fit)) +
+  geom_hline(yintercept = 0, linetype = 2, size = 1/4) +
+  geom_linerange(position = position_dodge(width = 1/3), size = 1/4, key_glyph = "path") +
+  geom_point(position = position_dodge(width = 1/3), size = 1/2) +
+  scale_color_manual(NULL,
+                     values = c("grey50", "black"),
+                     guide = guide_legend(override.aes = list(angle = 90))) +
+  scale_x_discrete(NULL, labels = ggplot2:::parse_safe) +
+  ylab("marginal posterior") +
+  coord_flip() +
+  theme(axis.text.y = element_text(hjust = 0))
