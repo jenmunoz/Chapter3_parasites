@@ -1203,17 +1203,22 @@ DHARMa::testDispersion(simulate_residuals)
 DHARMa::testZeroInflation(simulate_residuals ) ## tests if there are more zeros in the data than expected from the simulations
 testUniformity(simulate_residuals) #tests if the overall distribution conforms to expectations
 
-#MODEL COMPARISSOM warrning 20 pareto k are high!!!! what to do?
+#MODEL COMPARISSOM w
 loo(ZIP_a_lice_brms_bayes_no_int_priors, zinb_a_lice_brms_bayes_no_int_priors, compare = TRUE)
 loonip_nb<-loo(zinb_a_lice_brms_bayes_no_int_priors)
 loonip_p<-loo(ZIP_a_lice_brms_bayes_no_int_priors)
 loo_compare(loonip_nb, loonip_p)
 
+#arrning 20 pareto k are high!!!! what to do? 
+# Use k-fold cross validation instead
+
 k_ZIP_a_lice_no_int_prior<-kfold(ZIP_a_lice_brms_bayes_no_int_priors, K=10)
-saveRDS(k_ZIP_a_lice_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_1.ZIP_model_ABUNDANCE_LICE_brms_multiple_obs_all_interactions_priors_poisson.RDS.RDS")
+saveRDS(k_ZIP_a_lice_no_int_prior, "data/data_analyses/model_selection/k_fold/K_fold_1.ZIP_model_ABUNDANCE_LICE_brms_multiple_obs_all_interactions_priors_poisson.RDS")
 
 k_zinb_a_lice_no_int<-kfold(zinb_a_lice_brms_bayes_no_int_priors, K=10)
-loo_compare(k_ecto_p_brms_no_int, k_ecto_p_brms_sociality_int)
+saveRDS(k_zinb_a_lice_no_int, "data/data_analyses/model_selection/k_fold/K_fold_1_zinb_model_ABUNDANCE_LICE_brms_multiple_obs_all_interactions_priors_poisson.RDS")
+
+loo_compare(k_ZIP_a_lice_no_int_prior, k_zinb_a_lice_no_int) # compare using elpd_diff
 
 
 #looni1<-loo(zinb_a_nf_mites_brms_bayes_no_int_outliers, moment_match = TRUE)
