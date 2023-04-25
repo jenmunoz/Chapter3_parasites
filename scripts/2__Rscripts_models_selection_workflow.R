@@ -1276,7 +1276,7 @@ png("figures/figures_manuscript/models_selected_figures/best_models/Fig3L_BEST_Z
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions ZINB LICE ABUNDANCE", subtitle ="ZINB LICE ABUNDANCE with medians and 95% intervals")+
   theme_classic(30)+
@@ -1836,14 +1836,14 @@ dev.off()
 
 #ESTIMATES
 
-estimates_plot<-mcmc_plot(ZIP_a_lice_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(ZIP_a_nf_mites_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,
                           type="areas") +
-  labs(title="Posterior distributions LICE ABUNDANCE DEGREE", subtitle ="LICE ABUNDANCE DEGREE with medians and 95% intervals")+
+  labs(title="Posterior distributionsMITES LICE ABUNDANCE DEGREE", subtitle ="MITES ABUNDANCE DEGREE with medians and 95% intervals")+
   theme_classic(30)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig2LND_BEST_plot_model_parameters_LICE ABUNDANCE_brms_bayes_social_int_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+png("figures/figures_manuscript/models_selected_figures/best_models/Fig2LND_BEST_plot_model_parameters_MITES ABUNDANCE_brms_bayes_social_int.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
