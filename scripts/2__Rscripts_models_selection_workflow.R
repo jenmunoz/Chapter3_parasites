@@ -1316,6 +1316,24 @@ loo_compare(k_ZIP_a_lice_no_int_prior, k_zinb_a_lice_no_int) # compare using elp
 #looni4<-reloo(zinb_a_lice_brms_bayes_no_int,loo=looni, chains=4) # ### THIS ONE WORKS!!! abit faster that the one on top # and actually removes all pareto >0.7
 #loosi4<-reloo(zinb_a_lice_brms_bayes_sociality_interactions, loo=loosi, chains=4)
 
+
+zinb_a_lice_brms_bayes_no_int_priors_nopowder<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                                  (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                  (1|species),
+                                                data=ectos_birds_dff,
+                                                family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                data2 = list(phy_cov=phy_cov),
+                                                prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+                                                save_pars = save_pars(all=  TRUE), # if i need to use moment match but makes the model heavier
+                                                iter=4000, warmup=2000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                thin=2,
+                                                control=list(adapt_delta=0.99, max_treedepth=14))
+
+mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors_nopowder)
+
+saveRDS(zinb_a_lice_brms_bayes_no_int_priors_nopowder, "data/data_analyses/model_selection/M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_nopowder.RDS")
+
+loo(zinb_a_lice_brms_bayes_no_int_priors_nopowder,zinb_a_lice_brms_bayes_no_int_priors, compare=TRUE)
 ###_###_###_##
 #PLOTS
 ###_###_###_##
@@ -2570,6 +2588,21 @@ prior_summary(zinb_a_lice_brms_bayes_no_int_degree_prior1)
 ###_###_###_###_###_###_###_###_###_###_
 #THE BESTY  LICE DEGREE###
 ###_###_###_###_###_###_###_###_###_###_
+zinb_a_lice_brms_bayes_no_int_degree_prior_nopowder<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
+                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                        (1|species),
+                                                      data=dff_ectos_network_individual_metrics,
+                                                      family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                      data2 = list(phy_cov=phy_cov),
+                                                      iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                      thin=2,
+                                                      save_pars = save_pars(all=  TRUE),
+                                                      prior = c(prior_predictors,prior_random),
+                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(zinb_a_lice_brms_bayes_no_int_degree_prior_nopowder, "data/data_analyses/model_selection/M2LND.model_lICE_ABUNDANCE_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior_nopowder.RDS")
+
+
+
 zinb_a_lice_brms_bayes_no_int_degree_prior<-brms::brm(total_lice~scale(degree)+ scale(elevation)+ scale(year_seasonality)+
                                                   (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                                   (1|Powder.lvl)+
