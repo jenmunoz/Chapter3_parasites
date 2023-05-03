@@ -70,8 +70,8 @@
 # 0.Libraries  --------------------------------------------------------------
 
 # libraries for easier manipulation of data
-install_pckages("Pacman")
-library("Pacman")
+install.packages("pacman")
+library("pacman")
 
 packages_data_cleaning<-c("tidyverse","dplyr","data.table","extrafont","lubridate","janitor","assertr")
 packages_visualizations<-c("vegan", "ggplot2","devtools","knitr","ts","RColorBrewer","ggridges","ggtree","aplot")
@@ -207,19 +207,16 @@ library(rstan)
 library(rstanarm)
 library(loo)
 
-
 # ##### 1.Data processing prevalence ectos ----------------------------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy ) %>% 
-  na.omit() %>% 
-  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
-
-ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  na.omit()
+#ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 
-
 # Data structure
+# species=variable accounts for any specific effect that would be independent of the phylogenetic relationship between species
 ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
 ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
@@ -228,7 +225,13 @@ ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$ectoparasites_PA<-as.numeric(ectos_birds_dff$ectoparasites_PA)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
-ectos_birds_dff$mass_tidy<-as.numeric(ectos_birds_dff$mass_tidy)
+ectos_birds_dff$species<-as.factor(ectos_birds_dff$species)
+ectos_birds_dff$mass_tidy_species<-as.numeric(ectos_birds_dff$mass_tidy_species)
+ectos_birds_dff$mass_ind_tidy<-as.numeric(ectos_birds_dff$mass_ind_tidy)
+ectos_birds_dff$mass_ind_comp<-as.numeric(ectos_birds_dff$mass_ind_comp)
+
+
+
 
 names(ectos_birds_dff)
 is.ultrametric(phylo)
@@ -2101,6 +2104,16 @@ dev.off()
 #inner_join(read.csv("data/data_analyses/data_manuscript/7.dff_parasites_seasonality.csv"), by="Full_Label")
 # write.csv(dff_ectos_network,"data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv" )
 
+ectos_info<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(Full_Label, elevation, species_jetz, ectoparasite_code, date, day, month, year, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  rename(elevation_copy=elevation, species_jetz_copy=species_jetz, ectoparasite_code_copy=ectoparasite_code, date_copy=date, day_copy=day, month_copy=month, year_copy=year, year_seasonality_copy=year_seasonality)
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))
+dim(dff_ectos_network_individual_metrics)
+
+new_file<-left_join( dff_ectos_network_individual_metrics,ectos_info, by="Full_Label")
+
+write.csv(new_file,"data/data_analyses/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv" )
 
 dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, year_seasonality, mass_tidy) %>% 
@@ -4148,11 +4161,11 @@ dim(ind_body_mass)
 names(ectos_birds_full)
 
 View(ind_body_mass)
-ectos_birds_mass<-full_join(ectos_birds_full,ind_body_mass, by="ectoparasite_code") #relationship = "many-to-many"
+ectos_birds_mass<-left_join(ectos_birds_full,ind_body_mass, by="ectoparasite_code") #relationship = "many-to-many"
 
-write.csv(ectos_birds_mass, "data/data_analyses/data_manuscript/trial_mass.csv")
+#write.csv(ectos_birds_mass, "data/data_analyses/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
 dim(ectos_birds_full)
-View(ectos_birds_mass)
+dim(ectos_birds_mass) 
 
 # PLOting MASS 
 #PREVALENCE

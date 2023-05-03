@@ -126,8 +126,13 @@ View(flocks)
 manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv")%>% filter(database_decision=="include")
 str(manu_detections_jetz)
 # ectoparasite samples for social species only 
-samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv") %>% 
-  rename(elevation=elevation_extrapolated_date) %>% 
+#samples<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv") %>% 
+ # rename(elevation=elevation_extrapolated_date) %>% 
+  #filter(sociality=="1") %>% 
+  #filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
+#unique(samples$elevation)
+
+samples<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv") %>% 
   filter(sociality=="1") %>% 
   filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
 unique(samples$elevation)
@@ -239,16 +244,16 @@ for(i in 1:nrow(samples)){
 
 network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_samples.db) %>% 
   rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
+#write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
 
-#write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/ 7_dff_network_metrics_ectoparasite_samples_FILE_method2.csv")
-
-network_metrics_ectoparasite_samples<-read.csv("data/data_analyses/7_dff_network_metrics_ectoparasite_samples_FILE.csv")
-df_ectos<-read.csv("data/data_analyses/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv")
+network_metrics_ectoparasite_samples<-read.csv("data/data_analyses/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
+df_ectos<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
 
 df_ectos_network_metrics<-inner_join( df_ectos,network_metrics_ectoparasite_samples, by=c("Full_Label"="sample"))
 
 str(df_ectos_network_metrics)
-#write.csv(df_ectos_network_metrics,"data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv")
+#write.csv(df_ectos_network_metrics,"data/data_analyses/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv")
+
 df_ectos_netowrk_metrics_n_z <-df_ectos_netowrk_metrics %>% filter(total_mites!=0) 
 
 df_ectos_netowrk_metrics <-df_ectos_netowrk_metrics %>% 
@@ -262,6 +267,13 @@ ggplot(df_ectos_netowrk_metrics_n_z, aes(x=degree, y=total_lice, by=species,colo
   #facet_wrap(~species_jetz, ncol=4)+
   guides(colour=FALSE)
 
+# explore correlation between degree and strenght
+ggplot(df_ectos_network_metrics, aes(x=degree, y=w_degree))+
+  geom_point(alpha=0.5)+
+  geom_smooth(method='glm')
+
+
+
 # Extra code for other manuscripts ideas ----------------------------------
 
 ####_###_###_####_###_###_
@@ -274,7 +286,7 @@ ggplot(df_ectos_netowrk_metrics_n_z, aes(x=degree, y=total_lice, by=species,colo
 
 manu_detections_jetz<-read.csv("data/1.Manu_bird_species_detections_tidy_taxonomy_18052022_jetz_taxo_included.csv") %>% 
   filter(method=="flock") %>% 
-  distinct(species_taxonomy_SACC_2021,elevation) 
+  distinct(species_taxonomy_SACC_2021,elevation) )
 
 
   #filter(species_taxonomy_SACC_2021==c("Thamnomanes_schistogynus",
