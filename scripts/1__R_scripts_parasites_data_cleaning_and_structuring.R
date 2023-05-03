@@ -476,6 +476,16 @@ write.csv(ectoparasites_dff_elevations,"data/data_analyses/7.dff_all_ectos_preva
 
 setdiff()
 
+# final steps adding the indiidual ad species mass
+
+ectos_birds<-read.csv("data/data_analyses/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA"))
+traits<-read.csv("data/4.df_traits_manu_birds.csv", na.strings =c("","NA")) %>% 
+  select(mass_tidy, species) %>% 
+  rename(mass_tidy_species=mass_tidy)
+
+ectos_birds_traits<-left_join(ectos_birds,traits, by=c("species_clean"="species"))
+
+write.csv(ectos_birds_traits,"data/data_analyses/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
 
 
 
