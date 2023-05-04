@@ -152,7 +152,7 @@ library(DHARMa.helpers)
 
 #DATA
 # This dataset contains all parasites samples (887) after removing duplicated rows, for which we have an assignated elevation, for 783 in total out of 998 that we had originally  (this included some duplicates)
-ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_df<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date)
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex") 
@@ -227,7 +227,7 @@ is.ultrametric(phylogeny_prevalence)
 #lm(proportion_ectoparasites~1, data=ectos_df) # even the average is a linear regression INTERESTING
 
 # remove ind with NAs for any of the variables of interest 
-#   ectos_df_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+#   ectos_df_wo_na<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
 #   rename(elevation=elevation_extrapolated_date) %>% select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, sociality ) %>% 
 #   na.omit()
 
@@ -385,7 +385,7 @@ ecto_prevalence_pglmm_bayes
 ###
 
 # remove ind with NAs for any of the variables of interest 
- ectos_df_abundance_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ ectos_df_abundance_wo_na<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
  rename(elevation=elevation_extrapolated_date) %>%
    select(elevation, species_jetz, Powder.lvl,total_lice, sociality ) %>% 
    na.omit() %>% 
@@ -540,7 +540,7 @@ simulate(ecto_abundance_pglmm_bayes, nsim = 3, seed = NULL, re.form = NULL)
 # note if useing count data use integerResponse= TRUE
 
 # need to remove na from dataset s that the dimensions of responde simulated and observed match
-ectos_df_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv",
+ectos_df_wo_na<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv",
                          na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>% select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, sociality) %>% 
   na.omit()
@@ -621,7 +621,7 @@ t(LRTest)
 #In our case, the slope 95% CI does not encompass 0 and it is strictly positive, so we can say that time has a significantly positive effect on red knot abundance.
 
 #Data
-ectos_df_abundance_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_df_abundance_wo_na<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,total_lice, sociality ) %>% 
   na.omit() %>% 
@@ -929,7 +929,7 @@ ppc_stat_grouped(y, yrep_zipoisson, group = ectos_df_abundance_wo_na$sociality, 
   # note if useing count data use integerResponse= TRUE
   
   # need to remove na from dataset s that the dimensions of responde simulated and observed match
-  ectos_df_wo_na<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv",
+  ectos_df_wo_na<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv",
                            na.strings =c("","NA")) %>% 
     rename(elevation=elevation_extrapolated_date) %>% select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, sociality) %>% 
     na.omit()

@@ -208,7 +208,7 @@ library(rstanarm)
 library(loo)
 
 # ##### 1.Data processing prevalence ectos ----------------------------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   na.omit()
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
@@ -229,9 +229,6 @@ ectos_birds_dff$species<-as.factor(ectos_birds_dff$species)
 ectos_birds_dff$mass_tidy_species<-as.numeric(ectos_birds_dff$mass_tidy_species)
 ectos_birds_dff$mass_ind_tidy<-as.numeric(ectos_birds_dff$mass_ind_tidy)
 ectos_birds_dff$mass_ind_comp<-as.numeric(ectos_birds_dff$mass_ind_comp)
-
-
-
 
 names(ectos_birds_dff)
 is.ultrametric(phylo)
@@ -534,32 +531,57 @@ png("figures/figures_manuscript/models_selected_figures/best_models/Fig1P_ecto_I
 estimates_plot_intervals
 dev.off()
 
-# EXCLUDED POWDER LEVEL BECAUSE IT DOES NOT SIGNIFICANTLY IMPROVE MODEL FIT # alternatively use the model  ecto_p_brms_bayes_no_int_prior
 
-selected_ecto_p_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                               (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
-                                               (1|species),
+
+# # ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
+
+# PRIORS SPECIFICATON 
+
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+
+# EXCLUDED POWDER LEVEL BECAUSE IT DOES NOT SIGNIFICANTLY IMPROVE MODEL FIT # alternatively use the model ecto_p_brms_bayes_no_int_prior
+
+
+selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
+                                                       scale(elevation)+ scale(year_seasonality)+
+                                                       scale(mass_tidy_species)+(mass_ind_comp)+
+                                                       (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
                                              data=ectos_birds_dff,
                                              save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
                                              family= bernoulli(), # bernoulli() uses the (link = "logit")
                                              data2 = list(phy_cov=phy_cov),
-                                             #prior = c(random_prior,intercept_prior),
+                                             prior =c(prior_predictors,prior_random,prior_intercept),
                                              iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                              thin=2,
                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
-selected_ecto_p_brms_bayes_no_int
 
-saveRDS(selected_ecto_p_brms_bayes_no_int,"data/data_analyses/model_selection/M1P_model_INFECTION_b_brms_phylo_multiple_obs_all_interactions_priors_SELECTED.RDS")
-selected_ecto_p_brms_bayes_no_int<-readRDS("data/data_analyses/model_selection/M1P_model_INFECTION_b_brms_phylo_multiple_obs_all_interactions_priors_SELECTED.RDS")
+selected_ecto_infection_brms_bayes_no_int2<-brms::brm(ectoparasites_PA~sociality+
+                                                       scale(elevation)+ scale(year_seasonality)+
+                                                       scale(mass_tidy_species)+scale(mass_ind_comp)+
+                                                       (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
+                                                     data=ectos_birds_dff,
+                                                     save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+                                                     family= bernoulli(), # bernoulli() uses the (link = "logit")
+                                                     data2 = list(phy_cov=phy_cov),
+                                                     prior =c(prior_predictors,prior_random,prior_intercept),
+                                                     iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                     thin=2,
+                                                     control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+
+saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
 
 
 ###_###_###_##
 #PLOTS SELECTED MODEL
 ###_###_###_##
 
-conditional_effects(selected_ecto_p_brms_bayes_no_int)
-marginal_effects(selected_ecto_p_brms_bayes_no_int)
-plot( conditional_effects(selected_ecto_p_brms_bayes_no_int), 
+conditional_effects(selected_ecto_infection_brms_bayes_no_int)
+marginal_effects(selected_ecto_infection_brms_bayes_no_int)
+plot( conditional_effects(selected_ecto_infection_brms_bayes_no_int), 
       points = TRUE, 
       point_args = list(width = .05, shape = 1))
 
@@ -572,14 +594,14 @@ color_scheme_set("blue")
 
 # model convergence 
 #png("figures/figures_manuscript/models_selected_figures/Fig1P.ecto_p_brms_bayes_no_int_prior_CONVERGENCE.png",width = 3000, height = 3000, res = 300, units = "px")
-png("figures/figures_manuscript/models_selected_figures/best_models/Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_CONVERGENCE.png",width = 4000, height = 3000, res = 300, units = "px")
-plot(selected_ecto_p_brms_bayes_no_int)
+png("results/selected_models_figures/1_Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_CONVERGENCE.png",width = 4000, height = 3000, res = 300, units = "px")
+plot(selected_ecto_infection_brms_bayes_no_int)
 dev.off()
 
 # model fit
 #png("figures/figures_manuscript/models_selected_figures/Fig1P.ecto_p_brms_bayes_no_int_prior_FIT.png",width = 3000, height = 3000, res = 300, units = "px")
-png("figures/figures_manuscript/models_selected_figures/best_models/Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_FIT.png",width = 4000, height = 3000, res = 300, units = "px")
-pp_check(selected_ecto_p_brms_bayes_no_int, type = "dens_overlay", ndraws = 100) 
+png("results/selected_models_figures/1_Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_FIT.png",width = 4000, height = 3000, res = 300, units = "px")
+pp_check(selected_ecto_infection_brms_bayes_no_int, type = "dens_overlay", ndraws = 100) 
 dev.off()
 
 #MODEL ESTIMATES
@@ -587,32 +609,36 @@ dev.off()
 
 color_scheme_set("blue")
 
-estimates_plot<-mcmc_plot(selected_ecto_p_brms_bayes_no_int,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS INFECTION ")+
   theme_classic(30)+
   xlim(-2,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-#png("figures/figures_manuscript/models_selected_figures/Fig1P.ecto_p_brms_bayes_no_int_prior_ESTIMATES.png",width = 3000, height = 3000, res = 300, units = "px")
-png("figures/figures_manuscript/models_selected_figures/best_models/Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_ESTIMATES.png",width = 4000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/1_Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_ESTIMATES.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(selected_ecto_p_brms_bayes_no_int,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int2,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS INFECTION ")+
   theme_classic(30)+
   xlim(-2,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/best_models/Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_ESTIMATES_INTERVALS.png",width = 4000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/1_Fig1P_BEST_ecto_INFECTION_brms_bayes_no_int_prior_ESTIMATES_INTERVALS_scaled_ind_mass.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
+
+bayes_R2(selected_ecto_infection_brms_bayes_no_int)
+
+# half student only allows positive values
+
 # 1.Data processing and  model selection for prevalence species level (zero_one_beta) --------
-ectos_birds_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_df<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality ) %>% 
   na.omit() %>% 
   filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -762,7 +788,7 @@ dev.off()
 
 # ##### 2.Data processing abundance lice ----------------------------------------------------
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice,year_seasonality,mass_tidy,mass_individual_day,mass_ind_count) %>% 
   filter(species_jetz!="Premnoplex_brunnescens") %>% 
   filter(mass_ind_count=="1") %>% 
@@ -1061,7 +1087,7 @@ loo_compare(loon, loosi)
 
 
 # #### ### #### ## 2 ** Model abundance excluding zeros Lice -------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice,year_seasonality ) %>% 
    filter(species_jetz!="Premnoplex_brunnescens") %>% 
   filter (total_lice!=0) %>% 
@@ -1474,12 +1500,39 @@ yrepnzb <- posterior_predict(brm_glmznb)
 
 
 
-# # ###### 2.4 Model abundance lice incirporating body mass ---------------
+# # ###### 2.4 ***Selected*** model abundance lice included body mass ---------------
+
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
+
+
+##_##_Besty_##_##
+##_###_###
+
+selected_zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
+                                                           scale(mass_tidy_species)+(mass_ind_comp)+
+                                                       (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
+                                                       (1|Powder.lvl)+
+                                                     data=ectos_birds_dff,
+                                                     family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                     data2 = list(phy_cov=phy_cov),
+                                                     prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+                                                     save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
+                                                     iter=8000, warmup=400, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                     thin=2,
+                                                     control=list(adapt_delta=0.99, max_treedepth=14))
+
+saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors, "data/data_analyses/model_selection/best_model_selected/2_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
+selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("data/data_analyses/model_selection/best_model_selected/2_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
+
+
 
 
 # ##### 3.1.Data processing abundance mites ----------------------------------------------------
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_mesostigmatidae, total_no_feathers_mites,year_seasonality, mass_tidy ) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") %>% filter(total_no_feathers_mites<61)# removing outliers 
 
@@ -1773,7 +1826,7 @@ dev.off()
 
 
 # #### ### #### ## 3 ** Model abundance excluding zeros Mites -------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_mesostigmatidae, total_no_feathers_mites,year_seasonality ) %>% 
   filter(species_jetz!="Premnoplex_brunnescens") %>% 
   filter(total_no_feathers_mites>0) %>% 
@@ -2099,23 +2152,23 @@ dev.off()
 
 # ##### 4.Data processing NETWORKS prevalence ectos ----------------------------------------------------
 
-#seasonality_date<-read.csv("data/data_analyses/data_manuscript/7.dff_parasites_seasonality.csv")
-#dff_ectos_network<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>%
-#inner_join(read.csv("data/data_analyses/data_manuscript/7.dff_parasites_seasonality.csv"), by="Full_Label")
-# write.csv(dff_ectos_network,"data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv" )
+#seasonality_date<-read.csv("data/data_manuscript/7.dff_parasites_seasonality.csv")
+#dff_ectos_network<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>%
+#inner_join(read.csv("data/data_manuscript/7.dff_parasites_seasonality.csv"), by="Full_Label")
+# write.csv(dff_ectos_network,"data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv" )
 
-ectos_info<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+ectos_info<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(Full_Label, elevation, species_jetz, ectoparasite_code, date, day, month, year, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   rename(elevation_copy=elevation, species_jetz_copy=species_jetz, ectoparasite_code_copy=ectoparasite_code, date_copy=date, day_copy=day, month_copy=month, year_copy=year, year_seasonality_copy=year_seasonality)
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))
 dim(dff_ectos_network_individual_metrics)
 
 new_file<-left_join( dff_ectos_network_individual_metrics,ectos_info, by="Full_Label")
 
-write.csv(new_file,"data/data_analyses/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv" )
+write.csv(new_file,"data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv" )
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, year_seasonality, mass_tidy) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -2525,7 +2578,7 @@ msms_zinb_prevalence_brms_bayes_no_int_W_degree_prior()
 
 # # ##### 4.1.1 Model selection NETWORKS prevalence ectos species  --------
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, degree_species, degree_w_species, year_seasonality) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -2605,7 +2658,7 @@ color_scheme_set("purple")
 
 # ##### 5.1.Data processing NETWORKS abundance lice ----------------------------------------------------
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality, mass_tidy) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -2952,7 +3005,7 @@ pp_check(zinb_a_lice_brms_bayes_no_int_wdegree_prior, type = "dens_overlay", ndr
 
 # #### ### #### ## 5.3 ** Model abundance NETWORKS excluding zeros Lice -------------------------------
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree, year_seasonality) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   filter (total_lice!=0) %>% 
@@ -3388,7 +3441,7 @@ dev.off()
 # ##### 6.1.Data processing NETWORKS abundance mites ----------------------------------------------------
 
 # Mites
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_no_feathers_mites, degree, w_degree, year_seasonality) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")%>% filter(total_no_feathers_mites<60)
@@ -3838,7 +3891,7 @@ dev.off()
 
 # #### ### #### ## 6.4 ** Model abundance excluding zeros Mites -------------------------------
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_no_feathers_mites, degree, w_degree, year_seasonality) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   filter (total_no_feathers_mites!=0) %>% 
@@ -4035,7 +4088,7 @@ lice_diversity<-lice_diversity_raw %>%
   summarise(cumulative_richness=n_distinct(lice_genus_or_family_tidy),sample_size=n(), host_family=first(host_family))
 
 View(lice_diversity)
-ectos_birds_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_df<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation_midpoint,species_binomial, species_jetz,foraging_cat, sociality, mass_tidy,degree_species ) %>% 
   na.omit() %>% 
   group_by(species_jetz) %>% 
@@ -4144,7 +4197,7 @@ estimates_plot_intervals<-mcmc_plot(poisson_lice_diversity_no_int_priors_mass_de
 
 # #### Incorporating body mass --------------------------------------------
 
-ectos_birds_full<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) 
+ectos_birds_full<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) 
   
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice,year_seasonality ) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") 
@@ -4163,7 +4216,7 @@ names(ectos_birds_full)
 View(ind_body_mass)
 ectos_birds_mass<-left_join(ectos_birds_full,ind_body_mass, by="ectoparasite_code") #relationship = "many-to-many"
 
-#write.csv(ectos_birds_mass, "data/data_analyses/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
+#write.csv(ectos_birds_mass, "data/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
 dim(ectos_birds_full)
 dim(ectos_birds_mass) 
 

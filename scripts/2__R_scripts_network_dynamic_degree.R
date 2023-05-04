@@ -132,7 +132,7 @@ str(manu_detections_jetz)
   #filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
 #unique(samples$elevation)
 
-samples<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv") %>% 
+samples<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv") %>% 
   filter(sociality=="1") %>% 
   filter(elevation!="NA") # remove ectoparasite samples for which we dont have elevation
 unique(samples$elevation)
@@ -244,15 +244,15 @@ for(i in 1:nrow(samples)){
 
 network_metrics_ectoparasite_samples<-as.data.frame(network_metrics_ectos_samples.db) %>% 
   rename(sample=...1, species=...2,degree=...3, elevation=...5,w_degree=...4)
-#write.csv( network_metrics_ectoparasite_samples, "data/data_analyses/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
+#write.csv( network_metrics_ectoparasite_samples, "data/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
 
-network_metrics_ectoparasite_samples<-read.csv("data/data_analyses/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
-df_ectos<-read.csv("data/data_analyses/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
+network_metrics_ectoparasite_samples<-read.csv("data/data_manuscript/7_dff_network_metrics_ectoparasite_samples_FILE_method.csv")
+df_ectos<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
 
 df_ectos_network_metrics<-inner_join( df_ectos,network_metrics_ectoparasite_samples, by=c("Full_Label"="sample"))
 
 str(df_ectos_network_metrics)
-#write.csv(df_ectos_network_metrics,"data/data_analyses/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv")
+#write.csv(df_ectos_network_metrics,"data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv")
 
 df_ectos_netowrk_metrics_n_z <-df_ectos_netowrk_metrics %>% filter(total_mites!=0) 
 

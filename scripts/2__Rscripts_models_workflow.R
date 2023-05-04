@@ -139,14 +139,14 @@ library(brmstools)
 #DATA
 # This dataset contains all parasites samples (887) after removing exact duplicated rows, for which we have an assigned elevation, for 783 in total out of 998 that we had originally  (this included some duplicates)
 # date preparation including date
-#ectos_df<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+#ectos_df<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
 # rename(elevation=elevation_extrapolated_date) %>%
 #  mutate(date=as.Date(full_date, format = "%Y-%m-%d")) %>% 
 #  mutate(year_seasonality = format(date, "%j")) # # create new column for julian day yearly
 
-#write.csv(ectos_df,"data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv" )
+#write.csv(ectos_df,"data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv" )
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae,year_seasonality ) %>% 
   filter(species_jetz!="Premnoplex_brunnescens")
 
@@ -171,12 +171,12 @@ str(phylo)
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos  so need to rpun the tree in the data processin section
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, total_lice,total_no_feathers_mites,total_mesostigmatidae,date ) %>% 
   filter(species_jetz!="Premnoplex_brunnescens")
 
 # just keeping the prevalences 
-ectos_birds_dff_PA<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff_PA<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select( species_jetz, ectoparasites_PA, sociality ) %>% 
   filter(species_jetz!="Premnoplex_brunnescens")
@@ -306,7 +306,7 @@ ectos_pres_abs_df<-ectos_pres_abs_df %>% distinct(species_jetz,proportion_ectopa
 ectos_pres_abs_df<- ectos_pres_abs_df %>% rename(family=BLFamilyLatin)
 
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality) 
 
@@ -329,7 +329,7 @@ phylo<-drop.tip (phylo, tip$name)
 
 
 # ##### 5.Data processing prevalence ectos ----------------------------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality ) %>% 
   na.omit() 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
@@ -552,7 +552,7 @@ dev.off()
 # ##### 5.2 Model predictions plots prevalence ectos----------------------------------
 # Descriptive plot 
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, ectoparasites_PA) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -591,7 +591,7 @@ dev.off()
 
 
 # ####### 6.Data processing abundance lice----------------------------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") 
@@ -856,7 +856,7 @@ loo(zinb_lice_a_brms_bayes,zip_lice_a_brms_bayes,compare = TRUE)
 # ###### 6.2 Model predictions PLOTS abundance lice----------------------------------
 
 #descriptive plots 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_lice) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -1117,7 +1117,7 @@ ggplot(data = ectos_df_predicted, aes(x = sociality, y = proportion_ectoparasite
 
 
 # ####### 6.Data processing abundance MITES----------------------------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_mites, total_mesostigmatidae, total_no_feathers_mites) %>% 
   na.omit() %>% 
@@ -1171,14 +1171,14 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 #NON_FEATHER MITES
 ####
 
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_no_feathers_mites) %>% 
   na.omit() %>% 
   filter(total_no_feathers_mites<100)  # removing outliers for total mites
 
 # Removing premnoplex ( Outlier)
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_no_feathers_mites) %>% 
   na.omit() %>% 
@@ -1663,7 +1663,7 @@ dev.off()
 
 
 # ###### 6.2 Model predictions plots abundance MITES----------------------------------
-ectos_birds_dff<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
+ectos_birds_dff<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality, total_no_feathers_mites) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -1715,7 +1715,7 @@ dev.off()
 #Plotting posterior inference against the data I am not sure how to plot thi is the traformed scale
 #https://bookdown.org/ajkurz/Statistical_Rethinking_recoded/linear-models.html
 # ########7.Data processing diversity [In progress]--------------------------------------------------------
-ectos_birds_dff_d<-read.csv("data/data_analyses/data_manuscript/", na.strings =c("","NA")) %>% 
+ectos_birds_dff_d<-read.csv("data/data_manuscript/", na.strings =c("","NA")) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_mites, total_mesostigmatidae, total_no_feathers_mites) %>% 
   na.omit() %>% 
@@ -1823,7 +1823,7 @@ mcmc_areas(posterior  ,prob=0.90, prob_outer=0.95)
 
 # # 1.N Data import-----------------------------------------------------------------
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality, ectoparasites_PA,total_lice,total_mites, total_no_feathers_mites,total_mesostigmatidae,degree, w_degree) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -1841,7 +1841,7 @@ phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prev
 
 # Lice
 
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_lice, degree, w_degree) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
@@ -2223,7 +2223,7 @@ loo(zip_nf_mites_a_brms_bayes,zinb_nf_mites_a_brms_bayes,compare = TRUE)
 # ##### 8.1 Data processing networks mites -------------------------------------------
 
 # Mites
-dff_ectos_network_individual_metrics<-read.csv("data/data_analyses/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/7.dff_all_ectos_network_metrics_individuals_FILE.csv",na.strings =c("","NA"))%>% 
   select(elevation_extrapolated_date, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_no_feathers_mites, degree, w_degree) %>% 
   rename(elevation=elevation_extrapolated_date) %>%
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
