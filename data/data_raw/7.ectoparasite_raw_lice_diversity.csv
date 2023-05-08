@@ -1,7 +1,7 @@
-#No,Collection,Sample_group,Sample No. #,Full_Label,comment,Host Genus,Host Species,species_binomial,Host Order,host_family,New Association,Lice Genus,lice_genus_or_family_tidy,Lice Species,Female,Male,Nimph,Eggs,Total,BoxLocation1
-88,JUM,,V738,V738,,,,_,,,???,Philopterus,Philopteridae,,0,0,1,,,L-02
-88,JUM,,V738,V738,,,,_,,,???,,,,,,,,,
-88,JUM,,V738,V738,,,,_,,,???,,,,,,,,,
+#No,Collection,Sample_group,Sample No. #,Full_Label,comment,Host Genus,Host Species,species_binomial,Host Order,host_family,New Association,Lice Genus,lice_genus_tidy,Lice Species,Female,Male,Nimph,Eggs,Total,BoxLocation1
+88,JUM,,V738,V738,,,,,,,???,Philopterus,Philopteridae,,0,0,1,,,L-02
+88,JUM,,V738,V738,,,,,,,???,,,,,,,,,
+88,JUM,,V738,V738,,,,,,,???,,,,,,,,,
 169,JEJ,SP11,22,SP110022,,Anabacerthia,striaticollis,Anabacerthia_striaticollis,Passeriformes,Furnariidae,Yes,Myrsidea,Myrsidea,(ochrolaemi/ waterstoni),1,1,2,,4,L-04
 169,JEJ,SP11,22,SP110022,,Anabacerthia,striaticollis,Anabacerthia_striaticollis,Passeriformes,Furnariidae,Yes,,,,,,,,,
 169,JEJ,SP11,22,SP110022,,Anabacerthia,striaticollis,Anabacerthia_striaticollis,Passeriformes,Furnariidae,Yes,,,,,,,,,
