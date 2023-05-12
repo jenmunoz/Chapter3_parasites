@@ -72,6 +72,8 @@
 # libraries for easier manipulation of data
 install.packages("pacman")
 library("pacman")
+install.packages('BiocManager')
+library("BiocManager")
 
 packages_data_cleaning<-c("tidyverse","dplyr","data.table","extrafont","lubridate","janitor","assertr")
 packages_visualizations<-c("vegan", "ggplot2","devtools","knitr","ts","RColorBrewer","ggridges","ggtree","aplot")
@@ -79,6 +81,7 @@ packages_models<-c("car","lattice", "lme4","visreg","lsmeans","MuMIn","emmeans",
 p_load(packages_data_cleaning)
 p_load(packages_visualizations)
 p_load(packages_models)
+
 #install.packages("tidyr") 
 install.packages("tidyverse") 
 install.packages("dplyr")
@@ -641,24 +644,36 @@ bayes_R2(selected_ecto_infection_brms_bayes_no_int)
 # half student only allows positive values
 
 # 1.Data processing and  model selection for prevalence species level (zero_one_beta) --------
-ectos_birds_df<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality ) %>% 
-  na.omit() %>% 
-  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+# Our prevalence data has an extra complication and is thatit has ones while beta does not allow u to model proportion that reach one
+# I found this solutions and decided to implement 1- response ( but phi does not converge), as that will just model the probability of not getting infecteda https://github.com/paul-buerkner/brms/issues/942
+
+ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+                           select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species ) %>% 
+                           na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+# for social species only , for the degree analyses
+
+ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species,degree_species,w_degree_species ) %>% 
+  na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+##
+
+
+str(ectos_birds_df)
 
 ectos_pres_abs<-ectos_birds_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality)) %>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality), mass=max(mass_tidy_species), degree_species=max(degree_species ))%>% 
   mutate(proportion_ectoparasites=ectoparasites_presence/sample_size) %>% 
   na.omit() 
 
 ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
-  filter(sample_size>4)     # Eliminates species taht ocurr at two elevatiosn and keep only one ( in alphabetical order of the stations, e.g for galbula low_elevations is kept and montane is deleted, but the samples size is mantained this is jut to be able to do the phylogenetic analyses properly)
+  filter(sample_size>4) 
 
+unique(ectos_birds_dff$proportion_ectoparasites)
 
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
-
 
 # Data structure
 ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
@@ -666,7 +681,9 @@ ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$proportion_ectoparasites<-as.numeric(ectos_birds_dff$proportion_ectoparasites)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+ectos_birds_dff$degree_species<-as.numeric (ectos_birds_dff$degree_species) # create a column for the species effect different to the phylogenetic one
 
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 str(ectos_birds_dff)
 is.ultrametric(phylo)
 
@@ -686,76 +703,80 @@ print(tip)
 phylo<-drop.tip (phylo, tip$name) 
 phy_cov<-ape::vcv(phylo, corr=TRUE)
 
-
-# The models 
-ecto_p_brms_bayes_no_int_species<-brms::brm(proportion_ectoparasites~sociality+ scale(elevation)+scale(sample_size)+
-                                      (1|gr(species_jetz, cov = phy_cov))+
-                                      (1|species),
-                                    data=ectos_birds_dff,
-                                    #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
-                                    family= zero_one_inflated_beta(), # for proportions
-                                    data2 = list(phy_cov=phy_cov),
-                                    iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                    thin=2,
-                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
-
-saveRDS(ecto_p_brms_bayes_no_int_species, "data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions.RDS")
-ecto_p_brms_bayes_no_int_species<-readRDS("data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions.RDS")
-
-prior_summary(ecto_p_brms_bayes_no_int_species)
-bayes_R2(ecto_p_brms_bayes_no_int_species)
-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors)
-
-
 #PRIORS
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl work, cause our predictors are scaled could use a wider prior if needed normal(0,10)
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
 prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+prior_phi<-prior("normal(0, 1)", class ="phi")
 
 
-ecto_p_brms_bayes_no_int_species_priors<-brms::brm(proportion_ectoparasites~sociality+ scale(elevation)+
-                                              (1|gr(species_jetz, cov = phy_cov))+
-                                              (1|species),
-                                            data=ectos_birds_dff,
-                                            #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
-                                            family= zero_one_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
-                                            data2 = list(phy_cov=phy_cov),
-                                            save_pars = save_pars(all = TRUE),
-                                            prior = c(prior_predictors,prior_random,prior_intercept),
-                                            iter=12000, warmup=5000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                            thin=2,
-                                            control=list(adapt_delta=0.99, max_treedepth=14)) 
+#residual_prior<-prior(gamma(0.01, 0.01), class = "shape",lb=0) # this is the default
+
+# modeling the opossitive of prevalence of getting infected, meaninsn modeling the probability of not getting infected
 
 
-saveRDS(ecto_p_brms_bayes_no_int_species_priors, "data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors.RDS")
-ecto_p_brms_bayes_no_int_species_priors<-readRDS("data/data_analyses/model_selection/P1s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors.RDS")
+# The models 
 
+prior_summary(ecto_p_brms_bayes_no_int_species)
+
+
+#ecto_p_brms_bayes_no_int_species_priors_zib<-brms::brm((1-proportion_ectoparasites)~sociality+ scale(elevation)+scale(sample_size)+scale(mass)+
+                                                     (1|gr(species_jetz, cov = phy_cov))+
+                                                     (1|species),
+                                                   data=ectos_birds_dff,
+                                                   #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                                   family= zero_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
+                                                   data2 = list(phy_cov=phy_cov),
+                                                   save_pars = save_pars(all = TRUE),
+                                                   prior = c(prior_predictors,prior_random,prior_intercept, prior_phi),
+                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   thin=2,
+                                                   control=list(adapt_delta=0.99, max_treedepth=14))
+ecto_p_brms_bayes_no_int_species_priors_zib
+
+#Since we have zeros and ones we will use a zero-one inflated distribution
+ecto_p_brms_bayes_no_int_species_priors_zobi<-brms::brm((proportion_ectoparasites)~sociality+ scale(elevation)+scale(sample_size)+scale(mass)+
+                                                                   (1|gr(species_jetz, cov = phy_cov))+
+                                                                   (1|species),
+                                                                 data=ectos_birds_dff,
+                                                                 #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                                                 family= zero_one_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
+                                                                 data2 = list(phy_cov=phy_cov),
+                                                                 save_pars = save_pars(all = TRUE),
+                                                                 prior = c(prior_predictors,prior_random,prior_intercept,prior_phi),
+                                                                 iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                 thin=2,
+                                                                 control=list(adapt_delta=0.99, max_treedepth=14))
+
+
+saveRDS(ecto_p_brms_bayes_no_int_species_priors_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
+ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
+
+
+brm(bf(..., coi = 1)) # allowing the coeficient of inflation to go to one because we have some ones values
 # model comparison
 
-View(ectos_birds_dff)
-
-loo(ecto_p_brms_bayes_no_int_species_priors, moment_match = TRUE)
+loo(ecto_p_brms_bayes_no_int_species_priors_zobi)
 
 #TONS OF PAREKO >0.7 MAYBE TRY A DIFFERENT DISTRIBUTION !!!
 
 #PLOTS
-plot(conditional_effects(ecto_p_brms_bayes_no_int_species_priors, dpar="mu"), 
-      points = TRUE, 
-      point_args = list(width = .05, shape = 1))
+plot(conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zib, dpar="mu"), 
+     points = TRUE, 
+     point_args = list(width = .05, shape = 1))
 
-color_scheme_set("orange") 
+color_scheme_set("darkgray") 
 
 bayes_R2(ecto_p_brms_bayes_no_int_species_priors)
 
 #model convergence 
-png("figures/figures_manuscript/models_selected_figures/Fig1Ps.plot_model_CONVERGENCE_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES.png",width = 3000, height = 3000, res = 300, units = "px")
-plot(ecto_p_brms_bayes_no_int_species_priors)
+png("results/selected_models_figures/2_1Fig2Ps.plot_model_CONVERGENCE_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(ecto_p_brms_bayes_no_int_species_priors_zobi)
 dev.off()
 
 # model fit
-# model fit
-png("figures/figures_manuscript/models_selected_figures/Fig1Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(ecto_p_brms_bayes_no_int_species_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 10)
+png("results/selected_models_figures/2_1Fig2Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(ecto_p_brms_bayes_no_int_species_priors_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
 dev.off()
 
 #pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
@@ -765,27 +786,93 @@ dev.off()
 # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 
 
-estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors,prob=0.90, prob_outer=0.95,
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,
                           type="areas") +
-  labs(title="Posterior distributions PREVALENCE SPECIES", subtitle ="PREVALENCE SPECIES with medians and 95% intervals")+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
   theme_classic(20)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
-  labs(title="Posterior distributions PREVALENCE SPECIES", subtitle ="PREVALENCE SPECIES with medians and 95% intervals")+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
   theme_classic(20)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey40")+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("figures/figures_manuscript/models_selected_figures/Fig1Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_degree.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
+
+
+# INCLUDING DEGREE
+
+ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-brms::brm((proportion_ectoparasites)~scale(degree_species)+ scale(elevation)+scale(sample_size)+scale(mass)+
+                                              (1|gr(species_jetz, cov = phy_cov))+
+                                              (1|species),
+                                            data=ectos_birds_dff,
+                                            #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                            family= zero_one_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
+                                            data2 = list(phy_cov=phy_cov),
+                                            save_pars = save_pars(all = TRUE),
+                                            prior = c(prior_predictors,prior_random,prior_intercept,prior_phi),
+                                            iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                            thin=2,
+                                            control=list(adapt_delta=0.99, max_treedepth=14))
+
+
+saveRDS(ecto_p_brms_bayes_no_int_species_priors_degree_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
+ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
+
+#model convergence 
+png("results/selected_models_figures/2_2Fig2Ps.plot_model_CONVERGENCE_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi)
+dev.off()
+
+# model fit
+png("results/selected_models_figures/2_2Fig2Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(ecto_p_brms_bayes_no_int_species_priors_degree_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
+  theme_classic(20)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/2_2_Fig2Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
+  theme_classic(20)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/2_2Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
+
+
+
 
 
 
@@ -4816,7 +4903,7 @@ dev.off()
 
 
 
-# # #####@ 7****** Modeling general diversity and Networks --no sure about this one!----------
+# # ##### 7****** Modeling general diversity and Networks --no sure about this one!----------
 
 dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv",na.strings =c("","NA"))%>% 
   select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,general_diversity, degree, w_degree, year_seasonality, mass_tidy_species, mass_ind_tidy, mass_ind_comp) %>% 
@@ -4919,33 +5006,33 @@ png("results/selected_models_figures/diversity_trial.png",width = 4000, height =
 estimates_plot_intervals
 dev.off()
 
-# # ##### 7 MODELING LICE DIVERSITY -------------------------------------------
+# # ##### 7 Modeling LICE DIVERSITY -------------------------------------------
 
 #The lice diversity file
 #lice_diversity_raw<-read.csv("data/data_raw/7.ectoparasite_raw_lice_diversity.csv",na.strings =c("","NA"))
 
-lice_diversity_raw<-read.csv("data/data_raw/7.ectoparasite_raw_lice_diversity.csv",na.strings =c("","NA","-")) %>% 
-  filter(Collection=="JEJ")
+#lice_diversity_raw<-read.csv("data/data_raw/7.ectoparasite_raw_lice_diversity.csv",na.strings =c("","NA","-")) %>% 
+ # filter(Collection=="JEJ")
 
-lice_diversity<-lice_diversity_raw %>% 
-  group_by(species_binomial) %>%
-  summarise(cumulative_richness=n_distinct(na.omit(lice_genus_tidy)), sample_size=n_distinct(Full_Label), host_family=first(host_family)) 
+#lice_diversity<-lice_diversity_raw %>% 
+#  group_by(species_binomial) %>%
+#  summarise(cumulative_richness=n_distinct(na.omit(lice_genus_tidy)), sample_size=n_distinct(Full_Label), host_family=first(host_family)) 
   
 
 # the general parameters 
-ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-select(elevation_midpoint,species_binomial,species_jetz,foraging_cat, sociality, mass_tidy_species) %>% 
-na.omit() %>% 
-group_by(species_jetz) %>% 
-summarise(elevation_midpoint=first(elevation_midpoint),
-          species_binomial=first(species_binomial),
-          foraging_cat=first(foraging_cat), 
-          sociality=first(sociality), 
-          mass_tidy_species=first(mass_tidy_species),
-          total_sample_size=n())
+#ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+#select(elevation_midpoint,species_binomial,species_jetz,foraging_cat, sociality, mass_tidy_species) %>% 
+#na.omit() %>% 
+#group_by(species_jetz) %>% 
+#summarise(elevation_midpoint=first(elevation_midpoint),
+#         species_binomial=first(species_binomial),
+#         foraging_cat=first(foraging_cat), 
+#          sociality=first(sociality), 
+#         mass_tidy_species=first(mass_tidy_species),
+#         total_sample_size=n())
 
 
-dff_lice_diversity_general<-right_join(lice_diversity,ectos_birds_df, by="species_binomial" )
+# dff_lice_diversity_general<-right_join(lice_diversity,ectos_birds_df, by="species_binomial" )
   
 #write.csv(dff_lice_diversity_general, "data/data_manuscript/3_dff_ectos_diversity_species_prevalence_abundance_diversity_elevation_mass_FILE_TIDY.csv")
 
@@ -4953,8 +5040,9 @@ dff_lice_diversity_general<-right_join(lice_diversity,ectos_birds_df, by="specie
 #THE DATA
 ####
 
-dff_lice_diversity<-read.csv("data/data_manuscript/3_dff_ectos_diversity_species_prevalence_abundance_diversity_elevation_mass_FILE_TIDY.csv",na.strings =c("","NA"))%>% filter(total_sample_size>5)
+dff_lice_diversity<-read.csv("data/data_manuscript/3_dff_ectos_diversity_species_prevalence_abundance_diversity_elevation_mass_FILE_TIDY.csv",na.strings =c("","NA"))%>% filter(total_sample_size>9)
 dff_lice_diversity$cumulative_richness[is.na(dff_lice_diversity$cumulative_richness)] = 0
+
 
 # the phylo data
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
@@ -4996,8 +5084,10 @@ unique(dff_lice_diversity$cumulative_richness)
 #View(dff_lice_diversity)
 
 # model 
-#prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+#prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
+#prior_random<- prior("normal(0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
@@ -5005,38 +5095,38 @@ prior_summary(selected_poisson_lice_diversity_sociality_no_int_priors_trunc)
 unique(dff_lice_diversity$cumulative_richness)
 
 selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
-                                                                           scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
+                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
+                                                                           scale(total_sample_size)+
                                                                     (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                    (1|foraging_cat)+
                                                                     (1|species),
                                                                   data=dff_lice_diversity,
-                                                                  family=poisson(),  #zero_inflated_negbinomial()
+                                                                  family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
                                                                   data2 = list(phy_cov=phy_cov),
                                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                                   thin=2,
                                                                   prior = c(prior_predictors,prior_random),
                                                                   save_pars = save_pars(all=  TRUE),
-                                                                  control=list(adapt_delta=0.99, max_treedepth=14)) 
+                                                                  control=list(adapt_delta=0.999, max_treedepth=14)) 
 
 
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions.RDS")
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 
-selected_poisson_lice_diversity_sociality_no_int_priors_NO_trunc<-brms::brm(cumulative_richness~sociality+
-                                                                           scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
+selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality+
+                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
+                                                                           (1|total_sample_size)+
                                                                            (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                           (1|foraging_cat)+
                                                                            (1|species),
                                                                          data=dff_lice_diversity,
                                                                          family=poisson(),  #zero_inflated_negbinomial()
                                                                          data2 = list(phy_cov=phy_cov),
-                                                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                         iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                                          thin=2,
                                                                          prior = c(prior_predictors,prior_random),
                                                                          save_pars = save_pars(all=  TRUE),
-                                                                         control=list(adapt_delta=0.99, max_treedepth=14)) 
+                                                                         control=list(adapt_delta=0.999, max_treedepth=14)) 
 
-
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions.RDS")
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc3, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_truncated_at3.RDS")
 
 
 simulate_residuals <- dh_check_brms(selected_poisson_lice_diversity_sociality_no_int_priors_trunc2, integer = TRUE)
@@ -5053,15 +5143,25 @@ testUniformity(simulate_residuals) #tests if the overall distribution conforms t
 color_scheme_set("red") 
 
 # poisson 
+
+
+png("trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+png("trunc2.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
+
 #model convergence 
-png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_CONVERGENCE_LICE_DIVERSITY_poisson.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_CONVERGENCE_LICE_DIVERSITY_poisson_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(selected_poisson_lice_diversity_sociality_no_int_priors_trunc)
 dev.off()
 
 # model fit
-png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_FIT_LICE_DIVERSITY_poisson3.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(selected_poisson_lice_diversity_sociality_no_int_priors_trunc3, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_FIT_LICE_DIVERSITY_poisson_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
 dev.off()
+
 
 #ESTIMATES
 
@@ -5073,7 +5173,7 @@ estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_prior
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_LICE_DIVERSITY_poisson.png",width = 4000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_LICE_DIVERSITY_poisson_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
@@ -5085,12 +5185,12 @@ estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_intervals_LICE_DIVERSITY_poisson.png",width = 4000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_intervals_LICE_DIVERSITY_poisson_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
 
-# # #### Data processing LICE DIVERSITY  NETWORKS-------------------------------------------
+# # #### Data processing LICE DIVERSITY  NETWORKS and models-------------------------------------------
 
 # Getting the data ready
 
@@ -5126,11 +5226,10 @@ dev.off()
 # the data 
 ### ### ###
 
-dff_lice_diversity_networks<-read.csv("data/data_manuscript/3_dff_ectos_diversity_network_metrics_species_FILE_TIDY.csv") %>% filter(total_sample_size>10)%>% 
+dff_lice_diversity_networks<-read.csv("data/data_manuscript/3_dff_ectos_diversity_network_metrics_species_FILE_TIDY.csv") %>% filter(total_sample_size>4)%>% 
   select(-sample_size)
 dff_lice_diversity_networks$cumulative_richness[is.na(dff_lice_diversity_networks$cumulative_richness)] = 0
 #str(dff_lice_diversity_networks)
-View(dff_lice_diversity_networks)
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
 
 # Make sure the tips and the names on the file coincide and formating of name is consitent
@@ -5173,12 +5272,30 @@ dff_lice_diversity_networks$species<-as.factor(dff_lice_diversity_networks$speci
 #prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+#prior_random<- prior("normal(0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
+selected_poisson_lice_diversity_degree_no_int_priors<-brms::brm(cumulative_richness~scale(degree_species)+
+                                                                        scale(elevation_midpoint)+scale(mass_tidy_species)+ scale(total_sample_size)+
+                                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                        (1|species),
+                                                                      data=dff_lice_diversity_networks,
+                                                                      family=poisson(),  #zero_inflated_negbinomial()
+                                                                      data2 = list(phy_cov=phy_cov),
+                                                                      iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                      thin=2,
+                                                                      prior = c(prior_predictors,prior_random),
+                                                                      save_pars = save_pars(all=  TRUE),
+                                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+saveRDS(selected_poisson_lice_diversity_degree_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
+
+#truncated is not working well several 50 divergent transitions
 selected_poisson_lice_diversity_degree_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0,ub=3)~scale(degree_species)+
-                                                                          scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
+                                                                          scale(elevation_midpoint)+scale(mass_tidy_species)+
                                                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                          (1|foraging_cat)+
+                                                                           scale(total_sample_size)+
                                                                           (1|species),
                                                                         data=dff_lice_diversity_networks,
                                                                         family=poisson(),  #zero_inflated_negbinomial()
@@ -5189,31 +5306,38 @@ selected_poisson_lice_diversity_degree_no_int_priors_trunc<-brms::brm(cumulative
                                                                         save_pars = save_pars(all=  TRUE),
                                                                         control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-saveRDS(selected_poisson_lice_diversity_degree_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
-
-selected_poisson_lice_diversity_w_degree_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0,ub=3)~scale(degree_w_species)+
-                                                                         scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
-                                                                         (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                         (1|foraging_cat)+
-                                                                         (1|species),
-                                                                       data=dff_lice_diversity_networks,
-                                                                       family=poisson(),  #zero_inflated_negbinomial()
-                                                                       data2 = list(phy_cov=phy_cov),
-                                                                       iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                       thin=2,
-                                                                       prior = c(prior_predictors,prior_random),
-                                                                       save_pars = save_pars(all=  TRUE),
-                                                                       control=list(adapt_delta=0.99, max_treedepth=14)) 
-
-saveRDS(selected_poisson_lice_diversity_w_degree_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
 
 
+#saveRDS(selected_poisson_lice_diversity_degree_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
 
+selected_poisson_lice_diversity_degree_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
 
+# poisson 
+#model convergence 
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_CONVERGENCE_LICE_DIVERSITY_DEGREE_poisson_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(selected_poisson_lice_diversity_degree_no_int_priors_trunc)
+dev.off()
 
-loo(selected_poisson_lice_diversity_degree_no_int_priors_trunc)
+# model fit
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_FIT_LICE_DIVERSITY_DEGREE_poisson.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(selected_poisson_lice_diversity_degree_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
 
-estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors_trunc,prob=0.90, prob_outer=0.95,point_est = "mean",
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors_trunc,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ~DEGREE")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_parameters_LICE_DIVERSITY_DEGREE_poisson_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY~DEGREE ")+
   xlim(-4,4)+
@@ -5221,20 +5345,81 @@ estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/5_Fig_DL_diversity_degree.png",width = 4000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_parameters_intervals_LICE_DIVERSITY_DEGREE_poisson.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
+### w_degree
+selected_poisson_lice_diversity_w_degree_no_int_priors<-brms::brm(cumulative_richness~scale(degree_w_species)+
+                                                                          scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
+                                                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                          (1|species),
+                                                                        data=dff_lice_diversity_networks,
+                                                                        family=poisson(),  #zero_inflated_negbinomial()
+                                                                        data2 = list(phy_cov=phy_cov),
+                                                                        iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                        thin=2,
+                                                                        save_pars = save_pars(all=  TRUE),
+                                                                        control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-png("results/selected_models_figures/5_Fig_DL_diversity_fit_trial.png",width = 3000, height = 3000, res = 300, units = "px")
-pp_check(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+
+saveRDS(selected_poisson_lice_diversity_w_degree_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
+
+
+
+selected_poisson_lice_diversity_w_degree_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0,ub=3)~scale(degree_w_species)+
+                                                                          scale(elevation_midpoint)+ scale(total_sample_size)+scale(mass_tidy_species)+
+                                                                          (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                          (1|species),
+                                                                        data=dff_lice_diversity_networks,
+                                                                        family=poisson(),  #zero_inflated_negbinomial()
+                                                                        data2 = list(phy_cov=phy_cov),
+                                                                        iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                        thin=2,
+                                                                        save_pars = save_pars(all=  TRUE),
+                                                                        control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+
+
+saveRDS(selected_poisson_lice_diversity_w_degree_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree_trunc.RDS")
+
+
+
+# poisson 
+#model convergence 
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_CONVERGENCE_LICE_DIVERSITY_poisson_W_DEGREE_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(selected_poisson_lice_diversity_w_degree_no_int_priors_trunc)
 dev.off()
 
-
-
-png("results/selected_models_figures/5_Fig_DL",width = 3000, height = 3000, res = 300, units = "px")
-bplot
+# model fit
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_FIT_LICE_DIVERSITY_poisson_W_DEGREE_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(selected_poisson_lice_diversity_w_degree_no_int_priors_trunc, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
 dev.off()
 
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors_trunc,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ~W DEGREE")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_LICE_DIVERSITY_poisson_WDEGREE_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_w_degree_no_int_priors_trunc,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY ~W_degree")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/5_Fig_DL_BEST_plot_model_parameters_intervals_LICE_DIVERSITY_poisson_W_DEGREE_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
 
 
 bplot<-plot(
@@ -5244,92 +5429,34 @@ bplot<-plot(
 
 
 
+# #### Extrapolated richness values  --------------------------------------------
+
+library(vegan)
+
+data(dune)
+View(dune)
+data(dune.env)
+View(dune.env)
+pool <- with(dune.env, specpool(dune, Management))
+pool
+op <- par(mfrow=c(1,2))
+boxplot(specnumber(dune) ~ Management, data = dune.env,
+        col = "hotpink", border = "cyan3")
+boxplot(specnumber(dune)/specpool2vect(pool) ~ Management,
+        data = dune.env, col = "hotpink", border = "cyan3")
+par(op)
+data(BCI)
+View(BCI)
+## Accumulation model
+pool <- poolaccum(BCI)
+summary(pool, display = "chao")
+plot(pool)
+## Quantitative model
+estimateR(BCI[1:5,])
 
 
 
-
-
-
-
-
-# #### Incorporating body mass --------------------------------------------
-
-ectos_birds_full<-read.csv("data/data_manuscript/7.dff_all_ectos_prevalence_abundance_individual_elevation_FILE.csv", na.strings =c("","NA")) 
-  
-  select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice,year_seasonality ) %>% 
-  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") 
-
-
-ind_body_mass<-read.csv( "data/data_analyses/0_netting_manu_complete_for_ectoparasite_samples.csv", na.strings =c("","NA")) %>% 
-  select(ectoparasite_code,mass) %>% 
-  group_by(ectoparasite_code)%>% 
-  na.omit() %>% 
-  summarize(mass_species_day=mean(mass), count=n()) 
-
-dim(ectos_birds_full)
-dim(ind_body_mass)
-names(ectos_birds_full)
-
-View(ind_body_mass)
-ectos_birds_mass<-left_join(ectos_birds_full,ind_body_mass, by="ectoparasite_code") #relationship = "many-to-many"
-
-#write.csv(ectos_birds_mass, "data/data_manuscript/7_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv")
-dim(ectos_birds_full)
-dim(ectos_birds_mass) 
-
-# PLOting MASS 
-#PREVALENCE
-
-estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_prior_mass,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ZINB LICE ABUNDANCE ")+
-  theme_classic(30)+
-  xlim(-5,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-#prevalence degree
-
-estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_degree_prior_mass,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE DEGREE ")+
-  theme_classic(30)+
-  xlim(-5,10)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-
-#LICE
-
-estimates_plot_intervals<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_priors_mass,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ZINB LICE ABUNDANCE ")+
-  theme_classic(30)+
-  xlim(-5,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-#MITES
-
-estimates_plot_intervals<-mcmc_plot(zinb_a_nf_mites_brms_bayes_no_int_prior_mass,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title=" Posterior distributions with medians and 95% intervals ", subtitle ="ZINB MITES ABUNDANCE ")+
-  theme_classic(30)+
-  xlim(-5,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-#MITES DEGREE
-
-estimates_plot_intervals<-mcmc_plot(zinb_a_lice_brms_bayes_no_int_degree_prior_mass,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals ", subtitle =" ZINB LICE ABUNDANCE DEGREE ")+
-  xlim(-5,5)+
-  theme_classic(30)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-
+specpool(BCI[1:5,])
 
 
 #### LOAD PREVIOUSLY SAVED MODELS #####
