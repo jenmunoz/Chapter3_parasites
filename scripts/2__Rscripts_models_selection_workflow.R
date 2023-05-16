@@ -210,11 +210,185 @@ library(rstan)
 library(rstanarm)
 library(loo)
 
+# ### 0. Data summaries  -----------------------------------------------------
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  na.omit()
+
+#total_lice, total_mites, total_no_feathers_mites, total_ticks
+
+names(ectos_birds_dff)
+
+#View(ectos_birds_dff)
+dim(ectos_birds_dff)
+unique(ectos_birds_dff$species_jetz)
+unique(ectos_birds_dff$family)
+
+# overall prevalence 
+ectos_birds_dff %>% 
+  group_by(ectoparasites_PA) %>% 
+summarise(n=n(), P=(n()/871*100) )
+
+# Prevalence by family 
+prevalence_step1<-ectos_birds_dff %>% 
+  group_by( family,ectoparasites_PA) %>% 
+  summarise(n=n())
+View(prevalence_step1)
+
+# this calculation is not perfect because if one family only have zeros in the samples that will be counted as positive but since we are filtering families with more than 5 samples we shoudl be ok
+# Following the paper (Jovani and Tella 2006) we modeled only families with more that 10 samples, we did not use the same aproach for species because it will exclude most of our non social species.
+View(prevalence_step1)
+prevalence<-prevalence_step1 %>% summarise(family_name=first(family), total_samples=sum(n), total_positive=last(n), prevalence=((total_positive/total_samples)*100)) %>% 
+  filter(total_samples>9)
+
+# dIVERSITY AND COINFECTIONS
+
+ectos_birds_dff %>% 
+  group_by(general_diversity) %>% 
+  summarise(n=n(),P=(n()/871*100))
+
+# DIVERSITY BY GROUP
+
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_mites ) %>% 
+  na.omit()
+
+ectos_birds_dff %>% 
+  filter(total_mites!=0) %>% 
+  summarise(samples_mites=sum(!is.na(total_mites)), (p=samples_mites/831*100))
+
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_lice ) %>% 
+  na.omit()
+
+ectos_birds_dff %>% 
+  filter(total_lice!=0) %>% 
+  summarise(samples_lice=sum(!is.na(total_lice)), (p=samples_lice/831*100), max=max(total_lice))
+  
+# ticks
+
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, Ticks ) %>% 
+  na.omit()
+
+names(ectos_birds_dff)
+
+ectos_birds_dff %>% 
+  filter(Ticks!=0) %>% 
+  summarise(samples_ticks=sum(!is.na(Ticks)), (p=samples_ticks/831*100))
+
+
+
+
+
+
+
+dim(ectos_birds_dff)
+
+
+ectos_df%>% group_by(Family,species_clean,species_jetz ) %>%  # we have abundance for 62 host social species and for 27 non social species  in manu
+  
+  
+  as.data.frame(unique( ectos_df$Family)) %>% View()
+ectos_df<-read.csv("data/5.ectos_pres_abs_df.csv") # data on presence absence
+ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+
+View(ectos_df)
+ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+non_social<-ectos_df %>% filter( sociality=="0") # we have OCURRENCE  for 88 host social species and for 45 non social species  in manu
+social<-ectos_df %>% filter( sociality=="1") # we have OCURRENCE for 88 host social species and for 45  non social species  in manu
+
+mean(non_social$sample_size)
+mean(social$sample_size)
+
+
+# Create  summary tables of bird species sample size and family and type of parasite
+names(ectos_df)
+families<-as.data.frame(ectos_df%>% group_by(BLFamilyLatin) %>% summarize(n())) 
+write.csv(families, "tables/1.Family_sample_size_manu.csv")
+individuals <-as.data.frame(ectos_df%>% group_by(species_clean) %>% summarize(n())) 
+write.csv(individuals, "tables/1.Individuals_sample_size_manu.csv")
+
+ectos_df%>% group_by(BLFamilyLatin, species_clean) %>% summarize(total=sum(bill_tidy))
+
+
+
+# Abundance 
+
+# Lice
+
+lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
+# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
+lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+
+lice_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
+
+lice_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+lice_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") #  lice abundance manu only 
+
+lice_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+# Mean abundance
+mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
+mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
+
+mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
+mean_lice_abundance %>% filter( sociality=="0") # we have abundance for 62 host social species and for 27 non social species  in mau
+
+mean_lice_abundance  %>% group_by(sociality) %>% summarize(ave=sd(mean_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+#Mites
+
+mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
+names(mites_df_abundance)
+mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
+
+mites_df_abundance<-mites_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
+
+mites_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for  host social species and for  non social species  in manu
+mites_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
+
+mites_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+mites_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+mites_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_mites)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+###
+# Diversity
+##
+
+lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv")
+lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
+
+lice_richness_manu_sp %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
+
+lice_richness_manu_sp %>% filter( sociality=="0") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% filter( sociality=="1") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
+
+lice_richness_manu_sp %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
+
+
+
 # ##### 1.Data processing prevalence ectos ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   na.omit()
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+
+
+
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 
@@ -651,18 +825,11 @@ ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abunda
                            select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species ) %>% 
                            na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
 
-# for social species only , for the degree analyses
-
-ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species,degree_species,w_degree_species ) %>% 
-  na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
-##
-
 
 str(ectos_birds_df)
 
 ectos_pres_abs<-ectos_birds_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality), mass=max(mass_tidy_species), degree_species=max(degree_species ))%>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality), mass=max(mass_tidy_species), foraging_cat=first(foraging_cat))%>% 
   mutate(proportion_ectoparasites=ectoparasites_presence/sample_size) %>% 
   na.omit() 
 
@@ -670,6 +837,7 @@ ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasit
   filter(sample_size>4) 
 
 unique(ectos_birds_dff$proportion_ectoparasites)
+View(ectos_birds_dff)
 
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
 
@@ -681,7 +849,7 @@ ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$proportion_ectoparasites<-as.numeric(ectos_birds_dff$proportion_ectoparasites)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
-ectos_birds_dff$degree_species<-as.numeric (ectos_birds_dff$degree_species) # create a column for the species effect different to the phylogenetic one
+ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
 
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 str(ectos_birds_dff)
@@ -719,21 +887,6 @@ prior_phi<-prior("normal(0, 1)", class ="phi")
 
 prior_summary(ecto_p_brms_bayes_no_int_species)
 
-
-#ecto_p_brms_bayes_no_int_species_priors_zib<-brms::brm((1-proportion_ectoparasites)~sociality+ scale(elevation)+scale(sample_size)+scale(mass)+
-                                                     (1|gr(species_jetz, cov = phy_cov))+
-                                                     (1|species),
-                                                   data=ectos_birds_dff,
-                                                   #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
-                                                   family= zero_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
-                                                   data2 = list(phy_cov=phy_cov),
-                                                   save_pars = save_pars(all = TRUE),
-                                                   prior = c(prior_predictors,prior_random,prior_intercept, prior_phi),
-                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                   thin=2,
-                                                   control=list(adapt_delta=0.99, max_treedepth=14))
-ecto_p_brms_bayes_no_int_species_priors_zib
-
 #Since we have zeros and ones we will use a zero-one inflated distribution
 ecto_p_brms_bayes_no_int_species_priors_zobi<-brms::brm((proportion_ectoparasites)~sociality+ scale(elevation)+scale(sample_size)+scale(mass)+
                                                                    (1|gr(species_jetz, cov = phy_cov))+
@@ -753,19 +906,16 @@ saveRDS(ecto_p_brms_bayes_no_int_species_priors_zobi, "results/selected_models/P
 ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
 
 
-brm(bf(..., coi = 1)) # allowing the coeficient of inflation to go to one because we have some ones values
-# model comparison
 
 loo(ecto_p_brms_bayes_no_int_species_priors_zobi)
 
-#TONS OF PAREKO >0.7 MAYBE TRY A DIFFERENT DISTRIBUTION !!!
 
 #PLOTS
 plot(conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zib, dpar="mu"), 
      points = TRUE, 
      point_args = list(width = .05, shape = 1))
 
-color_scheme_set("darkgray") 
+color_scheme_set("viridisE") 
 
 bayes_R2(ecto_p_brms_bayes_no_int_species_priors)
 
@@ -788,30 +938,103 @@ dev.off()
 
 estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,
                           type="areas") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
-  theme_classic(20)+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE")+
+  theme_classic(30)+
   xlim(-2,5)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_zobi.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi2,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
-  theme_classic(20)+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE")+
+  theme_classic(30)+
   xlim(-2,5)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_1Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_zobi2.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
-
+###
 # INCLUDING DEGREE
+###
+
+ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species,degree_species,w_degree_species ) %>% 
+  na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+##
+
+ectos_pres_abs<-ectos_birds_df %>% group_by(species_jetz ) %>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality), mass=max(mass_tidy_species), degree_species=max(degree_species ), w_degree_species=max(w_degree_species))%>% 
+  mutate(proportion_ectoparasites=ectoparasites_presence/sample_size) %>% 
+  na.omit() 
+
+ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
+  filter(sample_size>4) 
+
+unique(ectos_birds_dff$proportion_ectoparasites)
+View(ectos_birds_dff)
+
+#ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
+
+# Data structure
+ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
+ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$proportion_ectoparasites<-as.numeric(ectos_birds_dff$proportion_ectoparasites)
+ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
+ectos_birds_dff$species<-as.factor(ectos_birds_dff$species) # create a column for the species effect different to the phylogenetic one
+
+ectos_birds_dff$degree_species<-as.numeric (ectos_birds_dff$degree_species) # create a column for the species effect different to the phylogenetic one
+ectos_birds_dff$w_degree_species<-as.numeric (ectos_birds_dff$w_degree_species) # create a column for the species effect different to the phylogenetic one
+
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+str(ectos_birds_dff)
+is.ultrametric(phylo)
+
+# Make sure the tips and the names on the file coincide and formatting of name is consistent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(ectos_birds_dff$species_jetz)) %>% mutate(name=ectos_birds_dff$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+#PRIORS
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl work, cause our predictors are scaled could use a wider prior if needed normal(0,10)
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+prior_phi<-prior("normal(0, 1)", class ="phi")
+
+View(ectos_birds_dff)
+
+#ecto_p_brms_bayes_no_int_species_priors_degree_zib<-brms::brm((1-proportion_ectoparasites)~scale(degree_species)+ scale(elevation)+scale(sample_size)+scale(mass)+
+#                                                                 (1|gr(species_jetz, cov = phy_cov))+
+#                                                                (1|species),
+ #                                                              data=ectos_birds_dff,
+ #                                                              #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+#                                                             family= zero_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
+#                                                            data2 = list(phy_cov=phy_cov),
+#                                                           save_pars = save_pars(all = TRUE),
+#                                                               prior = c(prior_predictors,prior_random,prior_intercept,prior_phi),
+#                                                              iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                               thin=2,
+#                                                              control=list(adapt_delta=0.99, max_treedepth=14))
 
 ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-brms::brm((proportion_ectoparasites)~scale(degree_species)+ scale(elevation)+scale(sample_size)+scale(mass)+
                                               (1|gr(species_jetz, cov = phy_cov))+
@@ -830,6 +1053,10 @@ ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-brms::brm((proportion_ectop
 saveRDS(ecto_p_brms_bayes_no_int_species_priors_degree_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
 ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
 
+# Plots
+
+color_scheme_set("viridisE") 
+
 #model convergence 
 png("results/selected_models_figures/2_2Fig2Ps.plot_model_CONVERGENCE_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi)
@@ -838,6 +1065,10 @@ dev.off()
 # model fit
 png("results/selected_models_figures/2_2Fig2Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
 pp_check(ecto_p_brms_bayes_no_int_species_priors_degree_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+png("results/selected_models_figures/2_2Fig2Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zib_DEGREE.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(ecto_p_brms_bayes_no_int_species_priors_degree_zib, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
 dev.off()
 
 #pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
@@ -849,29 +1080,92 @@ dev.off()
 
 estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,
                           type="areas") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
-  theme_classic(20)+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~DEGREE")+
+  theme_classic(30)+
   xlim(-2,5)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/2_2_Fig2Ps..plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_2_Fig2Ps.plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_zobi_DEGREE.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot
 dev.off()
 
 estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="PREVALENCE SPECIES")+
-  theme_classic(20)+
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~DEGREE")+
+  theme_classic(30)+
   xlim(-2,5)+
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-png("results/selected_models_figures/2_2Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_degree_zobi.png",width = 3000, height = 3000, res = 300, units = "px")
+png("results/selected_models_figures/2_2Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_zobi_DEGREE.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
 
+###
+### Strenght 
+###
 
+ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi<-brms::brm((proportion_ectoparasites)~scale(w_degree_species)+ scale(elevation)+scale(sample_size)+scale(mass)+
+                                                                 (1|gr(species_jetz, cov = phy_cov))+
+                                                                 (1|species),
+                                                               data=ectos_birds_dff,
+                                                               #save_pars = save_pars(all=  TRUE), if i need to use moment match but makes the model heavier
+                                                               family= zero_one_inflated_beta(), # # this family is for proportions that include zeros and ones                                         
+                                                               data2 = list(phy_cov=phy_cov),
+                                                               save_pars = save_pars(all = TRUE),
+                                                               prior = c(prior_predictors,prior_random,prior_intercept,prior_phi),
+                                                               iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                               thin=2,
+                                                               control=list(adapt_delta=0.99, max_treedepth=14))
+
+
+saveRDS(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_STRENGHT_zobi.RDS")
+ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_STRENGHT_zobi.RDS")
+
+# Plots
+
+color_scheme_set("viridisE") 
+
+#model convergence 
+png("results/selected_models_figures/2_3Fig2Ps.plot_model_CONVERGENCE_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_STRENGHT.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi)
+dev.off()
+
+# model fit
+png("results/selected_models_figures/2_3Fig2Ps.plot_model_FIT_intervals_ecto_PREVALENCE_brms_bayes_no_int_SPECIES_zobi_STRENGHT.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~STRENGHT")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/2_3Fig2Ps.plot_model_parameters_PREVALENCE SPECIES_brms_bayes_no_int_zobi_STRENGHT.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~STRENGHT")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/2_3Fig2Ps..plot_model_parameters_intervals_PREVALENCE SPECIES_brms_bayes_no_int_zobi_STRENGHT.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
 
 
 
