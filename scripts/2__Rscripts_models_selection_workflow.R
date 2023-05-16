@@ -249,17 +249,29 @@ ectos_birds_dff %>%
 
 # DIVERSITY BY GROUP
 
+# mites
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_mites ) %>% 
-  na.omit()
+  select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_mites, total_no_feathers_mites ) %>% 
+  na.omit() %>% View()
+
+ectos_birds_dff%>% summarize(max=max(total_mites), mean=mean(total_mites), sd=sd(total_mites), min=min(total_mites))
+
+ectos_birds_dff%>% summarize(max=max(total_no_feathers_mites), mean=mean(total_no_feathers_mites), sd=sd(total_no_feathers_mites), min=min(total_no_feathers_mites))
+
 
 ectos_birds_dff %>% 
   filter(total_mites!=0) %>% 
   summarise(samples_mites=sum(!is.na(total_mites)), (p=samples_mites/831*100))
 
+
+# lice
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_lice ) %>% 
-  na.omit()
+  na.omit() %>% 
+  View()
+
+ectos_birds_dff%>% summarize(max=max(total_lice), mean=mean(total_lice), sd=sd(total_lice), min=min(total_lice))
+
 
 ectos_birds_dff %>% 
   filter(total_lice!=0) %>% 
@@ -276,109 +288,6 @@ names(ectos_birds_dff)
 ectos_birds_dff %>% 
   filter(Ticks!=0) %>% 
   summarise(samples_ticks=sum(!is.na(Ticks)), (p=samples_ticks/831*100))
-
-
-
-
-
-
-
-dim(ectos_birds_dff)
-
-
-ectos_df%>% group_by(Family,species_clean,species_jetz ) %>%  # we have abundance for 62 host social species and for 27 non social species  in manu
-  
-  
-  as.data.frame(unique( ectos_df$Family)) %>% View()
-ectos_df<-read.csv("data/5.ectos_pres_abs_df.csv") # data on presence absence
-ectos_df<-ectos_df%>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-View(ectos_df)
-ectos_df  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-non_social<-ectos_df %>% filter( sociality=="0") # we have OCURRENCE  for 88 host social species and for 45 non social species  in manu
-social<-ectos_df %>% filter( sociality=="1") # we have OCURRENCE for 88 host social species and for 45  non social species  in manu
-
-mean(non_social$sample_size)
-mean(social$sample_size)
-
-
-# Create  summary tables of bird species sample size and family and type of parasite
-names(ectos_df)
-families<-as.data.frame(ectos_df%>% group_by(BLFamilyLatin) %>% summarize(n())) 
-write.csv(families, "tables/1.Family_sample_size_manu.csv")
-individuals <-as.data.frame(ectos_df%>% group_by(species_clean) %>% summarize(n())) 
-write.csv(individuals, "tables/1.Individuals_sample_size_manu.csv")
-
-ectos_df%>% group_by(BLFamilyLatin, species_clean) %>% summarize(total=sum(bill_tidy))
-
-
-
-# Abundance 
-
-# Lice
-
-lice_df_abundance<-read.csv("data/7.lice_df_abundance.csv")
-# Keep data from Manu only ( Since I am not sure about iquitos metodology of parasite extraction)
-lice_df_abundance<-lice_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-lice_df_abundance<-lice_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
-
-lice_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-lice_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-lice_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-lice_df_abundance<-read.csv("data/5.lice_df_abundance_manu.csv") #  lice abundance manu only 
-
-lice_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-# Mean abundance
-mean_lice_abundance<-read.csv("data/5.lice_df_abundance_means.csv")
-mean_lice_abundance<-mean_lice_abundance %>% distinct( species_jetz,.keep_all = TRUE) # remove the species that are duplicated because they ocur at two elevations
-
-mean_lice_abundance %>% filter( sociality=="1") # we have abundance for 62 host social species and for 27 non social species  in mau
-mean_lice_abundance %>% filter( sociality=="0") # we have abundance for 62 host social species and for 27 non social species  in mau
-
-mean_lice_abundance  %>% group_by(sociality) %>% summarize(ave=sd(mean_lice)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-#Mites
-
-mites_df_abundance<-read.csv("data/7.mites_df_abundance.csv")
-names(mites_df_abundance)
-mites_df_abundance <-mites_df_abundance %>% filter(elevation_cat!="lowland_iquitos",elevation_cat!="other_iquitos")
-
-mites_df_abundance<-mites_df_abundance %>% distinct( species_jetz,.keep_all = TRUE)
-
-mites_df_abundance %>% filter( sociality=="0") %>% View()# we have abundance for  host social species and for  non social species  in manu
-mites_df_abundance %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-mites_df_abundance  %>% group_by(sociality) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-mites_df_abundance  %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-mites_df_abundance %>% group_by(sociality) %>% summarize(ave=sd(total_mites)) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
-
-###
-# Diversity
-##
-
-lice_richness_manu_sp<-read.csv("data/5.lice_richness_sp_df_manu.csv")
-lice_richness_manu_sp<-lice_richness_manu_sp %>% distinct( species_jetz,.keep_all = TRUE)
-
-lice_richness_manu_sp %>% filter( sociality=="0") %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% filter( sociality=="1") %>%  View() # we have abundance for  host social species and for 45 non social species  in manu
-
-lice_richness_manu_sp %>% filter( sociality=="0") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% filter( sociality=="1") %>% summarize(total_samples=sum(n_samples_lice))# we have abundance for 62 host social species and for 27 non social species  in manu
-
-lice_richness_manu_sp %>% group_by(elevation_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-lice_richness_manu_sp %>% group_by(foraging_cat) %>% summarize(total_samples=n()) %>% View()# we have abundance for 62 host social species and for 27 non social species  in manu
-
 
 
 # ##### 1.Data processing prevalence ectos ----------------------------------------------------
