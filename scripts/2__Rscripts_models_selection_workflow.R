@@ -3,7 +3,7 @@
 ### Part 1 Models selection workflow                                                                       ###
 ### R-code                                                                          ###
 ### Jenny Munoz      
-###
+### R version 4.2.2 (2022-10-31) $nickname [1] "Innocent and Trusting"
 ### Last update: March 2023                                                ###
 ################################################################################
 
@@ -68,7 +68,7 @@
 #Avoiding model refits in leave-one-out cross-validation with moment matching https://cran.r-project.org/web/packages/loo/vignettes/loo2-moment-matching.html
 # also important to check teh priors prior_summary()
 # 0.Libraries  --------------------------------------------------------------
-
+R.Version()
 # libraries for easier manipulation of data
 install.packages("pacman")
 library("pacman")
@@ -224,6 +224,24 @@ dim(ectos_birds_dff)
 unique(ectos_birds_dff$species_jetz)
 unique(ectos_birds_dff$family)
 
+# sociality
+ectos_birds_dff %>% 
+  group_by(sociality,species_jetz) %>% 
+  summarise(n=n(), P=(n()/871*100) )
+
+a<-ectos_birds_dff %>% group_by(species_jetz ) %>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), sociality=max(sociality)) 
+
+a %>% group_by(sociality) %>% 
+  summarise(n=n(), P=(n()/871*100) )
+
+ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
+  filter(sample_size>4) 
+
+pp_check()
+R.Version()
+
+
 # overall prevalence 
 ectos_birds_dff %>% 
   group_by(ectoparasites_PA) %>% 
@@ -252,7 +270,7 @@ ectos_birds_dff %>%
 # mites
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp, total_mites, total_no_feathers_mites ) %>% 
-  na.omit() %>% View()
+  na.omit() 
 
 ectos_birds_dff%>% summarize(max=max(total_mites), mean=mean(total_mites), sd=sd(total_mites), min=min(total_mites))
 
@@ -5246,6 +5264,12 @@ dev.off()
 dff_lice_diversity<-read.csv("data/data_manuscript/3_dff_ectos_diversity_species_prevalence_abundance_diversity_elevation_mass_FILE_TIDY.csv",na.strings =c("","NA"))%>% filter(total_sample_size>9)
 dff_lice_diversity$cumulative_richness[is.na(dff_lice_diversity$cumulative_richness)] = 0
 
+unique(dff_lice_diversity$cumulative_richness)
+unique(dff_lice_diversity$species_jetz)
+
+
+dff_lice_diversity %>% group_by(sociality) %>% 
+  summarize(n())
 
 # the phylo data
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
@@ -5314,6 +5338,28 @@ selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-brms::brm(cumulat
 
 saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+
+# similar analyses but with sample size 10 or more
+
+
+selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
+                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
+                                                                           scale(total_sample_size)+
+                                                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                           (1|species),
+                                                                         data=dff_lice_diversity,
+                                                                         family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
+                                                                         data2 = list(phy_cov=phy_cov),
+                                                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                         thin=2,
+                                                                         prior = c(prior_predictors,prior_random),
+                                                                         save_pars = save_pars(all=  TRUE),
+                                                                         control=list(adapt_delta=0.999, max_treedepth=14)) 
+
+
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+
 
 selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality+
                                                                            scale(elevation_midpoint)+scale(mass_tidy_species)+
