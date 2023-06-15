@@ -160,7 +160,7 @@ phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot)
 # #  Figure 2 #### --------------------------------------------------------------
 ###_###_###_###_###
 
-#  Figure 2 a PREVALENCE/INFECTION ***Selected***  ----------------------------
+# # Figure 2 a   INFECTION ***Selected***  ----------------------------
 
 # model 
 selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
@@ -200,8 +200,93 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality.pdf", plo
 bayes_R2() # R2 0.1529
 
 
+# # # Figure 2 a Infection Networks ---------------------------------------
+# model degree
+selected_ecto_p_brms_bayes_no_int_degree_prior<-readRDS("results/selected_models/4_1_M2PND_model_INFECTION_b_brms_phylo_multiple_obs_no_interactions_degree_prior_SELECTED_ind_mass_scaled.RDS")
 
-# Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
+
+estimates_plot_intervals<-mcmc_plot(selected_ecto_p_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="INFECTION ~DEGREE ")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2a2.Infection_sociality_degree_credible_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# Conditional effects for varaibles that are important predictors
+conditional<-conditional_effects(selected_ecto_p_brms_bayes_no_int_degree_prior)
+
+prevalence_seasonality_degree<-plot(conditional, plot = FALSE)[["year_seasonality"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality_degree.pdf", prevalence_seasonality_degree , height=10, width=10, units="in")
+
+prevalence_degree<-plot(conditional, plot = FALSE)[["degree"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Sociality degree")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_degree.pdf", prevalence_degree , height=10, width=10, units="in")
+
+#plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
+
+bayes_R2()
+# Model strength
+selected_ecto_p_brms_bayes_no_int_strength_prior<-readRDS("results/selected_models/4_1_2_M2PNS_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_STRENGTH_prior_SELECTED_ind_mass_scaled.RDS")
+bayes_R2(selected_ecto_p_brms_bayes_no_int_strength_prior)
+
+#PLOTS
+color_scheme_set("brightblue")
+
+estimates_plot_intervals<-mcmc_plot(selected_ecto_p_brms_bayes_no_int_strength_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="INFECTION ~STRENGTH ")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2a3.Infection_sociality_strength_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# Conditional effects for varaibles that are important predictors
+conditional<-conditional_effects(selected_ecto_p_brms_bayes_no_int_strength_prior)
+
+prevalence_seasonality_strength<-plot(conditional, plot = FALSE)[["year_seasonality"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality_strength.pdf", prevalence_seasonality_strength , height=10, width=10, units="in")
+
+prevalence_stregth<-plot(conditional, plot = FALSE)[["degree"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Sociality strength")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_strenght.pdf", prevalence_stregth , height=10, width=10, units="in")
+
+
+
+# # Figure 2 b Lice abundance -------------------------------------------
+# # # Figure 2 b Lice abundance Networks-------------------------------------------
+
+# # # Figure 2 c Mites ( non feather) abundance ---------------------------
+# # # Figure 2 c Mites ( non feather) abundance ---------------------------
+
+
+# # Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
 # model
 ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
 
@@ -282,6 +367,11 @@ estimates_plot_intervals
 dev.off()
 
 
+
+
+
+
+
 # # Figure 3  Supplementary mat #### --------------------------------------------------------------
 ###_###_###_###_###
 # Figure 3 a PREVALENCE/Infection ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
@@ -299,7 +389,6 @@ pp_check(selected_ecto_infection_brms_bayes_no_int, type = "dens_overlay", ndraw
 dev.off()
 
 # model estimates density
-
 estimates_plot<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,prob=0.90, prob_outer=0.95,
                           type="areas") +
   labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS INFECTION ")+
@@ -312,6 +401,68 @@ pdf(file="figures/figures_pdf_manuscript/FigureS3a.Infection_sociality_estimates
 estimates_plot
 dev.off()
 
+
+# Figure 3 a Infection Networks -------------------------------------------
+
+#PLOTS
+color_scheme_set("brightblue")
+
+# model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3a2.Infection_sociality_degree_convergence.pdf", width =15, height =10)
+plot(selected_ecto_p_brms_bayes_no_int_degree_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3a2.Infection_sociality_degree_fit.pdf", width =15, height =10)
+pp_check(selected_ecto_p_brms_bayes_no_int_degree_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+estimates_plot<-mcmc_plot(selected_ecto_p_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="INFECTION~DEGREE")+
+  theme_minimal(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3a2.Infection_sociality_degree_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+###_###_###_
+# MODEL STRENGHT
+###_###_###_
+
+color_scheme_set("brightblue")
+
+# model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3a3.Infection_sociality_strength_convergence.pdf", width =15, height =10)
+plot(selected_ecto_p_brms_bayes_no_int_strength_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3a3.Infection_sociality_strength_fit.pdf", width =10, height =10)
+pp_check(selected_ecto_p_brms_bayes_no_int_strength_prior, type = "dens_overlay", ndraws = 100)+ xlim(0,5)
+dev.off()
+
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+estimates_plot<-mcmc_plot(selected_ecto_p_brms_bayes_no_int_strength_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="INFECTION~STRENGTH")+
+  theme_minimal(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3a3.Infection_sociality_strength_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
 
 # Figure 3 d PREVALENCE ---------------------------------------------------
 #model convergence 

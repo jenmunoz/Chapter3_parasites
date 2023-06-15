@@ -646,7 +646,7 @@ prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure 
 # EXCLUDED POWDER LEVEL BECAUSE IT DOES NOT SIGNIFICANTLY IMPROVE MODEL FIT # alternatively use the model ecto_p_brms_bayes_no_int_prior
 
 
-selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
+selected_ecto_infection_brms_bayes_no_int2<-brms::brm(ectoparasites_PA~sociality+
                                                        scale(elevation)+ scale(year_seasonality)+
                                                        scale(mass_tidy_species)+(mass_ind_comp)+
                                                        (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
@@ -658,12 +658,12 @@ selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
                                              iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                              thin=2,
                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
-saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
-selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+saveRDS(selected_ecto_infection_brms_bayes_no_int2,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+selected_ecto_infection_brms_bayes_no_int2<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
 
 
 
-selected_ecto_infection_brms_bayes_no_int2<-brms::brm(ectoparasites_PA~sociality+
+selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
                                                        scale(elevation)+ scale(year_seasonality)+
                                                        scale(mass_tidy_species)+scale(mass_ind_comp)+
                                                        (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
@@ -677,7 +677,8 @@ selected_ecto_infection_brms_bayes_no_int2<-brms::brm(ectoparasites_PA~sociality
                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
 
 
-saveRDS(selected_ecto_infection_brms_bayes_no_int2,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
+saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
+selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
 
 
 ###_###_###_##
@@ -830,10 +831,7 @@ ecto_p_brms_bayes_no_int_species_priors_zobi<-brms::brm((proportion_ectoparasite
 saveRDS(ecto_p_brms_bayes_no_int_species_priors_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
 ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
 
-
-
 loo(ecto_p_brms_bayes_no_int_species_priors_zobi)
-
 
 #PLOTS
 plot(conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zib, dpar="mu"), 
