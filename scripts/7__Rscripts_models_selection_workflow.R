@@ -1930,11 +1930,6 @@ yrepnzb <- posterior_predict(brm_glmznb)
 (max_test_nb <- pp_check(stan_glmnb, plotfun = "stat", stat = "max"))
 
 
-
-
-
-
-
 # ##### 3.1.Data processing abundance mites ----------------------------------------------------
 
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
@@ -2583,7 +2578,7 @@ selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mi
 
 
 saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED.RDS")
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior.RDS")
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED.RDS")
 
 
 selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
@@ -2600,8 +2595,13 @@ selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-brms::brm(total_no_feathers_m
                                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
 
 saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
-
-# plots 
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
+        
+bayes_R2(selected_zinb_a_nf_mites_brms_bayes_no_int_prior)
+loo(selected_zinb_a_nf_mites_brms_bayes_no_int_prior,selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, compare = TRUE)
+        
+        
+  # plots 
 color_scheme_set("green") 
 
 # poisson 
@@ -4277,7 +4277,6 @@ estimates_plot_intervals
 dev.off()
 
 # ##### 6.1.Data processing NETWORKS abundance mites ----------------------------------------------------
-
 
 # Mites
 dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv",na.strings =c("","NA")) %>% 

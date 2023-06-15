@@ -199,7 +199,6 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality.pdf", plo
 
 bayes_R2() # R2 0.1529
 
-
 # # # Figure 2 a Infection Networks ---------------------------------------
 # model degree
 selected_ecto_p_brms_bayes_no_int_degree_prior<-readRDS("results/selected_models/4_1_M2PND_model_INFECTION_b_brms_phylo_multiple_obs_no_interactions_degree_prior_SELECTED_ind_mass_scaled.RDS")
@@ -279,11 +278,42 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_strenght.pdf", preval
 
 
 
-# # Figure 2 b Lice abundance -------------------------------------------'
+# # # Figure 2 b Lice abundance -------------------------------------------
+# the model
+selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
+###_###_###_##
+#PLOTS
+###_###_###_##
 
+color_scheme_set("teal")
 
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ZINB LICE ABUNDANCE ")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
 
+pdf(file="figures/figures_pdf_manuscript/Figure2b1.Lice_abundance_sociality_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
 
+# Conditional effects for varaibles tahta are important predictors
+#prevalence_seasonality<-conditional_effects(selected_ecto_infection_brms_bayes_no_int, "year_seasonality",points=TRUE, rug=TRUE)
+conditional<-conditional_effects(selected_zinb_a_lice_brms_bayes_no_int_priors)
+
+lice_body_mass<-plot(conditional, plot = FALSE)[["mass_tidy_species"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Host body mass")+
+  ylab("Lice abundance")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2b4.lice_and_body_mass.pdf", plot=lice_body_mass , height=10, width=10, units="in")
+
+#plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
+
+bayes_R2() # R2 0.1529
 
 # # # Figure 2 b Lice abundance Networks-------------------------------------------
 
@@ -330,7 +360,41 @@ pdf(file="figures/figures_pdf_manuscript/Figure2b3.Lice_abundance_sociality_stre
 estimates_plot_intervals
 dev.off()
 # # # Figure 2 c Mites (no-feather) abundance ---------------------------
-# # # Figure 2 c Mites (no-feather) abundance ---------------------------
+# model 
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
+
+# plots 
+color_scheme_set("green") 
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title=" Posterior distributions with medians and 95% intervals ", subtitle ="ZINB MITES ABUNDANCE ")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2c1.Mites_abundance_sociality_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# # Conditional effects for varaibles tahta are important predictors
+#prevalence_seasonality<-conditional_effects(selected_ecto_infection_brms_bayes_no_int, "year_seasonality",points=TRUE, rug=TRUE)
+conditional<-conditional_effects(selected_zinb_a_nf_mites_brms_bayes_no_int_prior)
+
+mites_elevation<-plot(conditional, plot = FALSE)[["elevation"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Elevation")+
+  ylab("Mites abundance")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2c4.Mice_and_elevation.pdf", plot=mites_elevation , height=10, width=10, units="in")
+
+#plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
+
+
+
+# # # Figure 2 c Mites (no-feather) abundance Networks---------------------------
 
 
 # # Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
@@ -510,6 +574,33 @@ dev.off()
 
 
 # Figure 3 b Lice abundance  ------------------------------------------
+selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
+
+color_scheme_set("teal")
+
+# model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3b1.Lice_abundance_sociality_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_lice_brms_bayes_no_int_priors)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3b1.Lice_abundance_sociality_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_lice_brms_bayes_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+# estimates
+estimates_plot<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_priors,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ZINB LICE ABUNDANCE ")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3b1.Lice_abundance_sociality_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
 # # Figure 3 b Lice abundance Networks -----------------------------------------------
 
 # DEGREE 
@@ -541,6 +632,19 @@ pdf(file="figures/figures_pdf_manuscript/FigureS3b2.Lice_abundance_sociality_deg
 estimates_plot
 dev.off()
 
+#conditional effects
+
+conditional<-conditional_effects(selected_zinb_a_lice_brms_bayes_no_int_degree_prior)
+
+lice_body_mass_degree<-plot(conditional, plot = FALSE)[["mass_tidy_species"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Host body mass")+
+  ylab("Lice abundance")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2b4.lice_and_body_mass_degreemodel.pdf", lice_body_mass_degree , height=10, width=10, units="in")
+
+
 # STRENGTH 
 
 #model convergence 
@@ -566,6 +670,37 @@ estimates_plot<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_strength_prior,
 pdf(file="figures/figures_pdf_manuscript/FigureS3b3.Lice_abundance_sociality_strength_estimates.pdf", width =15, height =10)
 estimates_plot
 dev.off()
+
+
+
+
+# # # Figure 3 c Mites abundance ------------------------------------------
+
+color_scheme_set("green") 
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3c1.Mites_abundance_sociality_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_nf_mites_brms_bayes_no_int_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3c1.Mites_abundance_sociality_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+#ESTIMATES
+estimates_plot<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title=" Posterior distributions with medians and 95% intervals ", subtitle ="ZINB MITES ABUNDANCE  ")+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3c1.Mites_abundance_sociality_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+# # # Figure 3 Mites abundance networks -----------------------------------
 
 
 # Figure 3 d PREVALENCE ---------------------------------------------------
