@@ -359,7 +359,7 @@ estimates_plot_intervals<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_stren
 pdf(file="figures/figures_pdf_manuscript/Figure2b3.Lice_abundance_sociality_strength_intervals.pdf", width =15, height =10)
 estimates_plot_intervals
 dev.off()
-# # # Figure 2 c Mites (no-feather) abundance ---------------------------
+# #  Figure 2 c Mites (no-feather) abundance ---------------------------
 # model 
 selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
 
@@ -392,9 +392,60 @@ ggsave("figures/figures_pdf_manuscript/Figure2c4.Mice_and_elevation.pdf", plot=m
 
 #plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
 
-
-
 # # # Figure 2 c Mites (no-feather) abundance Networks---------------------------
+
+# model degree
+selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior<-readRDS( "results/selected_models/4_3_3_M2MND_model_MITES_ABUNDANCE_nb_brms_phylo_multiple_obs_no_interactions_degree_prior_individual_mass_scaled.RDS")
+###_###_###_##
+#PLOTS
+###_###_###_##
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title=" Posterior distributions with medians and 95% intervals", subtitle ="ZINB MITES ABUNDANCE ~DEGREE")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2c2.Mites_abundance_sociality_degree_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# # Conditional effects for varaibles tahta are important predictors
+#prevalence_seasonality<-conditional_effects(selected_ecto_infection_brms_bayes_no_int, "year_seasonality",points=TRUE, rug=TRUE)
+conditional<-conditional_effects(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior)
+
+mites_elevation_degree<-plot(conditional, plot = FALSE)[["elevation"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Elevation")+
+  ylab("Mites abundance")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2c4.Mice_and_elevation_degreemodel.pdf", plot=mites_elevation , height=10, width=10, units="in")
+
+
+###_###_###_###_###_###_###_###_###_###_
+#Model strength 
+###_###_###_###_###_###_###_###_###_###_
+
+selected_zinb_a_nf_mites_brms_bayes_no_int_strength_prior<-readRDS( "results/selected_models/4_3_4_M2MND_model_MITES_ABUNDANCE_nb_brms_phylo_multiple_obs_no_interactions_strength_prior.RDS")
+
+#PLOTS
+###_###_###_##
+color_scheme_set("green")
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title=" Posterior distributions with medians and 95% intervals", subtitle ="ZINB MITES ABUNDANCE ~STRENGTH")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2c3.Mites_abundance_sociality_degree_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
 
 
 # # Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
@@ -428,7 +479,7 @@ prevalence_conditional<-plot(conditional, plot = FALSE)[[""]] +
   theme_classic(30)
 ggsave("figures/figures_pdf_manuscript/Figure2d4.Prevalence_conditional.pdf", plot=prevalence_seasonality , height=10, width=10, units="in")
 
-# # Figure 2 d Prevalence Networks  ----------------------------------------
+# # #Figure 2 d Prevalence Networks  ----------------------------------------
 # model degree
 ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
 
@@ -474,6 +525,72 @@ estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_w_de
   xlab("Estimate")
 
 pdf(file="figures/figures_pdf_manuscript/Figure2d3.Prevalence_socialitystrength_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+
+
+# # # Figure 2e Lice richness --------------------------------------------
+
+selected_poisson_lice_diversity_sociality_no_int_priors<-readRDS( "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated.RDS")
+
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY ")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2e1.LiceRichness_sociality_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+
+
+
+# # # Figure 2e Lice richness Networks--------------------------------------------
+
+# I am using the non truncated model because truccated keepp giving me many divergent transitions
+# model degree
+selected_poisson_lice_diversity_degree_no_int_priors<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
+
+color_scheme_set("red") 
+
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY~DEGREE ")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2e2.LiceRichness_sociality_degree_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+bayes_R2(selected_poisson_lice_diversity_degree_no_int_priors)
+
+# model strength
+###
+#Strength 
+###
+#the model
+
+selected_poisson_lice_diversity_w_degree_no_int_priors<-readRDS( "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
+
+color_scheme_set("red") 
+
+# intervals
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_w_degree_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY ~W_degree")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2e3.LiceRichness_socialitySTRENGTH_intervals.pdf", width =15, height =10)
 estimates_plot_intervals
 dev.off()
 
@@ -702,6 +819,61 @@ dev.off()
 
 # # # Figure 3 Mites abundance networks -----------------------------------
 
+# degree
+selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior<-readRDS( "results/selected_models/4_3_3_M2MND_model_MITES_ABUNDANCE_nb_brms_phylo_multiple_obs_no_interactions_degree_prior_individual_mass_scaled.RDS")
+
+color_scheme_set("green")
+
+# model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3c2.Mites_abundance_sociality_degree_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3c2.Mites_abundance_sociality_degree_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+#ESTIMATES
+estimates_plot<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title=" Posterior distributions with medians and 95% intervals", subtitle ="ZINB MITES ABUNDANCE ~DEGREE")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3c2.Mites_abundance_sociality_degree_intervals.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+# strength
+# model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3c3.Mites_abundance_sociality_degree_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3c3.Mites_abundance_sociality_degree_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title=" Posterior distributions with medians and 95% intervals", subtitle ="ZINB MITES ABUNDANCE ~STRENGTH")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3c3.Mites_abundance_sociality_degree_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+
 
 # Figure 3 d PREVALENCE ---------------------------------------------------
 #model convergence 
@@ -803,5 +975,108 @@ dev.off()
 
 
 
+
+
+
+
+
+# # # FIgure 3 e Lice richness  -------------------------------------------
+color_scheme_set("red") 
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3e1.LiceRichness_sociality_convergence.pdf", width =15, height =10)
+plot(selected_poisson_lice_diversity_sociality_no_int_priors)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigurS3e1.LiceRichness_sociality_fit.pdf", width =15, height =10)
+pp_check(selected_poisson_lice_diversity_sociality_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+
+#ESTIMATES
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3e1.LiceRichness_sociality_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+# # # Figure 3 e Lice Richness NetworKs --------------------------------------------
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3e2.LiceRichness_socialitydegree_convergence.pdf", width =15, height =10)
+plot(selected_poisson_lice_diversity_degree_no_int_priors_trunc)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3e2.LiceRichness_socialitydegree_fit.pdf", width =15, height =10)
+pp_check(selected_poisson_lice_diversity_degree_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors_trunc,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ~DEGREE")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3e2.LiceRichness_socialitydegree_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+###
+#Strength 
+###
+#the model
+
+selected_poisson_lice_diversity_w_degree_no_int_priors<-readRDS( "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
+
+color_scheme_set("red") 
+
+# intervals
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_w_degree_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY ~W_degree")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2e3.LiceRichness_socialitySTRENGTH_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3e3.LiceRichness_socialityStrength_convergence.pdf", width =15, height =10)
+plot(selected_poisson_lice_diversity_w_degree_no_int_priors)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3e3.LiceRichness_socialityStrength_fit.pdf", width =15, height =10)
+pp_check(selected_poisson_lice_diversity_w_degree_no_int_priors, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_w_degree_no_int_priors,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ~W DEGREE")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3e3.LiceRichness_socialityStrength_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
 
 
