@@ -637,7 +637,7 @@ dev.off()
 
 
 
-# # ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
+# PREVALENCE ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
 
 # PRIORS SPECIFICATON 
 
@@ -744,7 +744,7 @@ bayes_R2(selected_ecto_infection_brms_bayes_no_int)
 
 # half student only allows positive values
 
-# 1.Data processing and  model selection for prevalence species level (zero_one_beta) --------
+# ######1.Data processing and  model selection for prevalence species level (zero_one_beta) --------
 # Our prevalence data has an extra complication and is thatit has ones while beta does not allow u to model proportion that reach one
 # I found this solutions and decided to implement 1- response ( but phi does not converge), as that will just model the probability of not getting infecteda https://github.com/paul-buerkner/brms/issues/942
 
@@ -1811,7 +1811,7 @@ yrepnzb <- posterior_predict(brm_glmznb)
 
 
 
-# # ###### 2.4 ***Selected*** model abundance lice included body mass ---------------
+# ABUNDANCE ###### 2.4 ***Selected*** model abundance lice included body mass ---------------
 
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
 prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
@@ -2561,7 +2561,7 @@ dev.off()
 
 
 
-# ####### 3.4 ***Selected*** model abundance mites included body mass ---------------
+# ABUNDANCE ####### 3.4 ***Selected*** model abundance mites included body mass ---------------
 #Priors
 
 prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
@@ -4111,7 +4111,7 @@ png("figures/figures_manuscript/models_selected_figures/best_models/Fig2LNS_BEST
 estimates_plot_intervals
 dev.off()
 
-# 5.7 **** Selected**** model abundance lice NETWORKS degree and strength --------
+# NETWORK ABUNDANCE  5.7 **** Selected**** model abundance lice NETWORKS degree and strength --------
 
 ###_###_###_###_###_###_###_###_###_###_
 #LICE ABUNDANCE DEGREE###
@@ -4925,7 +4925,7 @@ dev.off()
 
 
 
-# # #### 6.7****Selected ****model NETWORKS and mites abundance mass---------
+# NETWORK ABUNDANCE # #### 6.7****Selected ****model NETWORKS and mites abundance mass---------
 
 ###_###_###_###_###_###_###_###_###_###_
 #MITES ABUNDANCE DEGREE###
@@ -5339,9 +5339,29 @@ selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-brms::brm(cumulat
 saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 
+#### non trncuating the distribution 
+
+
+selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality+
+                                                                     scale(elevation_midpoint)+scale(mass_tidy_species)+
+                                                                     (1|total_sample_size)+
+                                                                     (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                     (1|species),
+                                                                   data=dff_lice_diversity,
+                                                                   family=poisson(),  #zero_inflated_negbinomial()
+                                                                   data2 = list(phy_cov=phy_cov),
+                                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                   thin=2,
+                                                                   prior = c(prior_predictors,prior_random),
+                                                                   save_pars = save_pars(all=  TRUE),
+                                                                   control=list(adapt_delta=0.999, max_treedepth=14)) 
+
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated.RDS")
+
 # similar analyses but with sample size 10 or more
 
-
+sd(scale(dff_lice_diversity$mass_tidy_species))
+sd()
 selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
                                                                            scale(elevation_midpoint)+scale(mass_tidy_species)+
                                                                            scale(total_sample_size)+
@@ -5357,25 +5377,10 @@ selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10<-brms::br
                                                                          control=list(adapt_delta=0.999, max_treedepth=14)) 
 
 
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
-selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
+selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
 
 
-selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality+
-                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
-                                                                           (1|total_sample_size)+
-                                                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                           (1|species),
-                                                                         data=dff_lice_diversity,
-                                                                         family=poisson(),  #zero_inflated_negbinomial()
-                                                                         data2 = list(phy_cov=phy_cov),
-                                                                         iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                         thin=2,
-                                                                         prior = c(prior_predictors,prior_random),
-                                                                         save_pars = save_pars(all=  TRUE),
-                                                                         control=list(adapt_delta=0.999, max_treedepth=14)) 
-
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc3, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_truncated_at3.RDS")
 
 
 simulate_residuals <- dh_check_brms(selected_poisson_lice_diversity_sociality_no_int_priors_trunc2, integer = TRUE)
