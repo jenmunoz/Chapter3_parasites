@@ -160,7 +160,7 @@ phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot)
 # #  Figure 2 #### --------------------------------------------------------------
 ###_###_###_###_###
 
-# # Figure 2 a   INFECTION ***Selected***  ----------------------------
+# # Figure 2 a  INFECTION ***Selected***  ----------------------------
 
 # model 
 selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
@@ -279,11 +279,58 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_strenght.pdf", preval
 
 
 
-# # Figure 2 b Lice abundance -------------------------------------------
+# # Figure 2 b Lice abundance -------------------------------------------'
+
+
+
+
+
 # # # Figure 2 b Lice abundance Networks-------------------------------------------
 
-# # # Figure 2 c Mites ( non feather) abundance ---------------------------
-# # # Figure 2 c Mites ( non feather) abundance ---------------------------
+####
+# Model degree
+###
+selected_zinb_a_lice_brms_bayes_no_int_degree_prior<-readRDS ("results/selected_models/4_3_M2LND.model_lICE_ABUNDANCE_b_brms_phylo_multiple_obs_no_interactions_DEGREE_prior_ind_mass_scaled.RDS")
+###The best model is the zero inflated negatve binomialr 
+
+# plots 
+color_scheme_set("teal") 
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle =" ZINB LICE ABUNDANCE DEGREE ")+
+  xlim(-5,5)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2b2.Lice_abundance_sociality_degree_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+####
+# Model strength
+###
+
+selected_zinb_a_lice_brms_bayes_no_int_strength_prior<-readRDS("results/selected_models/4_3_2_M2LNS.model_lICE_ABUNDANCE_b_brms_phylo_multiple_obs_no_interactions_STRENGTH_prior_ind_mass_scaled.RDS")
+###_###_###_###_###_###_###_###_###_###_
+###The best model is the zero inflated negatve binomialr 
+
+# plots 
+color_scheme_set("teal") 
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_strength_prior,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle =" ZINB LICE ABUNDANCE STRENGTH ")+
+  xlim(-5,5)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2b3.Lice_abundance_sociality_strength_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+# # # Figure 2 c Mites (no-feather) abundance ---------------------------
+# # # Figure 2 c Mites (no-feather) abundance ---------------------------
 
 
 # # Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
@@ -369,9 +416,6 @@ dev.off()
 
 
 
-
-
-
 # # Figure 3  Supplementary mat #### --------------------------------------------------------------
 ###_###_###_###_###
 # Figure 3 a PREVALENCE/Infection ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
@@ -402,7 +446,7 @@ estimates_plot
 dev.off()
 
 
-# Figure 3 a Infection Networks -------------------------------------------
+#  #Figure 3 a Infection Networks -------------------------------------------
 
 #PLOTS
 color_scheme_set("brightblue")
@@ -463,6 +507,66 @@ estimates_plot<-mcmc_plot(selected_ecto_p_brms_bayes_no_int_strength_prior,prob=
 pdf(file="figures/figures_pdf_manuscript/FigureS3a3.Infection_sociality_strength_estimates.pdf", width =15, height =10)
 estimates_plot
 dev.off()
+
+
+# Figure 3 b Lice abundance  ------------------------------------------
+# # Figure 3 b Lice abundance Networks -----------------------------------------------
+
+# DEGREE 
+
+# plots 
+color_scheme_set("teal") 
+# poisson 
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3b2.Lice_abundance_sociality_degree_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_lice_brms_bayes_no_int_degree_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3b2.Lice_abundance_sociality_degree_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_lice_brms_bayes_no_int_degree_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+dev.off()
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_degree_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle =" ZINB LICE ABUNDANCE DEGREE ")+
+  xlim(-5,5)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3b2.Lice_abundance_sociality_degree_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+# STRENGTH 
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3b3.Lice_abundance_sociality_strength_convergence.pdf", width =15, height =10)
+plot(selected_zinb_a_lice_brms_bayes_no_int_strength_prior)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3b3.Lice_abundance_sociality_strength_fit.pdf", width =15, height =10)
+pp_check(selected_zinb_a_lice_brms_bayes_no_int_strength_prior, type = "dens_overlay", ndraws = 100)+ xlim(0, 50)
+dev.off()
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_zinb_a_lice_brms_bayes_no_int_strength_prior,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle =" ZINB LICE ABUNDANCE STRENGTH ")+
+  xlim(-5,5)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3b3.Lice_abundance_sociality_strength_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
 
 # Figure 3 d PREVALENCE ---------------------------------------------------
 #model convergence 
