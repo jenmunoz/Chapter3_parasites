@@ -4,7 +4,7 @@
 ### R-code                                                                          ###
 ### Jenny Munoz      
 ### R version 4.2.2 (2022-10-31) $nickname [1] "Innocent and Trusting"
-### Last update: March 2023                                                ###
+### Last update: June 14 2023                                                ###
 ################################################################################
 
 # Underestanding parameters in brms models https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
