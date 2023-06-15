@@ -5,7 +5,9 @@
 ### Jenny Munoz                                                                     ###
 ### Last update: Nov 2022                                                     ###
 ################################################################################
-# #### 4.Descriptive statistiscs plots -------------------------------------
+#  Figure 1####  -------------------------------------
+# Phylogeny and ectoparasites plots for figure 1
+# ### #### #### #### #### #### #### ### 
 
 ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
   select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, total_lice, total_no_feathers_mites ) %>% 
@@ -51,6 +53,9 @@ order<-(as.data.frame(phylo$tip.label)) # list of specie sin phylogenetic order
 
 # The phylogenetic plot with prevalence 
 
+# ### ### ###
+### Figure 1a
+# ### ### ###
 #tree_plot <- ggtree(phylo, ladderize=FALSE) + geom_tiplab() + ggplot2::xlim(0, 450)
 
 ColorPalette <- brewer.pal(n = 9, name = "YlGnBu")
@@ -62,17 +67,17 @@ object_color<-setMap(tree_plot_ectos, ColorPalette)
 tree_plot_sociality<-dotTree(phylo,fmode,colors=setNames(c("yellow","black"), c("1","0")),ftype="i",fsize=0.5, lwd=4) 
 plot(tree_plot_sociality)
 # 
-png("figures/figures_manuscript/Fig1.PhyloTree_prevalence>4.png", width = 2500, height = 3100, res = 300, units = "px")
-plot(dotTree(phylo,fmode,colors=setNames(c("#FF6633","#CCCCCC"),c("1","0")),ftype="i",fsize=0.7, lwd=4),text(x=10,y=-5,"Mixed-species flocks",pos=1))
-plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.5,
+#png("figures/figures_pdf_manuscript/Fig1.PhyloTree_prevalence.pdf", width = 2500, height = 3100, res = 300, units = "px")
+
+pdf(file="figures/figures_pdf_manuscript/Figure1a.PhyloTree_ectos_prevalence.pdf", width =10, height =10)
+plot(dotTree(phylo,fmode,colors=setNames(c("#FF6633","#CCCCCC"),c("1","0")),ftype="i",fsize=0.8, lwd=4),text(x=10,y=-3,"Mixed-species flocks",pos=1,lwd=8,fsize=2))
+plot(object_color$tree,colors=object_color$cols,add=TRUE,ftype="off",lwd=5,fsize=0.8,
      xlim=get("last_plot.phylo",envir=.PlotPhyloEnv)$x.lim,
      ylim=get("last_plot.phylo",envir=.PlotPhyloEnv)$y.lim)
-add.color.bar(10, object_color$cols, title = "", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-5, lwd=4,fsize=1,subtitle="Ectoparasites Prevalence",pos=4)
+add.color.bar(15, object_color$cols, title = "Ectoparasite Prevalence", lims = object$lims, digits = 3, prompt=FALSE,x=70,y=-3, lwd=10,fsize=1, subtitle="Ectoparasite Prevalence")
 dev.off()
 
 unique( ectos_birds_dff_PA_species$species_jetz)
-
-phylo_mite_lice_plot <- lice_load_plot %>% insert_right(mites_load_plot) 
 
 
 #ggsave("figures/figures_manuscript/Fig1b__mite_lice_plot.png", plot=phylo_mite_lice_plot, height=10, width=12, units="in")
@@ -90,44 +95,74 @@ phylo_mite_lice_plot <- lice_load_plot %>% insert_right(mites_load_plot)
 unique(ectos_birds_df$total_lice)
 log1p(62)
 
+names(ectos_birds_df)
+
 lice_load_plot <- ggplot(ectos_birds_df, aes(x =log1p(total_lice), y =species_jetz)) +
   coord_cartesian(clip = "off") +
-  geom_jitter(alpha=0.4, col="darkcyan")+
+  geom_jitter(width = 0.02,alpha=0.6,size=3, col="darkcyan")+
   #scale_x_continuous(trans="log1p",breaks=c(0, 1, 5, 10,15, 20,50))+ # log1p allows the calcualtion of log of values >0
   #scale_x_continuous(trans="log1p",breaks=c(0, 1, 2,5, 10, 25, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
-  ylab("") + xlab("log1p (Lice per individual)") +
+  ylab("") + xlab("log1p (Lice per individual host)") +
   theme_ridges(center_axis_labels = TRUE) +
   theme_classic(10)+
-  theme(panel.grid.major.y = element_line( size=.05, color="grey"))
+  theme(panel.grid.major.y = element_line( size=.01, color="grey100"))
 
 lice_load_plot[["data"]][["species_jetz"]]
 
 mites_load_plot<- ggplot(data = ectos_birds_df, aes(x=log1p(total_no_feathers_mites), y=species_jetz)) + 
  coord_cartesian(clip = "off") +
- geom_jitter(alpha=0.4, col="olivedrab") + 
+ geom_jitter(width = 0.02, alpha=0.6,size=3, col="seagreen") + 
   #geom_boxplot(outlier.alpha=0) +
   #geom_point(data=ectos_birds_dff_mean, shape=124, size=1.5,aes(y=species_jetz, x=mean_nf_mites))+
   #scale_x_continuous(breaks=c(0, 1, 5, 10, 20, 30,40, 50, 100, 200, 300)) +
   scale_y_discrete(limits=order$`phylo$tip.label`) +
   theme_ridges(center_axis_labels = TRUE) + 
   ylab("") +
-  xlab("log1p (Mites per individual)") +
+  xlab("log1p (Mites per individual host)") +
   theme_classic(10)+
-  theme(panel.grid.major.y = element_line( size=.05, color="grey"))
-
   theme( axis.text.y=element_blank(),
          axis.title.y=element_blank(),
-         panel.grid.major.y = element_line( size=.05, color="grey"))
+         panel.grid.major.y = element_line( size=.01, color="grey100"))
 
 
+dff_lice_diversity<-read.csv("data/data_manuscript/3_dff_ectos_diversity_species_prevalence_abundance_diversity_elevation_mass_FILE_TIDY.csv",na.strings =c("","NA"))%>% filter(total_sample_size>9)
+dff_lice_diversity$cumulative_richness[is.na(dff_lice_diversity$cumulative_richness)] = 0
+
+richness_load_plot<- ggplot(data = dff_lice_diversity, aes(x=(cumulative_richness), y=species_jetz)) + 
+  coord_cartesian(clip = "off") +
+  geom_jitter(width = 0.01, alpha=0.6, size=3, col="orange3") + 
+  #geom_boxplot(outlier.alpha=0) +
+  #geom_point(data=ectos_birds_dff_mean, shape=124, size=1.5,aes(y=species_jetz, x=mean_nf_mites))+
+  #scale_x_continuous(breaks=c(0, 1, 5, 10, 20, 30,40, 50, 100, 200, 300)) +
+  scale_y_discrete(limits=order$`phylo$tip.label`) +
+  theme_ridges(center_axis_labels = TRUE) + 
+  ylab("") +
+  xlab("Lice genera per host species") +
+  theme_classic(10)+
+  theme( axis.text.y=element_blank(),
+         axis.title.y=element_blank(),
+         panel.grid.major.y = element_line( size=.01, color="grey100"))
 #  remove this part to make sure teh species are in the same orderto eliminate the species names in the axes once we know the order is correct use
 theme(
   axis.text.y=element_blank(),
   axis.title.y=element_blank())
+# the plot integrating the three plots
+
+
+# ### ### ###
+### Figure 1b
+# ### ### ###
+phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot) %>% insert_right(richness_load_plot)
+
+ggsave("figures/figures_pdf_manuscript/Figure1b.phylo_mite_lice_richness_plot.pdf", plot=phylo_mite_lice_richness_plot , height=10, width=10, units="in")
+phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot) %>% insert_right(richness_load_plot)
 
 
 
 
+
+
+# # Figure 2 --------------------------------------------------------------
 
 

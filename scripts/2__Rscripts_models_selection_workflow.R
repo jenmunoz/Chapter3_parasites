@@ -315,8 +315,6 @@ ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abund
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
 
 
-
-
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
 
 # Data structure
