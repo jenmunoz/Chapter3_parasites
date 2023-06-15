@@ -157,18 +157,18 @@ ggsave("figures/figures_pdf_manuscript/Figure1b.phylo_mite_lice_richness_plot.pd
 phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot) %>% insert_right(richness_load_plot)
 
 
-# # Figure 2 #### --------------------------------------------------------------
+# #  Figure 2 #### --------------------------------------------------------------
 ###_###_###_###_###
 
-# Figure 2 a PREVALENCE ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
+#  Figure 2 a PREVALENCE/INFECTION ***Selected***  ----------------------------
 
 # model 
-selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
 
 # plots
-color_scheme_set("blue")
+color_scheme_set("brightblue")
 
-#ECreible intervals
+#Credible intervals
 # Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
 
 estimates_plot_intervals<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,prob=0.90, prob_outer=0.95,point_est = "mean",
@@ -179,27 +179,122 @@ estimates_plot_intervals<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,pr
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-pdf(file="figures/figures_pdf_manuscript/FigureS3.Prevalence_sociality_credible)intervals.pdf", width =10, height =10)
+pdf(file="figures/figures_pdf_manuscript/Figure2a1.Infection_sociality_credible_intervals.pdf", width =15, height =10)
 estimates_plot_intervals
 dev.off()
 
-bayes_R2(selected_ecto_infection_brms_bayes_no_int)
+# Conditional effects for varaibles tahta are important predictors
+#prevalence_seasonality<-conditional_effects(selected_ecto_infection_brms_bayes_no_int, "year_seasonality",points=TRUE, rug=TRUE)
+conditional<-conditional_effects(selected_ecto_infection_brms_bayes_no_int)
 
-# half student only allows positive values
+prevalence_seasonality<-plot(conditional, plot = FALSE)[["year_seasonality"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality.pdf", plot=prevalence_seasonality , height=10, width=10, units="in")
 
-# # Figure 3  Suplementary#### --------------------------------------------------------------
+#plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
+
+bayes_R2() # R2 0.1529
+
+
+
+# Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
+# model
+ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
+
+# Plots
+color_scheme_set("orange") 
+
+# Credible intervals
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2d1.Prevalence_sociality_credible_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# Conditional effects [ No predictor was considered important ]
+conditional<-conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zobi)
+
+prevalence_conditional<-plot(conditional, plot = FALSE)[[""]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2d4.Prevalence_conditional.pdf", plot=prevalence_seasonality , height=10, width=10, units="in")
+
+# # Figure 2 d Prevalence Networks  ----------------------------------------
+# model degree
+ecto_p_brms_bayes_no_int_species_priors_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_DEGREE_zobi.RDS")
+
+# Plots
+color_scheme_set("orange") 
+
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~DEGREE")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2d2.Prevalence_socialitydegree_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# Conditional effects [ No predictor was considered important ]
+conditional<-conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zobi)
+
+prevalence_conditional<-plot(conditional, plot = FALSE)[[""]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Ectoparasite infection")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2d5.Prevalence_conditional.pdf", plot=prevalence_seasonality , height=10, width=10, units="in")
+
+###_###_###_###
+# model strength 
+ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_STRENGHT_zobi.RDS")
+
+# Plots
+color_scheme_set("orange") 
+
+estimates_plot_intervals<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~STRENGHT")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2d3.Prevalence_socialitystrength_intervals.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+
+# # Figure 3  Supplementary mat #### --------------------------------------------------------------
 ###_###_###_###_###
-# Figure 3 a PREVALENCE ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
+# Figure 3 a PREVALENCE/Infection ####### 1.3 ***Selected*** model prevalence ectos INFECTION (included mass) ----------------------------
 
 # plots
-color_scheme_set("blue")
+color_scheme_set("brightblue")
 # model convergence 
-pdf(file="figures/figures_pdf_manuscript/FigureS3.Prevalence_sociality_convergence.pdf", width =10, height =10)
+pdf(file="figures/figures_pdf_manuscript/FigureS3a.Infection_sociality_convergence.pdf", width =20, height =10)
 plot(selected_ecto_infection_brms_bayes_no_int)
 dev.off()
 
 # model fit
-pdf(file="figures/figures_pdf_manuscript/FigureS3.Prevalence_sociality_fit.pdf", width =10, height =10)
+pdf(file="figures/figures_pdf_manuscript/FigureS3a.Infection_sociality_fit.pdf", width =10, height =10)
 pp_check(selected_ecto_infection_brms_bayes_no_int, type = "dens_overlay", ndraws = 100) 
 dev.off()
 
@@ -213,21 +308,104 @@ estimates_plot<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,prob=0.90, p
   geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
   xlab("Estimate")
 
-pdf(file="figures/figures_pdf_manuscript/FigureS3.Prevalence_sociality_estimates.pdf", width =10, height =10)
+pdf(file="figures/figures_pdf_manuscript/FigureS3a.Infection_sociality_estimates.pdf", width =10, height =10)
+estimates_plot
+dev.off()
+
+
+# Figure 3 d PREVALENCE ---------------------------------------------------
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3d.Prevalence_sociality_convergence.pdf", width =10, height =10)
+plot(ecto_p_brms_bayes_no_int_species_priors_zobi)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3d.Prevalence_sociality_fit.pdf", width =10, height =10)
+pp_check(ecto_p_brms_bayes_no_int_species_priors_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_zobi,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3d.Prevalence_sociality_estimates.pdf", width =10, height =10)
+estimates_plot
+dev.off()
+
+# Figure 3 d Prevalence networks -------------------------------------------
+
+# degree
+
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitydegree_convergence.pdf", width =15, height =10)
+plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitydegree_fit.pdf", width =15, height =10)
+pp_check(ecto_p_brms_bayes_no_int_species_priors_degree_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_degree_zobi,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~DEGREE")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitydegree_estimates.pdf", width =15, height =10)
+estimates_plot
+dev.off()
+
+###
+# Strength
+###
+#model convergence 
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitystrength_convergence.pdf", width =15, height =10)
+plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi)
+dev.off()
+
+# model fit
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitystrength_fit.pdf", width =15, height =10)
+pp_check(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi, type = "dens_overlay", ndraws = 100)+ xlim(0, 5)
+dev.off()
+
+#pp_check(ecto_p_brms_bayes, ndraws = 100)+ xlim(0, 5)  #  test for the model fit to the data .need to modify the scale of this plot posterior predictive checks, 100 random draws or distributions created by the model 
+#pp_check(ecto_p_brms_bayes, type="bars", ndraws = 100)+ xlim(0, 20) 
+
+#MODEL ESTIMATES
+# Dots represent means of posterior distribution along with 95% CrIs, as estimated by the bmod5 model
+
+estimates_plot<-mcmc_plot(ecto_p_brms_bayes_no_int_species_priors_w_degree_zobi,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS PREVALENCE~STRENGHT")+
+  theme_classic(30)+
+  xlim(-2,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/FigureS3d2.Prevalence_socialitystrength_estimates.pdf", width =15, height =10)
 estimates_plot
 dev.off()
 
 
 
-
-
-
-conditional_effects(selected_ecto_infection_brms_bayes_no_int)
-marginal_effects(selected_ecto_infection_brms_bayes_no_int)
-plot( conditional_effects(selected_ecto_infection_brms_bayes_no_int), 
-      points = TRUE, 
-      point_args = list(width = .05, shape = 1))
-bayes_R2() # R2 0.1529
 
 
 
