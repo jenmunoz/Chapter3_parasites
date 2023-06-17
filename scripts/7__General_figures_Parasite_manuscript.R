@@ -10,7 +10,7 @@
 # ### #### #### #### #### #### #### ### 
 
 ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, total_lice, total_no_feathers_mites ) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality,year_seasonality, mass_tidy_species, total_lice, total_no_feathers_mites ) %>% 
   na.omit() 
 
 names(ectos_birds_df)
@@ -163,7 +163,7 @@ phylo_mite_lice_richness_plot <- mites_load_plot %>% insert_left(lice_load_plot)
 # # Figure 2 a  INFECTION ***Selected***  ----------------------------
 
 # model 
-selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
+selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
 
 # plots
 color_scheme_set("brightblue")
@@ -197,7 +197,7 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_seasonality.pdf", plo
 
 #plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
 
-bayes_R2() # R2 0.1529
+bayes_R2(selected_ecto_infection_brms_bayes_no_int) # R2 0.1529
 
 # # # Figure 2 a Infection Networks ---------------------------------------
 # model degree
@@ -280,7 +280,8 @@ ggsave("figures/figures_pdf_manuscript/Figure2a4.Infection_strenght.pdf", preval
 
 # # # Figure 2 b Lice abundance -------------------------------------------
 # the model
-selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
+
+selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED_antbirds_included.RDS")
 ###_###_###_##
 #PLOTS
 ###_###_###_##
@@ -361,7 +362,7 @@ estimates_plot_intervals
 dev.off()
 # #  Figure 2 c Mites (no-feather) abundance ---------------------------
 # model 
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 
 # plots 
 color_scheme_set("green") 
@@ -450,7 +451,7 @@ dev.off()
 
 # # Figure 2 d  PREVALENCE ***Selected***--------------------------------------------------------------
 # model
-ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
+ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi_antbirds_included.RDS")
 
 # Plots
 color_scheme_set("orange") 
@@ -471,13 +472,6 @@ dev.off()
 # Conditional effects [ No predictor was considered important ]
 conditional<-conditional_effects(ecto_p_brms_bayes_no_int_species_priors_zobi)
 
-prevalence_conditional<-plot(conditional, plot = FALSE)[[""]] +
-  scale_color_grey() +
-  scale_fill_grey() +
-  xlab("Day of the year")+
-  ylab("Ectoparasite infection")+
-  theme_classic(30)
-ggsave("figures/figures_pdf_manuscript/Figure2d4.Prevalence_conditional.pdf", plot=prevalence_seasonality , height=10, width=10, units="in")
 
 # # #Figure 2 d Prevalence Networks  ----------------------------------------
 # model degree
@@ -691,7 +685,7 @@ dev.off()
 
 
 # Figure 3 b Lice abundance  ------------------------------------------
-selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
+selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS ("results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED_antbirds_included.RDS")
 
 color_scheme_set("teal")
 

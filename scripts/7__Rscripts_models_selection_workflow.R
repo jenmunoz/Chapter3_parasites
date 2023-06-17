@@ -214,6 +214,7 @@ library(loo)
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
 select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   na.omit()
+View(ectos_birds_dff)
 
 #total_lice, total_mites, total_no_feathers_mites, total_ticks
 
@@ -257,7 +258,9 @@ View(prevalence_step1)
 # Following the paper (Jovani and Tella 2006) we modeled only families with more that 10 samples, we did not use the same aproach for species because it will exclude most of our non social species.
 View(prevalence_step1)
 prevalence<-prevalence_step1 %>% summarise(family_name=first(family), total_samples=sum(n), total_positive=last(n), prevalence=((total_positive/total_samples)*100)) %>% 
-  filter(total_samples>9)
+  filter(total_samples>4)
+
+write.csv(prevalence, "data/data_manuscript/7_prevalence_ectoparasite_family_level.csv")
 
 # dIVERSITY AND COINFECTIONS
 
@@ -310,9 +313,10 @@ ectos_birds_dff %>%
 
 # ##### 1.Data processing prevalence ectos ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, sociality_groups, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   na.omit()
 #ectos_birds_dff <- get.complete.cases(ectos_birds_dff) # mke sure we get all complete cases 
+
 
 
 phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # Need to prunne the tree 
@@ -324,6 +328,8 @@ ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 ectos_birds_dff$year_seasonality<-as.numeric(ectos_birds_dff$year_seasonality)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$sociality_groups<-as.factor(ectos_birds_dff$sociality_groups) # including ant followers as social
+
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$ectoparasites_PA<-as.numeric(ectos_birds_dff$ectoparasites_PA)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
@@ -645,25 +651,9 @@ prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure 
 
 # EXCLUDED POWDER LEVEL BECAUSE IT DOES NOT SIGNIFICANTLY IMPROVE MODEL FIT # alternatively use the model ecto_p_brms_bayes_no_int_prior
 
-
-selected_ecto_infection_brms_bayes_no_int2<-brms::brm(ectoparasites_PA~sociality+
-                                                       scale(elevation)+ scale(year_seasonality)+
-                                                       scale(mass_tidy_species)+(mass_ind_comp)+
-                                                       (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
-                                             data=ectos_birds_dff,
-                                             save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
-                                             family= bernoulli(), # bernoulli() uses the (link = "logit")
-                                             data2 = list(phy_cov=phy_cov),
-                                             prior =c(prior_predictors,prior_random,prior_intercept),
-                                             iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                             thin=2,
-                                             control=list(adapt_delta=0.99, max_treedepth=14)) 
-saveRDS(selected_ecto_infection_brms_bayes_no_int2,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
-selected_ecto_infection_brms_bayes_no_int2<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
-
-
-
-selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
+#[SELECTED MODEL]
+# including the body mass of the individual scaled and ant-followers as social species 
+selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality_groups+
                                                        scale(elevation)+ scale(year_seasonality)+
                                                        scale(mass_tidy_species)+scale(mass_ind_comp)+
                                                        (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
@@ -672,13 +662,47 @@ selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
                                                      family= bernoulli(), # bernoulli() uses the (link = "logit")
                                                      data2 = list(phy_cov=phy_cov),
                                                      prior =c(prior_predictors,prior_random,prior_intercept),
-                                                     iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                      thin=2,
                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
+selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
 
 
-saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
-selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
+# including the body mass of the individual scaled
+# selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
+#                                                     scale(elevation)+ scale(year_seasonality)+
+#                                                      scale(mass_tidy_species)+(mass_ind_comp)+
+#                                                      (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
+#                                              data=ectos_birds_dff,
+#                                              save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+#                                              family= bernoulli(), # bernoulli() uses the (link = "logit")
+#                                              data2 = list(phy_cov=phy_cov),
+#                                              prior =c(prior_predictors,prior_random,prior_intercept),
+#                                              iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                              thin=2,
+#                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
+# saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+# selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED.RDS")
+
+
+
+# selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality+
+#                                                        scale(elevation)+ scale(year_seasonality)+
+#                                                        scale(mass_tidy_species)+scale(mass_ind_comp)+
+#                                                        (1|gr(species_jetz, cov = phy_cov))+ (1|species), #(1|Powder.lvl) # excluded poweder level cause it does not significantly improve model fit
+#                                                      data=ectos_birds_dff,
+#                                                      save_pars = save_pars(all=  TRUE), #if i need to use moment match but makes the model heavier
+#                                                      family= bernoulli(), # bernoulli() uses the (link = "logit")
+#                                                      data2 = list(phy_cov=phy_cov),
+#                                                      prior =c(prior_predictors,prior_random,prior_intercept),
+#                                                      iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                      thin=2,
+#                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+# 
+# 
+# saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
+# selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_ind_mass_scaled.RDS")
 
 
 ###_###_###_##
@@ -727,7 +751,7 @@ png("results/selected_models_figures/1_Fig1P_BEST_ecto_INFECTION_brms_bayes_no_i
 estimates_plot
 dev.off()
 
-estimates_plot_intervals<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int2,prob=0.90, prob_outer=0.95,point_est = "mean",
+estimates_plot_intervals<-mcmc_plot(selected_ecto_infection_brms_bayes_no_int,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +
   labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ECTOS INFECTION ")+
   theme_classic(30)+
@@ -748,16 +772,17 @@ bayes_R2(selected_ecto_infection_brms_bayes_no_int)
 # I found this solutions and decided to implement 1- response ( but phi does not converge), as that will just model the probability of not getting infecteda https://github.com/paul-buerkner/brms/issues/942
 
 ectos_birds_df<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-                           select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species ) %>% 
+                           select(elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality,sociality_groups, year_seasonality, mass_tidy_species ) %>% 
                            na.omit() %>%  filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
-
+#note sociality groups include ant followers as mixed species flockers 
 
 str(ectos_birds_df)
 
 ectos_pres_abs<-ectos_birds_df %>% group_by(species_jetz ) %>% 
-  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality), mass=max(mass_tidy_species), foraging_cat=first(foraging_cat))%>% 
+  summarise(ectoparasites_presence=(sum(ectoparasites_PA)), sample_size=(n()), elevation=mean(elevation), sociality=max(sociality_groups), mass=max(mass_tidy_species), foraging_cat=first(foraging_cat))%>% 
   mutate(proportion_ectoparasites=ectoparasites_presence/sample_size) %>% 
   na.omit() 
+View(ectos_pres_abs)
 
 ectos_birds_dff<-ectos_pres_abs %>% distinct(species_jetz,proportion_ectoparasites,.keep_all = TRUE)%>% 
   filter(sample_size>4) 
@@ -772,12 +797,13 @@ phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prev
 # Data structure
 ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
-ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
 ectos_birds_dff$proportion_ectoparasites<-as.numeric(ectos_birds_dff$proportion_ectoparasites)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
 ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
 
-ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+#ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality) # including ant followers as social
+
 str(ectos_birds_dff)
 is.ultrametric(phylo)
 
@@ -828,8 +854,8 @@ ecto_p_brms_bayes_no_int_species_priors_zobi<-brms::brm((proportion_ectoparasite
                                                                  control=list(adapt_delta=0.99, max_treedepth=14))
 
 
-saveRDS(ecto_p_brms_bayes_no_int_species_priors_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
-ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi.RDS")
+saveRDS(ecto_p_brms_bayes_no_int_species_priors_zobi, "results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi_antbirds_included.RDS")
+ecto_p_brms_bayes_no_int_species_priors_zobi<-readRDS("results/selected_models/P2s.model_prevalence_brms_phylo_SPECIES_no_interactions_priors_zobi_antbirds_included.RDS")
 
 loo(ecto_p_brms_bayes_no_int_species_priors_zobi)
 
@@ -1095,7 +1121,7 @@ dev.off()
 
 # ##### 2.Data processing abundance lice ----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, total_lice,year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp) %>% 
+  select(elevation, species_jetz, Powder.lvl,total_lice,foraging_cat, sociality, sociality_groups, total_lice,year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp) %>% 
   filter(species_jetz!="Premnoplex_brunnescens") %>% 
   na.omit()
 
@@ -1112,6 +1138,8 @@ ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 #ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$sociality_groups<-as.factor(ectos_birds_dff$sociality_groups) # including ant followers as social
+
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$total_lice<-as.numeric(ectos_birds_dff$total_lice)
 ectos_birds_dff$species<- ectos_birds_dff$species_jetz # create a column for the species effect different to the phylogenetic one
@@ -1819,44 +1847,61 @@ residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
 ##_##_Besty_##_##
 ##_###_###
 
-selected_zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                                           scale(mass_tidy_species)+(mass_ind_comp)+
-                                                       (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
-                                                       (1|Powder.lvl),
-                                                     data=ectos_birds_dff,
-                                                     family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
-                                                     data2 = list(phy_cov=phy_cov),
-                                                     prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
-                                                     save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
-                                                     iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                     thin=2,
-                                                     control=list(adapt_delta=0.99, max_treedepth=14))
+selected_zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
+                                                            scale(mass_tidy_species)+scale(mass_ind_comp)+
+                                                            (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
+                                                            (1|Powder.lvl),
+                                                          data=ectos_birds_dff,
+                                                          family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                          data2 = list(phy_cov=phy_cov),
+                                                          prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+                                                          save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
+                                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                          thin=2,
+                                                          control=list(adapt_delta=0.99, max_treedepth=14))
 
 
-saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors, "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
-selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
-
-#_##_Besty_##_##
-##_###_###
-
-selected_zinb_a_lice_brms_bayes_no_int_priors2<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                                           scale(mass_tidy_species)+scale(mass_ind_comp)+
-                                                           (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
-                                                           (1|Powder.lvl),
-                                                         data=ectos_birds_dff,
-                                                         family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
-                                                         data2 = list(phy_cov=phy_cov),
-                                                         prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
-                                                         save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
-                                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                         thin=2,
-                                                         control=list(adapt_delta=0.99, max_treedepth=14))
+saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors, "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED_antbirds_included.RDS")
 
 
-saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors2, "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
-
-loo(selected_zinb_a_lice_brms_bayes_no_int_priors2,selected_zinb_a_lice_brms_bayes_no_int_priors, compare=TRUE, moment_match = TRUE)
-###_###_###_##
+# selected_zinb_a_lice_brms_bayes_no_int_priors<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
+#                                                            scale(mass_tidy_species)+(mass_ind_comp)+
+#                                                        (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
+#                                                        (1|Powder.lvl),
+#                                                      data=ectos_birds_dff,
+#                                                      family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+#                                                      data2 = list(phy_cov=phy_cov),
+#                                                      prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+#                                                      save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
+#                                                      iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                      thin=2,
+#                                                      control=list(adapt_delta=0.99, max_treedepth=14))
+# 
+# 
+# saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors, "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
+# selected_zinb_a_lice_brms_bayes_no_int_priors<-readRDS( "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_SELECTED.RDS")
+# 
+# #_##_Besty_##_##
+# ##_###_###
+# 
+# selected_zinb_a_lice_brms_bayes_no_int_priors2<-brms::brm(total_lice~sociality+ scale(elevation)+ scale(year_seasonality)+
+#                                                            scale(mass_tidy_species)+scale(mass_ind_comp)+
+#                                                            (1|gr(species_jetz, cov = phy_cov))+ (1|species)+
+#                                                            (1|Powder.lvl),
+#                                                          data=ectos_birds_dff,
+#                                                          family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+#                                                          data2 = list(phy_cov=phy_cov),
+#                                                          prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+#                                                          save_pars = save_pars(all=  TRUE),# if i need to use moment match but makes the model heavier
+#                                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                          thin=2,
+#                                                          control=list(adapt_delta=0.99, max_treedepth=14))
+# 
+# 
+# saveRDS(selected_zinb_a_lice_brms_bayes_no_int_priors2, "results/selected_models/3_M1L.model_brms_LICE_ABUNDANCE_zinb_a_lice_brms_bayes_no_int_priors_ind_mass_scaled_SELECTED.RDS")
+# 
+# loo(selected_zinb_a_lice_brms_bayes_no_int_priors2,selected_zinb_a_lice_brms_bayes_no_int_priors, compare=TRUE, moment_match = TRUE)
+# ###_###_###_##
 #PLOTS
 ###_###_###_##
 
@@ -1933,7 +1978,7 @@ yrepnzb <- posterior_predict(brm_glmznb)
 # ##### 3.1.Data processing abundance mites ----------------------------------------------------
 
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
-  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,total_mites, total_mesostigmatidae, total_no_feathers_mites,year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,sociality_groups,total_mites, total_mesostigmatidae, total_no_feathers_mites,year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
   na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens") %>% filter(total_no_feathers_mites<61)# removing outliers 
 
 View(ectos_birds_dff)
@@ -1944,6 +1989,8 @@ ectos_birds_dff$foraging_cat<-as.factor(ectos_birds_dff$foraging_cat)
 ectos_birds_dff$species_jetz<-as.factor(ectos_birds_dff$species_jetz)
 ectos_birds_dff$elevation<-as.numeric(ectos_birds_dff$elevation)
 ectos_birds_dff$sociality<-as.factor(ectos_birds_dff$sociality)
+ectos_birds_dff$sociality_groups<-as.factor(ectos_birds_dff$sociality_groups)
+
 ectos_birds_dff$Powder.lvl<-as.factor(ectos_birds_dff$Powder.lvl)
 ectos_birds_dff$total_mites<-as.numeric(ectos_birds_dff$total_mites)
 ectos_birds_dff$total_mesostigmatidae<-as.numeric(ectos_birds_dff$total_mesostigmatidae)
@@ -2563,43 +2610,43 @@ residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
 
 View(ectos_birds_dff) # Remember that we removed one outliers with >80 
 
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
                                                               scale(mass_tidy_species)+scale(mass_ind_comp)+
                                                      (1|gr(species_jetz, cov = phy_cov))+  (1|species)+
                                                      (1|Powder.lvl),
                                                    data=ectos_birds_dff,
                                                    family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
                                                    data2 = list(phy_cov=phy_cov),
-                                                   iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                    thin=2,
                                                    prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
                                                    save_pars = save_pars(all=  TRUE),
                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
 
 
-saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED.RDS")
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED.RDS")
+saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 
 
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
-                                                               scale(mass_tidy_species)+scale(mass_ind_comp)+
-                                                               (1|gr(species_jetz, cov = phy_cov))+  (1|species)+
-                                                               (1|Powder.lvl),
-                                                             data=ectos_birds_dff,
-                                                             family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
-                                                             data2 = list(phy_cov=phy_cov),
-                                                             iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                             thin=2,
-                                                             prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
-                                                             save_pars = save_pars(all=  TRUE),
-                                                             control=list(adapt_delta=0.99, max_treedepth=14)) 
-
-saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
-        
-bayes_R2(selected_zinb_a_nf_mites_brms_bayes_no_int_prior)
-loo(selected_zinb_a_nf_mites_brms_bayes_no_int_prior,selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, compare = TRUE)
-        
+# selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-brms::brm(total_no_feathers_mites~sociality+ scale(elevation)+ scale(year_seasonality)+
+#                                                                scale(mass_tidy_species)+scale(mass_ind_comp)+
+#                                                                (1|gr(species_jetz, cov = phy_cov))+  (1|species)+
+#                                                                (1|Powder.lvl),
+#                                                              data=ectos_birds_dff,
+#                                                              family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+#                                                              data2 = list(phy_cov=phy_cov),
+#                                                              iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                              thin=2,
+#                                                              prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+#                                                              save_pars = save_pars(all=  TRUE),
+#                                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
+# 
+# saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
+# selected_zinb_a_nf_mites_brms_bayes_no_int_prior2<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_ind_mass_scaled_SELECTED.RDS")
+#         
+# bayes_R2(selected_zinb_a_nf_mites_brms_bayes_no_int_prior)
+# loo(selected_zinb_a_nf_mites_brms_bayes_no_int_prior,selected_zinb_a_nf_mites_brms_bayes_no_int_prior2, compare = TRUE)
+#         
         
   # plots 
 color_scheme_set("green") 
@@ -2640,6 +2687,36 @@ estimates_plot_intervals<-mcmc_plot(selected_zinb_a_nf_mites_brms_bayes_no_int_p
 png("results/selected_models_figures/3_Fig2M_BEST_plot_model_parameters_intervals_ZINB_MITES_ABUNDANCE_brms_bayes_no_int_scaled_individial_mass.png",width = 4000, height = 3000, res = 300, units = "px")
 estimates_plot_intervals
 dev.off()
+
+### ALL MITES INCLUDED
+
+#Priors
+
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+residual_prior<-prior(gamma(0.01, 0.01), class = "shape",lb=0) # this is the default
+residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
+
+View(ectos_birds_dff) # Remember that we removed one outliers with >80 
+
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_mites~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
+                                                              scale(mass_tidy_species)+scale(mass_ind_comp)+
+                                                              (1|gr(species_jetz, cov = phy_cov))+  (1|species)+
+                                                              (1|Powder.lvl),
+                                                            data=ectos_birds_dff,
+                                                            family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
+                                                            data2 = list(phy_cov=phy_cov),
+                                                            iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                            thin=2,
+                                                            prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
+                                                            save_pars = save_pars(all=  TRUE),
+                                                            control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+
+saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+
 
 
 # ##### 4.Data processing NETWORKS prevalence ectos ----------------------------------------------------
@@ -5119,109 +5196,6 @@ dev.off()
 
 
 
-# # ##### 7****** Modeling general diversity and Networks --no sure about this one!----------
-
-dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv",na.strings =c("","NA"))%>% 
-  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,general_diversity, degree, w_degree, year_seasonality, mass_tidy_species, mass_ind_tidy, mass_ind_comp) %>% 
-  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
-
-unique(dff_ectos_network_individual_metrics$general_diversity)
-
-unique(dff_ectos_network_individual_metrics$species_jetz) # this is teh total species that are in flocks taht we have samples for
-
-phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
-
-# Make sure the tips and the names on the file coincide and formating of name is consitent
-phylo$edge.length  
-phylo$tip.label
-is.binary(phylo)
-
-# Make sure this two are the same numbers 
-a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
-b<-(as.data.frame(dff_ectos_network_individual_metrics$species_jetz)) %>% mutate(name=dff_ectos_network_individual_metrics$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
-
-tip<-as.list(setdiff(a,b))
-print(tip)
-
-# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
-phylo<-drop.tip (phylo, tip$name) 
-
-# phylogenetic correlation structure, create a covariance matrix of species
-phy_cov<-ape::vcv(phylo, corr=TRUE)
-
-# data structure 
-
-#dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
-dff_ectos_network_individual_metrics$foraging_cat<-as.factor(dff_ectos_network_individual_metrics$foraging_cat)
-dff_ectos_network_individual_metrics$species_jetz<-as.factor(dff_ectos_network_individual_metrics$species_jetz)
-dff_ectos_network_individual_metrics$elevation<-as.numeric(dff_ectos_network_individual_metrics$elevation)
-dff_ectos_network_individual_metrics$degree<-as.numeric(dff_ectos_network_individual_metrics$degree)
-dff_ectos_network_individual_metrics$w_degree<-as.numeric(dff_ectos_network_individual_metrics$w_degree)
-dff_ectos_network_individual_metrics$year_seasonality<-as.numeric(dff_ectos_network_individual_metrics$year_seasonality)
-
-#ectos_birds_dff$elevation_midpoint<-as.numeric(ectos_birds_dff$elevation_midpoint)
-dff_ectos_network_individual_metrics$general_diversity<-as.numeric(dff_ectos_network_individual_metrics$general_diversity)
-dff_ectos_network_individual_metrics$Powder.lvl<-as.factor(dff_ectos_network_individual_metrics$Powder.lvl)
-dff_ectos_network_individual_metrics$species<-dff_ectos_network_individual_metrics$species_jetz # create a column for the species effect different to the phylogenetic one
-
-dff_ectos_network_individual_metrics$species<-as.factor(dff_ectos_network_individual_metrics$species)
-dff_ectos_network_individual_metrics$mass_tidy_species<-as.numeric(dff_ectos_network_individual_metrics$mass_tidy_species)
-dff_ectos_network_individual_metrics$mass_ind_tidy<-as.numeric(dff_ectos_network_individual_metrics$mass_ind_tidy)
-dff_ectos_network_individual_metrics$mass_ind_comp<-as.numeric(dff_ectos_network_individual_metrics$mass_ind_comp)
-
-names(dff_ectos_network_individual_metrics)
-is.ultrametric(phylo)
-
-# the model 
-
-#prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
-prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
-prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
-#prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
-
-
-selected_poisson_general_diversity_no_int_priors_mass_degree_trunc<-brms::brm(general_diversity|trunc(ub=3)~scale(degree)+ scale(elevation)+scale(year_seasonality)+
-                                                                                scale(mass_tidy_species)+scale(mass_ind_comp)+
-                                                                                (1|Powder.lvl)+
-                                                                    (1|gr(species_jetz, cov = phy_cov))+
-                                                                    (1|species),
-                                                                  data=dff_ectos_network_individual_metrics,
-                                                                  family=zero_inflated_poisson(),  #zero_inflated_negbinomial()
-                                                                  data2 = list(phy_cov=phy_cov),
-                                                                  iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                  thin=2,
-                                                                  save_pars = save_pars(all=  TRUE),
-                                                                  prior = c(prior_predictors,prior_random),
-                                                                  control=list(adapt_delta=0.99, max_treedepth=14)) 
-
-
-selected_poisson_general_diversity_no_int_priors_mass_strenght_trunc<-brms::brm(general_diversity|trunc(ub=3)~scale(w_degree)+ scale(elevation)+scale(year_seasonality)+
-                                                                                scale(mass_tidy_species)+scale(mass_ind_comp)+
-                                                                                (1|Powder.lvl)+
-                                                                                (1|gr(species_jetz, cov = phy_cov))+
-                                                                                (1|species),
-                                                                              data=dff_ectos_network_individual_metrics,
-                                                                              family=poisson(),  #zero_inflated_negbinomial()
-                                                                              data2 = list(phy_cov=phy_cov),
-                                                                              iter=6000, warmup=3000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                              thin=2,
-                                                                              save_pars = save_pars(all=  TRUE),
-                                                                              prior = c(prior_predictors,prior_random),
-                                                                              control=list(adapt_delta=0.99, max_treedepth=14)) 
-
-
-estimates_plot_intervals<-mcmc_plot(selected_poisson_general_diversity_no_int_priors_mass_strenght_trunc,prob=0.90, prob_outer=0.95,point_est = "mean",
-                                    type="intervals") +
-  labs(title="Posterior distributions with medians and 95% intervals", subtitle ="ZINB LICE diversity ")+
-  theme_classic(30)+
-  xlim(-5,5)+
-  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
-  xlab("Estimate")
-
-png("results/selected_models_figures/diversity_trial.png",width = 4000, height = 3000, res = 300, units = "px")
-estimates_plot_intervals
-dev.off()
-
 # # ##### 7 Modeling LICE DIVERSITY -------------------------------------------
 
 #The lice diversity file
@@ -5612,7 +5586,7 @@ selected_poisson_lice_diversity_w_degree_no_int_priors<-brms::brm(cumulative_ric
 
 
 saveRDS(selected_poisson_lice_diversity_w_degree_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
-
+selected_poisson_lice_diversity_w_degree_no_int_priors<-readRDS( "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_w_degree.RDS")
 
 
 selected_poisson_lice_diversity_w_degree_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0,ub=3)~scale(degree_w_species)+
