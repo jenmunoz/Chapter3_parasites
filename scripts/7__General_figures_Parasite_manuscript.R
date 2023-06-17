@@ -393,6 +393,37 @@ ggsave("figures/figures_pdf_manuscript/Figure2c4.Mice_and_elevation.pdf", plot=m
 
 #plot(conditional_effects(selected_ecto_infection_brms_bayes_no_int), ask = FALSE)
 
+#  Figure 2 c Mites (all mites) abundance  --------------------------------
+
+saveRDS(selected_zinb_a_all_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_ALL_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+
+# plots 
+color_scheme_set("purple") 
+
+estimates_plot_intervals<-mcmc_plot(selected_zinb_a_all_mites_brms_bayes_no_int_prior, prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title=" Posterior distributions with medians and 95% intervals ", subtitle ="ZINB MITES ABUNDANCE ")+
+  theme_classic(30)+
+  xlim(-5,5)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey20")+
+  xlab("Estimate")
+
+pdf(file="figures/figures_pdf_manuscript/Figure2c1.Mites_abundance_sociality_intervals_all_mites.pdf", width =15, height =10)
+estimates_plot_intervals
+dev.off()
+
+# # Conditional effects for varaibles tahta are important predictors
+#prevalence_seasonality<-conditional_effects(selected_ecto_infection_brms_bayes_no_int, "year_seasonality",points=TRUE, rug=TRUE)
+conditional<-conditional_effects(selected_zinb_a_all_mites_brms_bayes_no_int_prior)
+
+mites_elevation<-plot(conditional, plot = FALSE)[["year_seasonality"]] +
+  scale_color_grey() +
+  scale_fill_grey() +
+  xlab("Day of the year")+
+  ylab("Mites abundance")+
+  theme_classic(30)
+ggsave("figures/figures_pdf_manuscript/Figure2c4.All mites and seasonality.pdf", plot=mites_elevation , height=10, width=10, units="in")
+
 # # # Figure 2 c Mites (no-feather) abundance Networks---------------------------
 
 # model degree
@@ -526,7 +557,9 @@ dev.off()
 
 # # # Figure 2e Lice richness --------------------------------------------
 
-selected_poisson_lice_diversity_sociality_no_int_priors<-readRDS( "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated.RDS")
+color_scheme_set("red") 
+
+selected_poisson_lice_diversity_sociality_no_int_priors<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated_antfollowers_included.RDS")
 
 estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",
                                     type="intervals") +

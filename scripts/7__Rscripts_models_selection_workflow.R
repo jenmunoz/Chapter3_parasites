@@ -2700,7 +2700,7 @@ residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
 
 View(ectos_birds_dff) # Remember that we removed one outliers with >80 
 
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_mites~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
+selected_zinb_a_all_mites_brms_bayes_no_int_prior<-brms::brm(total_mites~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
                                                               scale(mass_tidy_species)+scale(mass_ind_comp)+
                                                               (1|gr(species_jetz, cov = phy_cov))+  (1|species)+
                                                               (1|Powder.lvl),
@@ -2714,8 +2714,8 @@ selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_mites~socialit
                                                             control=list(adapt_delta=0.99, max_treedepth=14)) 
 
 
-saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
-selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+saveRDS(selected_zinb_a_all_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_ALL_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
+selected_zinb_a_all_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_ALL_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 
 
 
@@ -5266,6 +5266,8 @@ phy_cov<-ape::vcv(phylo, corr=TRUE)
 #dff_ectos_network_individual_metrics$elevation_cat<-as.factor(ectos_birds_dff$elevation_cat)
 dff_lice_diversity$cumulative_richness<-as.numeric(dff_lice_diversity$cumulative_richness)
 dff_lice_diversity$sociality<-as.factor(dff_lice_diversity$sociality)
+dff_lice_diversity$sociality_groups<-as.factor(dff_lice_diversity$sociality_groups)
+
 dff_lice_diversity$elevation_midpoint<-as.numeric(dff_lice_diversity$elevation_midpoint)
 dff_lice_diversity$mass_tidy_species<-as.numeric(dff_lice_diversity$mass_tidy_species)
 dff_lice_diversity$total_sample_size<-as.numeric(dff_lice_diversity$total_sample_size)
@@ -5290,28 +5292,11 @@ prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows
 prior_summary(selected_poisson_lice_diversity_sociality_no_int_priors_trunc)
 unique(dff_lice_diversity$cumulative_richness)
 
-selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
-                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
-                                                                           scale(total_sample_size)+
-                                                                    (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                    (1|species),
-                                                                  data=dff_lice_diversity,
-                                                                  family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
-                                                                  data2 = list(phy_cov=phy_cov),
-                                                                  iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                  thin=2,
-                                                                  prior = c(prior_predictors,prior_random),
-                                                                  save_pars = save_pars(all=  TRUE),
-                                                                  control=list(adapt_delta=0.999, max_treedepth=14)) 
-
-
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
-selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 
 #### non trncuating the distribution 
 
 
-selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality+
+selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality_groups+
                                                                      scale(elevation_midpoint)+scale(mass_tidy_species)+
                                                                      (1|total_sample_size)+
                                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
@@ -5325,29 +5310,48 @@ selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_ri
                                                                    save_pars = save_pars(all=  TRUE),
                                                                    control=list(adapt_delta=0.999, max_treedepth=14)) 
 
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated.RDS")
+saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated_antfollowers_included.RDS")
+
+
+# selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
+#                                                                            scale(elevation_midpoint)+scale(mass_tidy_species)+
+#                                                                            scale(total_sample_size)+
+#                                                                     (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+#                                                                     (1|species),
+#                                                                   data=dff_lice_diversity,
+#                                                                   family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
+#                                                                   data2 = list(phy_cov=phy_cov),
+#                                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                                   thin=2,
+#                                                                   prior = c(prior_predictors,prior_random),
+#                                                                   save_pars = save_pars(all=  TRUE),
+#                                                                   control=list(adapt_delta=0.999, max_treedepth=14)) 
+# 
+# 
+# saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
+# selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc.RDS")
 
 # similar analyses but with sample size 10 or more
 
-sd(scale(dff_lice_diversity$mass_tidy_species))
-sd()
-selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
-                                                                           scale(elevation_midpoint)+scale(mass_tidy_species)+
-                                                                           scale(total_sample_size)+
-                                                                           (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                           (1|species),
-                                                                         data=dff_lice_diversity,
-                                                                         family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
-                                                                         data2 = list(phy_cov=phy_cov),
-                                                                         iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                         thin=2,
-                                                                         prior = c(prior_predictors,prior_random),
-                                                                         save_pars = save_pars(all=  TRUE),
-                                                                         control=list(adapt_delta=0.999, max_treedepth=14)) 
-
-
-saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
-selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
+# sd(scale(dff_lice_diversity$mass_tidy_species))
+# sd()
+# selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10<-brms::brm(cumulative_richness|trunc(lb=0, ub=3)~sociality+
+#                                                                            scale(elevation_midpoint)+scale(mass_tidy_species)+
+#                                                                            scale(total_sample_size)+
+#                                                                            (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+#                                                                            (1|species),
+#                                                                          data=dff_lice_diversity,
+#                                                                          family=poisson("log"), # "sqrt" #zero_inflated_negbinomial()
+#                                                                          data2 = list(phy_cov=phy_cov),
+#                                                                          iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+#                                                                          thin=2,
+#                                                                          prior = c(prior_predictors,prior_random),
+#                                                                          save_pars = save_pars(all=  TRUE),
+#                                                                          control=list(adapt_delta=0.999, max_treedepth=14)) 
+# 
+# 
+# saveRDS(selected_poisson_lice_diversity_sociality_no_int_priors_trunc_sample10, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
+# selected_poisson_lice_diversity_sociality_no_int_priors_trunc<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_trunc_10_samples.RDS")
 
 
 
@@ -5513,6 +5517,116 @@ selected_poisson_lice_diversity_degree_no_int_priors<-brms::brm(cumulative_richn
                                                                       control=list(adapt_delta=0.99, max_treedepth=14)) 
 
 saveRDS(selected_poisson_lice_diversity_degree_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
+
+
+# same bu only with more tahn 10 samples no truncated 
+
+dff_lice_diversity_networks<-read.csv("data/data_manuscript/3_dff_ectos_diversity_network_metrics_species_FILE_TIDY.csv") %>% filter(total_sample_size>10)%>% 
+  select(-sample_size)
+dff_lice_diversity_networks$cumulative_richness[is.na(dff_lice_diversity_networks$cumulative_richness)] = 0
+#str(dff_lice_diversity_networks)
+phylo<-read.nexus("data/phylo_data/consensus/1_consensus_birdtreeManu_ectos_prevalence.nex")  # This include speceis form manu and iquitos social and non social so we need to trim it 
+
+# Make sure the tips and the names on the file coincide and formating of name is consitent
+phylo$edge.length  
+phylo$tip.label
+is.binary(phylo)
+
+# Make sure this two are the same numbers 
+a<-(as.data.frame(phylo$tip.label))%>% mutate(name=phylo$tip.label) %>% select(name) %>% arrange(desc(name))
+b<-(as.data.frame(dff_lice_diversity_networks$species_jetz)) %>% mutate(name=dff_lice_diversity_networks$species_jetz) %>% select(name) %>% arrange(desc(name)) %>% distinct(name)
+
+tip<-as.list(setdiff(a,b))
+print(tip)
+
+# Drop some tips USE IF NEED TO DROP SOME TIPS when using the full phylogeny
+phylo<-drop.tip (phylo, tip$name) 
+
+# phylogenetic correlation structure, create a covariance matrix of species
+phy_cov<-ape::vcv(phylo, corr=TRUE)
+
+names(dff_lice_diversity_networks)
+# data structure 
+
+dff_lice_diversity_networks$cumulative_richness<-as.numeric(dff_lice_diversity_networks$cumulative_richness)
+dff_lice_diversity_networks$sociality<-as.factor(dff_lice_diversity_networks$sociality)
+#dff_lice_diversity_networks$degree_species<-as.numeric(dff_lice_diversity_networks$degree_species)
+#dff_lice_diversity_networks$degree_w_species<-as.numeric(dff_lice_diversity_networks$degree_w_species)
+
+dff_lice_diversity_networks$elevation_midpoint<-as.numeric(dff_lice_diversity_networks$elevation_midpoint)
+dff_lice_diversity_networks$mass_tidy_species<-as.numeric(dff_lice_diversity_networks$mass_tidy_species)
+dff_lice_diversity_networks$total_sample_size<-as.numeric(dff_lice_diversity_networks$total_sample_size)
+
+dff_lice_diversity_networks$foraging_cat<-as.factor(dff_lice_diversity_networks$foraging_cat)
+dff_lice_diversity_networks$species_jetz<-as.factor(dff_lice_diversity_networks$species_jetz)
+dff_lice_diversity_networks$species<-as.factor(dff_lice_diversity_networks$species_jetz) # create a column for the species effect different to the phylogenetic one
+
+
+#model
+
+#prior_predictors<-prior("normal(0,10)", class ="b") # Mean of 0 shoudl works, cause our predictors are scaled
+prior_predictors<-prior("student_t(3,0,10)", class ="b") # This prior is generating divergent transitions os i move to amore weakly informative parameter
+prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+#prior_random<- prior("normal(0,10)", class="sd",lb=0) # half student allows to only incorporate positive values 
+
+#prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
+
+selected_poisson_lice_diversity_degree_no_int_priors_10<-brms::brm(cumulative_richness~scale(degree_species)+
+                                                                  scale(elevation_midpoint)+scale(mass_tidy_species)+ scale(total_sample_size)+
+                                                                  (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                  (1|species),
+                                                                data=dff_lice_diversity_networks,
+                                                                family=poisson(),  #zero_inflated_negbinomial()
+                                                                data2 = list(phy_cov=phy_cov),
+                                                                iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                thin=2,
+                                                                prior = c(prior_predictors,prior_random),
+                                                                save_pars = save_pars(all=  TRUE),
+                                                                control=list(adapt_delta=0.99, max_treedepth=14)) 
+
+saveRDS(selected_poisson_lice_diversity_degree_no_int_priors_10, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree_10.RDS")
+
+# plots 
+
+# poisson 
+#model convergence 
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_CONVERGENCE_LICE_DIVERSITY_DEGREE_poisson_trunc.png",width = 3000, height = 3000, res = 300, units = "px")
+plot(selected_poisson_lice_diversity_degree_no_int_priors_10)
+dev.off()
+
+# model fit
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_FIT_LICE_DIVERSITY_DEGREE_poisson.png",width = 3000, height = 3000, res = 300, units = "px")
+pp_check(selected_poisson_lice_diversity_degree_no_int_priors_10, type = "dens_overlay", ndraws = 100)+ xlim(0, 20)
+dev.off()
+
+#ESTIMATES
+
+estimates_plot<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors_10,prob=0.90, prob_outer=0.95,
+                          type="areas") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="LICE DIVERSITY ~DEGREE")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_parameters_LICE_DIVERSITY_DEGREE_poisson_trunc.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot
+dev.off()
+
+estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_degree_no_int_priors_10,prob=0.90, prob_outer=0.95,point_est = "mean",
+                                    type="intervals") +
+  labs(title="Posterior distributions with medians and 95% intervals ", subtitle ="  LICE DIVERSITY~DEGREE ")+
+  xlim(-4,4)+
+  theme_classic(30)+
+  geom_vline(xintercept = 0, linetype = 2, colour = "grey10")+
+  xlab("Estimate")
+
+png("results/selected_models_figures/5_Fig_DLD_BEST_plot_model_parameters_intervals_LICE_DIVERSITY_DEGREE_poisson.png",width = 4000, height = 3000, res = 300, units = "px")
+estimates_plot_intervals
+dev.off()
+
+### TRUNCATED
+
 
 #truncated is not working well several 50 divergent transitions
 selected_poisson_lice_diversity_degree_no_int_priors_trunc<-brms::brm(cumulative_richness|trunc(lb=0,ub=3)~scale(degree_species)+
