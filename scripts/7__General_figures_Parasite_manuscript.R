@@ -558,7 +558,7 @@ dev.off()
 # # # Figure 2e Lice richness --------------------------------------------
 
 color_scheme_set("red") 
-
+selected_poisson_lice_diversity_sociality_no_int_priors
 selected_poisson_lice_diversity_sociality_no_int_priors<-readRDS("results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_NO_truncated_antfollowers_included.RDS")
 
 estimates_plot_intervals<-mcmc_plot(selected_poisson_lice_diversity_sociality_no_int_priors,prob=0.90, prob_outer=0.95,point_est = "mean",

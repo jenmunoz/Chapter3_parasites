@@ -2659,7 +2659,6 @@ selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mi
                                                    save_pars = save_pars(all=  TRUE),
                                                    control=list(adapt_delta=0.99, max_treedepth=14)) 
 
-
 saveRDS(selected_zinb_a_nf_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_nf_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 
@@ -5539,18 +5538,25 @@ prior_random<- prior("student_t(3,0,10)", class="sd",lb=0) # half student allows
 
 #prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure what are good priors for an intercept shoudl I ALSO include negative values?
 
+
+
 selected_poisson_lice_diversity_degree_no_int_priors<-brms::brm(cumulative_richness~scale(degree_species)+
-                                                                        scale(elevation_midpoint)+scale(mass_tidy_species)+ scale(total_sample_size)+
-                                                                        (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
-                                                                        (1|species),
-                                                                      data=dff_lice_diversity_networks,
-                                                                      family=poisson(),  #zero_inflated_negbinomial()
-                                                                      data2 = list(phy_cov=phy_cov),
-                                                                      iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
-                                                                      thin=2,
-                                                                      prior = c(prior_predictors,prior_random),
-                                                                      save_pars = save_pars(all=  TRUE),
-                                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
+                                                                     scale(elevation_midpoint)+
+                                                                     scale(total_sample_size)+
+                                                                     scale(mass_tidy_species)+
+                                                                     (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
+                                                                     (1|species),
+                                                                   data=dff_lice_diversity_networks,
+                                                                   family=poisson(),  #zero_inflated_negbinomial()
+                                                                   data2 = list(phy_cov=phy_cov),
+                                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                                   thin=2,
+                                                                   prior = c(prior_predictors,prior_random),
+                                                                   save_pars = save_pars(all=  TRUE),
+                                                                   control=list(adapt_delta=0.999, max_treedepth=14)) 
+
+
+
 
 saveRDS(selected_poisson_lice_diversity_degree_no_int_priors, "results/selected_models/5_DL.model_lICE_diversity_brms_phylo_multiple_obs_no_interactions_degree.RDS")
 
