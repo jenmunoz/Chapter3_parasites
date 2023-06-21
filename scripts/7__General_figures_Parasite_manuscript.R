@@ -396,7 +396,7 @@ ggsave("figures/figures_pdf_manuscript/Figure2c4.Mice_and_elevation.pdf", plot=m
 #  Figure 2 c Mites (all mites) abundance  --------------------------------
 
 saveRDS(selected_zinb_a_all_mites_brms_bayes_no_int_prior, "results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_ALL_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
-
+selected_zinb_a_all_mites_brms_bayes_no_int_prior<-readRDS("results/selected_models/3_M1MNF.model_prevalence_zinb_brms_ABUNDANCE_ALL_MITES_phylo_multiple_obs_no_interactions_prior_SELECTED_antfollowers_included.RDS")
 # plots 
 color_scheme_set("purple") 
 
@@ -1185,7 +1185,4 @@ print(summary(selected_poisson_lice_diversity_degree_no_int_priors))
 sink()
 
 
-
-sink("infection_model.txt")
-print(summary(selected_ecto_infection_brms_bayes_no_int))
-sink()  # returns output to the console
+# Returns output to the console
