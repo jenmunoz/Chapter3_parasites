@@ -1,0 +1,37 @@
+ Family: zero_inflated_negbinomial 
+  Links: mu = log; shape = identity; zi = identity 
+Formula: total_mites ~ sociality_groups + scale(elevation) + scale(year_seasonality) + scale(mass_tidy_species) + scale(mass_ind_comp) + (1 | gr(species_jetz, cov = phy_cov)) + (1 | species) + (1 | Powder.lvl) 
+   Data: ectos_birds_dff (Number of observations: 802) 
+  Draws: 4 chains, each with iter = 8000; warmup = 4000; thin = 2;
+         total post-warmup draws = 8000
+
+Group-Level Effects: 
+~Powder.lvl (Number of levels: 7) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     1.31      0.77     0.40     3.31 1.00     5830     6719
+
+~species (Number of levels: 129) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.90      0.24     0.33     1.30 1.00     1557     2009
+
+~species_jetz (Number of levels: 129) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     1.45      0.56     0.39     2.59 1.01     1344     2326
+
+Population-Level Effects: 
+                       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept                  1.88      0.99    -0.15     3.74 1.00     5915     6404
+sociality_groups1         -0.17      0.38    -0.90     0.55 1.00     7037     7113
+scaleelevation             0.00      0.18    -0.36     0.36 1.00     6534     6406
+scaleyear_seasonality     -0.22      0.08    -0.37    -0.06 1.00     6376     5994
+scalemass_tidy_species    -0.11      0.16    -0.42     0.22 1.00     6898     6809
+scalemass_ind_comp        -0.03      0.07    -0.15     0.11 1.00     6855     6444
+
+Family Specific Parameters: 
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+shape     0.41      0.03     0.36     0.46 1.00     5881     6920
+zi        0.01      0.01     0.00     0.04 1.00     6639     5537
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).

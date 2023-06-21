@@ -1,0 +1,33 @@
+ Family: zero_one_inflated_beta 
+  Links: mu = logit; phi = identity; zoi = identity; coi = identity 
+Formula: (proportion_ectoparasites) ~ scale(degree_species) + scale(elevation) + scale(sample_size) + scale(mass) + (1 | gr(species_jetz, cov = phy_cov)) + (1 | species) 
+   Data: ectos_birds_dff (Number of observations: 47) 
+  Draws: 4 chains, each with iter = 8000; warmup = 4000; thin = 2;
+         total post-warmup draws = 8000
+
+Group-Level Effects: 
+~species (Number of levels: 47) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.19      0.14     0.01     0.54 1.00     6487     5830
+
+~species_jetz (Number of levels: 47) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.32      0.25     0.01     0.93 1.00     5482     5713
+
+Population-Level Effects: 
+                    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept               0.93      0.30     0.28     1.50 1.00     6428     5829
+scaledegree_species     0.04      0.18    -0.30     0.40 1.00     6548     6359
+scaleelevation          0.00      0.20    -0.39     0.42 1.00     6552     7185
+scalesample_size        0.19      0.18    -0.17     0.55 1.00     6333     6872
+scalemass               0.15      0.22    -0.26     0.59 1.00     6692     7168
+
+Family Specific Parameters: 
+    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+phi     3.48      0.60     2.39     4.74 1.00     6814     6894
+zoi     0.20      0.06     0.11     0.32 1.00     6509     6477
+coi     0.91      0.09     0.68     1.00 1.00     6058     5991
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).

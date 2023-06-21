@@ -210,6 +210,42 @@ library(rstan)
 library(rstanarm)
 library(loo)
 
+# # ## 0. Models selected -------------------------------------------------
+
+#Models
+
+#Infection
+selected_ecto_infection_brms_bayes_no_int
+
+#Infection networks
+selected_ecto_p_brms_bayes_no_int_degree_prior
+
+#Abundance Lice
+selected_zinb_a_lice_brms_bayes_no_int_priors
+
+#Abundance Lice networks
+selected_zinb_a_lice_brms_bayes_no_int_degree_prior
+
+#Abundance non-feather mites 
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior
+
+#Abundance non-feather mites networks
+selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior
+
+#Abundance all mites 
+selected_zinb_a_all_mites_brms_bayes_no_int_prior
+
+#Prevalence
+ecto_p_brms_bayes_no_int_species_priors_zobi
+
+#Prevalence networks
+ecto_p_brms_bayes_no_int_species_priors_degree_zobi
+
+#Lice richness
+selected_poisson_lice_diversity_sociality_no_int_priors
+
+#Lice richness networks 
+selected_poisson_lice_diversity_degree_no_int_priors
 # ### 0. Data summaries  -----------------------------------------------------
 ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
 select(general_diversity, family,elevation, species_jetz, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
@@ -5297,8 +5333,8 @@ unique(dff_lice_diversity$cumulative_richness)
 
 
 selected_poisson_lice_diversity_sociality_no_int_priors<-brms::brm(cumulative_richness~sociality_groups+
-                                                                     scale(elevation_midpoint)+scale(mass_tidy_species)+
-                                                                     (1|total_sample_size)+
+                                                                     scale(elevation_midpoint)+scale(total_sample_size)+
+                                                                     scale(mass_tidy_species)+
                                                                      (1|gr(species_jetz, cov = phy_cov))+  #(1|Powder.lvl)
                                                                      (1|species),
                                                                    data=dff_lice_diversity,

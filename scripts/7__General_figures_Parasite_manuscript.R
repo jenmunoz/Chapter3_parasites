@@ -1107,3 +1107,85 @@ estimates_plot
 dev.off()
 
 
+
+
+
+
+# Tables  -----------------------------------------------------------------
+
+## Table 1 model summaries 
+
+#Infection
+selected_ecto_infection_brms_bayes_no_int
+sink("tables/tables_manuscript/infection_model.txt")
+print(summary(selected_ecto_infection_brms_bayes_no_int))
+sink()  # returns output to the console
+
+
+#Infection networks
+selected_ecto_p_brms_bayes_no_int_degree_prior
+sink("tables/tables_manuscript/infection_networks_model.txt")
+print(summary(selected_ecto_p_brms_bayes_no_int_degree_prior))
+sink()  # returns output to the console
+
+#Abundance Lice
+selected_zinb_a_lice_brms_bayes_no_int_priors
+sink("tables/tables_manuscript/abundance_lice_model.txt")
+print(summary(selected_zinb_a_lice_brms_bayes_no_int_priors))
+sink()  # returns output to the console
+
+
+#Abundance Lice networks
+selected_zinb_a_lice_brms_bayes_no_int_degree_prior
+sink("tables/tables_manuscript/abundance_lice_networks_model.txt")
+print(summary(selected_zinb_a_lice_brms_bayes_no_int_degree_prior))
+sink()  # returns output to the console
+
+#Abundance non-feather mites 
+selected_zinb_a_nf_mites_brms_bayes_no_int_prior
+sink("tables/tables_manuscript/abundance_nf_mites_model.txt")
+print(summary(selected_zinb_a_nf_mites_brms_bayes_no_int_prior))
+sink()  # returns output to the console
+
+#Abundance non-feather mites networks
+selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior
+sink("tables/tables_manuscript/abundance_nf_mites_networks_model.txt")
+print(summary(selected_zinb_a_nf_mites_brms_bayes_no_int_degree_prior))
+sink()  # returns output to the console
+
+
+#Abundance all mites 
+selected_zinb_a_all_mites_brms_bayes_no_int_prior
+sink("tables/tables_manuscript/abundance_all_mites_model.txt")
+print(summary(selected_zinb_a_all_mites_brms_bayes_no_int_prior))
+sink()  # returns output to the console
+
+#Prevalence
+ecto_p_brms_bayes_no_int_species_priors_zobi
+sink("tables/tables_manuscript/prevalence.txt")
+print(summary(ecto_p_brms_bayes_no_int_species_priors_zobi))
+sink()
+
+#Prevalence networks
+ecto_p_brms_bayes_no_int_species_priors_degree_zobi
+sink("tables/tables_manuscript/prevalence_networks.txt")
+print(summary(ecto_p_brms_bayes_no_int_species_priors_degree_zobi))
+sink()
+
+#Lice richness
+selected_poisson_lice_diversity_sociality_no_int_priors
+sink("tables/tables_manuscript/lice_richness.txt")
+print(summary(selected_poisson_lice_diversity_sociality_no_int_priors))
+sink()
+
+#Lice richness networks 
+selected_poisson_lice_diversity_degree_no_int_priors
+sink("tables/tables_manuscript/lice_richness_networks.txt")
+print(summary(selected_poisson_lice_diversity_degree_no_int_priors))
+sink()
+
+
+
+sink("infection_model.txt")
+print(summary(selected_ecto_infection_brms_bayes_no_int))
+sink()  # returns output to the console
