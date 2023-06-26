@@ -2644,7 +2644,7 @@ prior_intercept<-prior("student_t(3,0,10)", class="Intercept")  # I am not sure 
 residual_prior<-prior(gamma(0.01, 0.01), class = "shape",lb=0) # this is the default
 residual_prior2<-prior(beta(1,1), class = "zi",lb=0,ub=1) # this is teh default
 
-View(ectos_birds_dff) # Remember that we removed one outliers with >80 
+#View(ectos_birds_dff) # Remember that we removed one outliers with >80 
 
 selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mites~sociality_groups+ scale(elevation)+ scale(year_seasonality)+
                                                               scale(mass_tidy_species)+scale(mass_ind_comp)+
@@ -2653,7 +2653,7 @@ selected_zinb_a_nf_mites_brms_bayes_no_int_prior<-brms::brm(total_no_feathers_mi
                                                    data=ectos_birds_dff,
                                                    family=zero_inflated_negbinomial(),  #zero_inflated_negbinomial()
                                                    data2 = list(phy_cov=phy_cov),
-                                                   iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
+                                                   iter=10000, warmup=5000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                    thin=2,
                                                    prior = c(prior_predictors,prior_random,prior_intercept,residual_prior,residual_prior2),
                                                    save_pars = save_pars(all=  TRUE),
