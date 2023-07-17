@@ -903,6 +903,8 @@ dev.off()
 
 
 # Figure 3 d PREVALENCE ---------------------------------------------------
+color_scheme_set("orange") 
+
 #model convergence 
 pdf(file="figures/figures_pdf_manuscript/FigureS3d.Prevalence_sociality_convergence.pdf", width =10, height =10)
 plot(ecto_p_brms_bayes_no_int_species_priors_zobi)
@@ -1186,3 +1188,22 @@ sink()
 
 
 # Returns output to the console
+
+
+# Supplementary tables -----------------------------------------------------
+
+# Sample size per species
+ectos_birds_dff<-read.csv("data/data_manuscript/3_dff_all_ectos_prevalence_abundance_diversity_individual_elevation_mass_FILE_TIDY.csv", na.strings =c("","NA")) %>% 
+  select(elevation, species_jetz,species_taxonomy_SACC_2021,family, Powder.lvl,ectoparasites_PA, foraging_cat,sociality, sociality_groups, year_seasonality, mass_tidy_species, mass_ind_tidy,mass_ind_comp ) %>% 
+  na.omit()
+
+
+unique(ectos_birds_dff$species_taxonomy_SACC_2021)
+
+species_list_sample_size<-ectos_birds_dff %>% group_by(species_taxonomy_SACC_2021,species_jetz,family) %>% 
+  summarise(sample_size=n()) %>% arrange(family)
+
+  
+write.csv(species_list_sample_size,"tables/tables_manuscript/species_list_sample_size.csv" )
+
+getwd()
