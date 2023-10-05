@@ -75,12 +75,7 @@ library("pacman")
 install.packages('BiocManager')
 library("BiocManager")
 
-packages_data_cleaning<-c("tidyverse","dplyr","data.table","extrafont","lubridate","janitor","assertr")
-packages_visualizations<-c("vegan", "ggplot2","devtools","knitr","ts","RColorBrewer","ggridges","ggtree","aplot")
-packages_models<-c("car","lattice", "lme4","visreg","lsmeans","MuMIn","emmeans","DHARMa")
-p_load(packages_data_cleaning)
-p_load(packages_visualizations)
-p_load(packages_models)
+
 
 #install.packages("tidyr") 
 install.packages("tidyverse") 
@@ -701,8 +696,10 @@ selected_ecto_infection_brms_bayes_no_int<-brms::brm(ectoparasites_PA~sociality_
                                                      iter=8000, warmup=4000, #First we need the specify how many iteration we want the MCMC to run, We need to specify how many chains we want to run.
                                                      thin=2,
                                                      control=list(adapt_delta=0.99, max_treedepth=14)) 
-saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
+#saveRDS(selected_ecto_infection_brms_bayes_no_int,"results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
 selected_ecto_infection_brms_bayes_no_int<-readRDS("results/selected_models/1_M1P_model_INFECTION_bernu_brms_phylo_multiple_obs_no_interactions_priors_SELECTED_antfollowers_included.RDS")
+
+coef(selected_ecto_infection_brms_bayes_no_int)
 
 
 # including the body mass of the individual scaled
