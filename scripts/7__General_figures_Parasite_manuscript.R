@@ -1113,6 +1113,27 @@ dev.off()
 
 
 
+
+dff_ectos_network_individual_metrics<-read.csv("data/data_manuscript/3_dff_all_ectos_network_metrics_individuals_FILE_TIDY.csv",na.strings =c("","NA"))%>% 
+  select(elevation, species_jetz, Powder.lvl,foraging_cat, sociality,ectoparasites_PA, degree, w_degree, year_seasonality, mass_tidy_species, mass_ind_tidy, mass_ind_comp) %>% 
+  na.omit() %>% filter(species_jetz!="Premnoplex_brunnescens")  #Removing outliers for total mites
+
+names(dff_ectos_network_individual_metrics)
+
+network_metrics_correlation_plot<-ggplot(dff_ectos_network_individual_metrics, aes(y = w_degree, x =degree)) +
+  geom_point(size=4, alpha=0.5) +  # Add scatterplot points
+  geom_smooth(method = "lm", se = FALSE,color = "maroon") +  # Add linear model fit line
+  labs(x = "Degree", y = "Strength") +  # Label the axes
+  theme_classic(30)  
+
+pdf(file="figures/figures_pdf_manuscript/FigureS_network_metrics_correlation_plot.pdf", width =15, height =10)
+network_metrics_correlation_plot
+dev.off()
+
+
+# #### Correlation network metrics ----------------------------------------
+
+
 # Tables  -----------------------------------------------------------------
 
 ## Table 1 model summaries 
